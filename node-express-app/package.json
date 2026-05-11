@@ -1,0 +1,22 @@
+{
+  "name": "node-express-app",
+  "version": "1.0.0",
+  "description": "A Node.js and Express application with Supabase integration.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "@supabase/supabase-js": "^1.28.0",
+    "dotenv": "^10.0.0",
+    "jsonwebtoken": "^8.5.1",
+    "bcrypt": "^5.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.12"
+  },
+  "author": "",
+  "license": "ISC"
+}
