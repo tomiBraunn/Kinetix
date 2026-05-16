@@ -1,4 +1,4 @@
-// This file exports the authMiddleware which validates a JWT from the Authorization header.
+
 
 const jwt = require('jsonwebtoken');
 
