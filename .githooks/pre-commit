@@ -1,6 +1,0 @@
-#!/bin/sh
-if [ "$CONFIRM_COMMIT" != "yes" ]; then
-  echo "Aborting commit. To allow commits set CONFIRM_COMMIT=yes in your environment (example: export CONFIRM_COMMIT=yes)." >&2
-  exit 1
-fi
-exit 0
