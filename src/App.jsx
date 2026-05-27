@@ -13,41 +13,31 @@ const HOW_IT_WORKS = [
     side: 'left',
     title: 'El kinesiólogo configura',
     desc: 'El profesional ingresa a la plataforma, registra al paciente y asigna los ejercicios según el plan de rehabilitación.',
+    dotImg: 'https://www.figma.com/api/mcp/asset/75b588e7-9b14-4628-8fb3-23a347ebda27',
   },
   {
     step: 2,
     side: 'right',
     title: 'El paciente juega',
     desc: 'Desde una pantalla o televisor, el adulto mayor realiza los movimientos guiado por juegos interactivos diseñados para ejercitar.',
+    dotImg: 'https://www.figma.com/api/mcp/asset/1e443865-7251-4e32-8912-4eae28f68f5a',
   },
   {
     step: 3,
     side: 'left',
     title: 'La IA analiza en vivo',
     desc: 'La inteligencia artificial monitorea el equilibrio, detecta errores de postura y registra cada dato del movimiento en tiempo real.',
+    dotImg: 'https://www.figma.com/api/mcp/asset/9f4f12f5-0c37-45c4-bea3-9406cbcac8ec',
   },
   {
     step: 4,
     side: 'right',
     title: 'El profesional evalúa',
     desc: 'El kinesiólogo accede a reportes detallados, ve la evolución del paciente y ajusta el tratamiento con datos precisos.',
+    dotImg: 'https://www.figma.com/api/mcp/asset/5667dcd1-0f44-4710-ba45-af5bd8186167',
   },
 ]
 
-const FEATURES = [
-  {
-    title: 'Análisis con IA',
-    desc: 'Algoritmos de aprendizaje profundo que mapean la cinemática corporal con precisión quirúrgica en cada articulación.',
-  },
-  {
-    title: 'Juegos Interactivos',
-    desc: 'Actividades interactivas diseñadas junto a kinesiólogos para que cada movimiento tenga propósito terapéutico. El paciente se divierte sin darse cuenta de que se está rehabilitando.',
-  },
-  {
-    title: 'Seguimiento Profesional',
-    desc: 'Dashboards analíticos avanzados para profesionales de la salud con telemetría clínica en tiempo real.',
-  },
-]
 
 const AI_METRICS = [
   { label: 'Equilibrio postural', value: 92 },
@@ -61,7 +51,9 @@ export default function App() {
       <nav className="navbar">
         <div className="navbar-inner">
           <div className="logo">
-            <span className="logo-k">K</span>
+            <div className="logo-k-wrap">
+              <img src="https://www.figma.com/api/mcp/asset/dbf818bf-3002-4179-a8cd-467f6d93f96c" alt="" className="logo-k-img" />
+            </div>
             <span className="logo-text">inetix</span>
           </div>
           <ul className="nav-links">
@@ -108,7 +100,7 @@ export default function App() {
 
       <section className="how-it-works">
         <h2 className="section-title">
-          Cómo funciona <span className="pink-text" style={{ fontStyle: 'normal', color: '#ff5faa' }}>Kinetics</span>
+          Cómo funciona <span className="pink-text" style={{ fontStyle: 'normal', color: '#ff5faa' }}>Kinetix</span>
         </h2>
         <div className="timeline">
           {HOW_IT_WORKS.map((item) => (
@@ -117,7 +109,14 @@ export default function App() {
                 <h3 className="step-title">{item.title}</h3>
                 <p className="step-desc">{item.desc}</p>
               </div>
-              <div className="timeline-dot">{item.step}</div>
+              <div className="timeline-dot">
+                {item.dotImg && (
+                  <div className="dot-img-wrap">
+                    <img src={item.dotImg} alt="" className="dot-img" />
+                  </div>
+                )}
+                <span className="dot-number">{item.step}</span>
+              </div>
             </div>
           ))}
         </div>
@@ -130,23 +129,86 @@ export default function App() {
           datos biométricos de alta resolución.
         </p>
         <div className="features-grid">
-          {FEATURES.map((f, i) => (
-            <div key={i} className="feature-card">
-              <div className="feature-icon-wrap">
-                <div className="feature-icon" />
-              </div>
-              <h3 className="feature-title">{f.title}</h3>
-              <p className="feature-desc">{f.desc}</p>
+
+          <div className="feature-card">
+            <div className="feature-icon-wrap">
+              <img
+                src="https://www.figma.com/api/mcp/asset/d4ce3bd7-12e9-4e1c-8268-4b55e7a54d45"
+                alt="Análisis con IA"
+                className="feature-icon-img"
+              />
             </div>
-          ))}
+            <h3 className="feature-title">Análisis con IA</h3>
+            <p className="feature-desc">
+              Algoritmos de aprendizaje profundo que mapean la cinemática corporal con precisión quirúrgica en cada articulación.
+            </p>
+            <div className="feature-widget skeletal-widget">
+              <span className="skeletal-label">SKELETAL MAP</span>
+              <div className="bar-track"><div className="bar-fill" style={{ width: '85%' }} /></div>
+              <span className="skeletal-label">SKELETAL MAP</span>
+              <div className="bar-track"><div className="bar-fill" style={{ width: '85%' }} /></div>
+            </div>
+          </div>
+
+          <div className="feature-card">
+            <div className="feature-icon-wrap">
+              <img
+                src="https://www.figma.com/api/mcp/asset/4cf0064c-2a0a-48c2-9c13-6824e9c88111"
+                alt="Juegos Interactivos"
+                className="feature-icon-img"
+                style={{ width: 27, height: 19 }}
+              />
+            </div>
+            <h3 className="feature-title">Juegos Interactivos</h3>
+            <p className="feature-desc">
+              Actividades interactivas diseñadas junto a kinesiólogos para que cada movimiento tenga propósito terapéutico. El paciente se divierte sin darse cuenta de que se está rehabilitando.
+            </p>
+            <div className="feature-widget games-widget">
+              <span className="games-number">30</span>
+              <span className="games-label">JUEGOS</span>
+            </div>
+          </div>
+
+          <div className="feature-card">
+            <div className="feature-icon-wrap">
+              <img
+                src="https://www.figma.com/api/mcp/asset/12fda4eb-1fc1-4529-b60b-618bacf0a11c"
+                alt="Seguimiento Profesional"
+                className="feature-icon-img"
+                style={{ width: 24, height: 24 }}
+              />
+            </div>
+            <h3 className="feature-title">Seguimiento Profesional</h3>
+            <p className="feature-desc">
+              Dashboards analíticos avanzados para profesionales de la salud con telemetría clínica en tiempo real.
+            </p>
+            <div className="feature-widget telemetry-widget">
+              <div className="telemetry-live">
+                <span className="live-dot" />
+                <span className="live-label">LIVE TELEMETRY LINK</span>
+              </div>
+              <div className="telemetry-ranges">
+                <div className="range-item">
+                  <span className="range-value">145°</span>
+                  <span className="range-unit">RANGE</span>
+                </div>
+                <div className="range-item">
+                  <span className="range-value">145°</span>
+                  <span className="range-unit">RANGE</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </section>
 
       <section className="cta-kine">
         <div className="cta-card">
           <h2 className="cta-title">
-            ¿Sos kinesiólogo?{' '}
-            <em className="gradient-text">Transforma tu práctica profesional</em>
+            <span>¿Sos kinesiólogo? </span><em className="cta-gradient-text">Transforma tu</em>
+            <br />
+            <em className="cta-gradient-text">práctica profesional</em>
           </h2>
           <p className="cta-desc">
             Sumate a los profesionales que ya están transformando la experiencia de sus
@@ -154,7 +216,7 @@ export default function App() {
           </p>
           <div className="cta-buttons">
             <button className="btn-primary">Iniciar Sesión</button>
-            <button className="btn-secondary">Registrarse</button>
+            <button className="btn-outline">Registrarse</button>
           </div>
         </div>
       </section>
@@ -162,9 +224,9 @@ export default function App() {
       <section className="ai-section">
         <div className="ai-content">
           <h2 className="ai-title">
-            La IA que{' '}
-            <span className="gradient-text">no
-              <br />descansa</span>
+            La IA que <span className="gradient-text-upright">no</span>
+            <br />
+            <span className="gradient-text-upright">descansa</span>
           </h2>
           <p className="ai-desc">
             Mientras el paciente juega, nuestra IA analiza cada movimiento en tiempo real.
@@ -191,7 +253,11 @@ export default function App() {
             <div className="orb-ring orb-ring-2" />
             <div className="orb-ring orb-ring-1" />
             <div className="orb-core">
-              <span className="orb-icon">✦</span>
+              <img
+                src="https://www.figma.com/api/mcp/asset/57555cce-91db-4d75-966d-d453661e7370"
+                alt=""
+                className="orb-icon-img"
+              />
             </div>
           </div>
         </div>
@@ -201,7 +267,9 @@ export default function App() {
         <div className="footer-inner">
           <div className="footer-left">
             <div className="logo">
-              <span className="logo-k">K</span>
+              <div className="logo-k-wrap">
+                <img src="https://www.figma.com/api/mcp/asset/daf3e330-1c02-4443-8950-4a5fcdcd51b5" alt="" className="logo-k-img" />
+              </div>
               <span className="logo-text">inetix</span>
             </div>
             <p className="footer-copy">

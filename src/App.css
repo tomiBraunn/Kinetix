@@ -21,16 +21,31 @@
   font-style: italic;
 }
 
+.cta-gradient-text {
+  background: linear-gradient(141.29deg, #ff5faa 0%, #ffaac0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-style: italic;
+}
+
+.gradient-text-upright {
+  background: linear-gradient(137.54deg, #ff5faa 0%, #ffaac0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 .pink-text {
   color: #ffaac0;
   font-style: italic;
 }
 
 .section-title {
-  font-size: 56px;
+  font-size: 64px;
   font-weight: 400;
-  letter-spacing: -1.12px;
-  line-height: 1.1;
+  letter-spacing: -1.28px;
+  line-height: 70.4px;
   text-align: center;
   color: #fff;
   margin-bottom: 20px;
@@ -48,12 +63,13 @@
 .btn-primary {
   background: #e040a0;
   color: #2b319c;
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 16.5px;
+  font-weight: 400;
   letter-spacing: 0.7px;
   padding: 0 32px;
   height: 62px;
   border-radius: 9999px;
+  border: none;
   transition: opacity 0.2s;
 }
 
@@ -64,13 +80,14 @@
 .btn-secondary {
   background: rgba(37, 42, 141, 0.64);
   color: #fff;
-  font-size: 16px;
+  font-size: 16.05px;
   font-weight: 400;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.8025px;
   padding: 0 32px;
   height: 62px;
   border-radius: 9999px;
-  border: 2px solid rgba(255, 255, 255, 0.7);
+  border: 0.2px solid #fff;
+  text-shadow: 0 0 10px #ff5faa;
   transition: background 0.2s;
 }
 
@@ -78,21 +95,61 @@
   background: rgba(37, 42, 141, 0.9);
 }
 
+.btn-outline {
+  background: transparent;
+  color: #fff;
+  font-size: 16.05px;
+  font-weight: 400;
+  letter-spacing: 0.8025px;
+  padding: 0 32px;
+  height: 62px;
+  border-radius: 9999px;
+  border: 2px solid #fff;
+  transition: background 0.2s;
+}
+
+.btn-outline:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
 /* ── Logo ── */
 .logo {
   display: flex;
   align-items: center;
-  font-size: 26px;
-  font-weight: 500;
+  gap: 2px;
   line-height: 1;
+  flex-shrink: 0;
 }
 
-.logo-k,
+.logo-k-wrap {
+  position: relative;
+  width: 27.556px;
+  height: 34px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.logo-k-img {
+  position: absolute;
+  height: 161.22%;
+  left: -12.62%;
+  max-width: none;
+  top: -31.98%;
+  width: 132.62%;
+}
+
 .logo-text {
-  background: linear-gradient(3deg, #fe6fb8 19%, #fe89c2 41%, #feb4d3 59%);
+  background: linear-gradient(
+    2.687deg,
+    rgb(254, 111, 184) 19.221%,
+    rgb(254, 137, 194) 40.741%,
+    rgb(254, 180, 211) 58.976%
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  font-size: 26.28px;
+  font-weight: 500;
 }
 
 /* ── Navbar ── */
@@ -283,62 +340,66 @@
 }
 
 .timeline-item {
-  display: flex;
-  align-items: flex-start;
-  margin-bottom: 80px;
-  position: relative;
-}
-
-.timeline-item:last-child {
-  margin-bottom: 0;
-}
-
-.timeline-left {
-  flex-direction: row-reverse;
-}
-
-.timeline-right {
-  flex-direction: row;
-}
-
-.timeline-content {
-  width: calc(50% - 48px);
-  padding: 0 24px;
-}
-
-.timeline-left .timeline-content {
-  text-align: right;
-}
-
-.timeline-right .timeline-content {
-  text-align: left;
-  margin-left: auto;
+  display: grid;
+  grid-template-columns: 1fr 49px 1fr;
+  align-items: center;
+  height: 199px;
 }
 
 .timeline-dot {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  grid-column: 2;
+  position: relative;
   width: 49px;
   height: 49px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #ffaac0 0%, #ff5faa 100%);
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 1;
+  overflow: visible;
+  align-self: start;
+}
+
+.timeline-left .timeline-content {
+  grid-column: 1;
+  text-align: right;
+  padding-right: 32px;
+}
+
+.timeline-right .timeline-content {
+  grid-column: 3;
+  text-align: left;
+  padding-left: 32px;
+}
+
+.dot-number {
+  position: relative;
+  z-index: 2;
   font-size: 16px;
   font-weight: 400;
   color: #2b319c;
-  z-index: 1;
-  box-shadow: 0 0 0 8px rgba(255, 170, 192, 0.12);
-  flex-shrink: 0;
+  line-height: 24px;
+}
+
+.dot-img-wrap {
+  position: absolute;
+  inset: -20.41%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dot-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
 }
 
 .step-title {
   font-size: 20px;
   font-weight: 700;
   color: #ff5faa;
-  line-height: 1.4;
+  line-height: 24px;
   margin-bottom: 12px;
 }
 
@@ -350,7 +411,7 @@
   font-size: 16px;
   font-weight: 400;
   color: rgba(255, 255, 255, 0.6);
-  line-height: 1.625;
+  line-height: 26px;
 }
 
 /* ── Features ── */
@@ -371,6 +432,8 @@
   border: 1px solid #8d8fbb;
   border-radius: 20px;
   padding: 36px 32px 40px;
+  display: flex;
+  flex-direction: column;
 }
 
 .feature-icon-wrap {
@@ -391,6 +454,13 @@
   background: linear-gradient(135deg, #ffaac0 0%, #ff5faa 100%);
 }
 
+.feature-icon-img {
+  width: 19px;
+  height: 25px;
+  object-fit: contain;
+  display: block;
+}
+
 .feature-title {
   font-size: 16px;
   font-weight: 400;
@@ -404,6 +474,129 @@
   font-weight: 400;
   color: rgba(255, 255, 255, 0.6);
   line-height: 1.625;
+  flex: 1;
+}
+
+/* ── Feature Widgets ── */
+.feature-widget {
+  margin-top: 28px;
+  background: #1e2480;
+  border: 1px solid #5c61bf;
+}
+
+/* Skeletal Map Widget */
+.skeletal-widget {
+  border-radius: 20px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skeletal-label {
+  font-size: 11px;
+  color: rgba(255, 95, 170, 0.8);
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  line-height: 1.5;
+  margin-top: 6px;
+}
+
+.skeletal-label:first-child {
+  margin-top: 0;
+}
+
+.bar-track {
+  height: 3px;
+  background: #4f4aa0;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: #ff5faa;
+  border-radius: 9999px;
+}
+
+/* Games Widget */
+.games-widget {
+  border-radius: 9999px;
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.games-number {
+  font-size: 30px;
+  color: #ffaac0;
+  line-height: 1.2;
+}
+
+.games-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: -0.5px;
+}
+
+/* Telemetry Widget */
+.telemetry-widget {
+  border-radius: 9999px;
+  padding: 18px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.telemetry-live {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4ade80;
+  flex-shrink: 0;
+}
+
+.live-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.telemetry-ranges {
+  display: flex;
+  gap: 32px;
+}
+
+.range-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.range-value {
+  font-size: 20px;
+  color: #fff;
+  line-height: 1.4;
+}
+
+.range-unit {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* ── CTA Kinesiólogo ── */
@@ -583,12 +776,11 @@
   backdrop-filter: blur(12px);
 }
 
-.orb-icon {
-  font-size: 40px;
-  background: linear-gradient(135deg, #ff5faa 0%, #ffaac0 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.orb-icon-img {
+  width: 66px;
+  height: 66px;
+  object-fit: contain;
+  display: block;
 }
 
 /* ── Footer ── */
