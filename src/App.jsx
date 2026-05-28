@@ -1,4 +1,92 @@
+import { useEffect, useRef } from 'react'
 import './App.css'
+
+function ParticleCanvas() {
+  const canvasRef = useRef(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    const ctx = canvas.getContext('2d')
+
+    const resize = () => {
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+    }
+    resize()
+    window.addEventListener('resize', resize)
+
+    const COUNT = 70
+    const MAX_DIST = 140
+
+    const particles = Array.from({ length: COUNT }, () => ({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.4,
+      size: Math.random() * 1.8 + 0.8,
+      color: Math.random() > 0.5 ? '255,170,192' : '255,95,170',
+    }))
+
+    let animId
+
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i]
+        p.x += p.vx
+        p.y += p.vy
+        if (p.x < 0 || p.x > canvas.width)  p.vx *= -1
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1
+
+        ctx.beginPath()
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
+        ctx.fillStyle = `rgba(${p.color},0.7)`
+        ctx.fill()
+
+        for (let j = i + 1; j < particles.length; j++) {
+          const q = particles[j]
+          const dx = p.x - q.x
+          const dy = p.y - q.y
+          const dist = Math.sqrt(dx * dx + dy * dy)
+          if (dist < MAX_DIST) {
+            const alpha = (1 - dist / MAX_DIST) * 0.25
+            ctx.beginPath()
+            ctx.moveTo(p.x, p.y)
+            ctx.lineTo(q.x, q.y)
+            ctx.strokeStyle = `rgba(255,170,192,${alpha})`
+            ctx.lineWidth = 0.6
+            ctx.stroke()
+          }
+        }
+      }
+
+      animId = requestAnimationFrame(animate)
+    }
+
+    animate()
+
+    return () => {
+      cancelAnimationFrame(animId)
+      window.removeEventListener('resize', resize)
+    }
+  }, [])
+
+  return <canvas ref={canvasRef} className="particle-canvas" />
+}
+
+function useMouseBlob() {
+  const blobRef = useRef(null)
+  useEffect(() => {
+    const move = (e) => {
+      if (!blobRef.current) return
+      blobRef.current.style.transform = `translate(${e.clientX - 350}px, ${e.clientY - 350}px)`
+    }
+    window.addEventListener('mousemove', move)
+    return () => window.removeEventListener('mousemove', move)
+  }, [])
+  return blobRef
+}
 
 const STATS = [
   { label: 'IA PRECISION', value: '99.8%' },
@@ -38,7 +126,6 @@ const HOW_IT_WORKS = [
   },
 ]
 
-
 const AI_METRICS = [
   { label: 'Equilibrio postural', value: 92 },
   { label: 'Coordinación del movimiento', value: 78 },
@@ -46,8 +133,11 @@ const AI_METRICS = [
 ]
 
 export default function App() {
+  const blobRef = useMouseBlob()
   return (
     <div className="landing">
+      <ParticleCanvas />
+      <div ref={blobRef} className="mouse-blob" />
       <nav className="navbar">
         <div className="navbar-inner">
           <div className="logo">
@@ -67,6 +157,16 @@ export default function App() {
       </nav>
 
       <section className="hero">
+        <div className="particle p-pink-bright" style={{ top: '20%', left: '8%', animationName: 'float-a', animationDuration: '7s' }} />
+        <div className="particle p-pink-light" style={{ top: '65%', left: '5%', animationName: 'float-b', animationDuration: '9s', animationDelay: '1.5s' }} />
+        <div className="particle p-white" style={{ top: '35%', right: '7%', animationName: 'float-c', animationDuration: '8s', animationDelay: '0.8s' }} />
+        <div className="particle p-pink-bright" style={{ top: '75%', right: '12%', animationName: 'float-a', animationDuration: '6s', animationDelay: '2s' }} />
+        <div className="particle p-pink-light" style={{ top: '15%', right: '20%', animationName: 'float-b', animationDuration: '10s', animationDelay: '0.3s' }} />
+        <div className="particle p-white" style={{ top: '50%', left: '15%', animationName: 'float-c', animationDuration: '8.5s', animationDelay: '1.2s' }} />
+        <div className="particle p-pink-bright" style={{ top: '30%', left: '22%', animationName: 'float-b', animationDuration: '7.5s', animationDelay: '3s' }} />
+        <div className="particle p-pink-light" style={{ top: '80%', left: '25%', animationName: 'float-a', animationDuration: '11s', animationDelay: '0.6s' }} />
+        <div className="particle p-white" style={{ top: '55%', right: '18%', animationName: 'float-a', animationDuration: '9.5s', animationDelay: '2.5s' }} />
+        <div className="particle p-pink-bright" style={{ top: '10%', left: '45%', animationName: 'float-c', animationDuration: '6.5s', animationDelay: '1s' }} />
         <div className="hero-content">
           <h1 className="hero-title">
             Rehabilitación <em className="gradient-text">divertida.</em>
@@ -99,6 +199,10 @@ export default function App() {
       </section>
 
       <section className="how-it-works">
+        <div className="particle p-pink-light" style={{ top: '10%', left: '3%', animationName: 'float-b', animationDuration: '8s', animationDelay: '0.4s' }} />
+        <div className="particle p-pink-bright" style={{ top: '40%', right: '5%', animationName: 'float-a', animationDuration: '7s', animationDelay: '1.5s' }} />
+        <div className="particle p-white" style={{ top: '70%', left: '6%', animationName: 'float-c', animationDuration: '10s', animationDelay: '2s' }} />
+        <div className="particle p-pink-light" style={{ top: '85%', right: '8%', animationName: 'float-b', animationDuration: '9s', animationDelay: '0.9s' }} />
         <h2 className="section-title">
           Cómo funciona <span className="pink-text" style={{ fontStyle: 'normal', color: '#ff5faa' }}>Kinetix</span>
         </h2>
@@ -123,6 +227,10 @@ export default function App() {
       </section>
 
       <section className="features">
+        <div className="particle p-pink-bright" style={{ top: '5%', left: '4%', animationName: 'float-c', animationDuration: '8s', animationDelay: '1s' }} />
+        <div className="particle p-white" style={{ top: '50%', left: '2%', animationName: 'float-a', animationDuration: '9s', animationDelay: '0.5s' }} />
+        <div className="particle p-pink-light" style={{ top: '90%', right: '4%', animationName: 'float-b', animationDuration: '7s', animationDelay: '2s' }} />
+        <div className="particle p-pink-bright" style={{ top: '25%', right: '3%', animationName: 'float-c', animationDuration: '10s', animationDelay: '1.3s' }} />
         <h2 className="section-title">Todo lo que incluye Kinetix</h2>
         <p className="section-subtitle">
           Nuestra arquitectura de visión artificial transforma el movimiento humano en flujos de
@@ -204,6 +312,9 @@ export default function App() {
       </section>
 
       <section className="cta-kine">
+        <div className="particle p-white" style={{ top: '15%', left: '5%', animationName: 'float-a', animationDuration: '8s', animationDelay: '0.7s' }} />
+        <div className="particle p-pink-bright" style={{ top: '70%', right: '6%', animationName: 'float-b', animationDuration: '7.5s', animationDelay: '1.8s' }} />
+        <div className="particle p-pink-light" style={{ top: '40%', left: '2%', animationName: 'float-c', animationDuration: '9.5s', animationDelay: '0.3s' }} />
         <div className="cta-card">
           <h2 className="cta-title">
             <span>¿Sos kinesiólogo? </span><em className="cta-gradient-text">Transforma tu</em>
@@ -248,6 +359,11 @@ export default function App() {
           </div>
         </div>
         <div className="ai-visual">
+          <div className="particle p-pink-light" style={{ top: '13%', left: '12%', animationName: 'float-b', animationDuration: '8s' }} />
+          <div className="particle p-white" style={{ top: '72%', left: '4%', animationName: 'float-c', animationDuration: '11s', animationDelay: '1s' }} />
+          <div className="particle p-pink-bright" style={{ top: '50%', left: '9%', animationName: 'float-a', animationDuration: '7s', animationDelay: '2s' }} />
+          <div className="particle p-pink-bright" style={{ top: '38%', right: '4%', animationName: 'float-c', animationDuration: '9s', animationDelay: '0.5s' }} />
+          <div className="particle p-pink-light" style={{ bottom: '3%', right: '32%', animationName: 'float-b', animationDuration: '6s', animationDelay: '1.8s' }} />
           <div className="ai-orb">
             <div className="orb-ring orb-ring-3" />
             <div className="orb-ring orb-ring-2" />
