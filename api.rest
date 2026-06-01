@@ -1,0 +1,93 @@
+### Health check
+GET http://localhost:3000/health
+
+### Register
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{
+  "nombre": "Juan",
+  "apellido": "Pérez",
+  "email": "juan@test.com",
+  "password": "123456"
+}
+
+### Login
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "juan@test.com",
+  "password": "123456"
+}
+
+### Login wrong password
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "juan@test.com",
+  "password": "wrong"
+}
+
+### Register duplicate
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{
+  "nombre": "Juan",
+  "apellido": "Pérez",
+  "email": "juan@test.com",
+  "password": "123456"
+}
+
+### Register missing fields
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "incompleto@test.com"
+}
+
+### Me (replace TOKEN with a real JWT)
+GET http://localhost:3000/api/auth/me
+Authorization: Bearer TOKEN
+
+### Refresh (replace TOKEN)
+POST http://localhost:3000/api/auth/refresh
+Authorization: Bearer TOKEN
+
+### Me without token
+GET http://localhost:3000/api/auth/me
+
+### Me with invalid token
+GET http://localhost:3000/api/auth/me
+Authorization: Bearer invalid-token-here
+
+### Google callback (replace ID_TOKEN)
+POST http://localhost:3000/api/auth/google/callback
+Content-Type: application/json
+
+{
+  "id_token": "ID_TOKEN"
+}
+
+### Google callback missing id_token
+POST http://localhost:3000/api/auth/google/callback
+Content-Type: application/json
+
+{}
+
+### GitHub callback (replace CODE)
+POST http://localhost:3000/api/auth/github/callback
+Content-Type: application/json
+
+{
+  "code": "CODE"
+}
+
+### GitHub callback missing code
+POST http://localhost:3000/api/auth/github/callback
+Content-Type: application/json
+
+{}

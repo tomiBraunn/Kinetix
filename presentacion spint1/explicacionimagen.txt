@@ -1,0 +1,31 @@
+1. CLIENTES (Clients)
+Qué hace: Es el punto de partida. Representa a cualquier entidad externa que interactúa con tu backend enviando peticiones HTTP (GET, POST, etc.).
+
+Componentes: Incluye navegadores web (Browser), herramientas de desarrollo para probar APIs (Postman) u otros servidores (server).
+
+2. index.js (Punto de entrada / Puerta de acceso)
+Qué hace: Es el archivo central de tu servidor backend. Recibe absolutamente todas las peticiones entrantes de los clientes, levanta el servidor, aplica middlewares globales y se encarga de derivar el tráfico hacia el sistema de rutas correcto.
+
+3. Routes (Enrutadores / Caminos)
+Qué hace: Esta capa es como el "muro de señalización". Se fija en la URL de la petición (el endpoint) y la redirige al controlador que corresponda.
+
+Componentes:
+
+/platos se va para la lógica de comida.
+
+/pedidos maneja las órdenes.
+
+/auth gestiona el inicio de sesión o registros.
+
+4. Controllers (Controladores / Orquestadores)
+Qué hace: Reciben la petición desde las rutas. Su trabajo es validar la información de entrada (qué datos manda el cliente), manejar la lógica de la respuesta HTTP (responder con un estado 200, 400, 500) y decidir qué servicio debe ejecutar la tarea.
+
+Nota especial: El auth.controller también se conecta a un email-service, lo que significa que el controlador de autenticación dispara directamente el envío de correos (como el de bienvenida o recuperación de contraseña).
+
+5. Services (Servicios / Capa de Negocio)
+Qué hace: Acá vive la lógica de negocio pura. Los servicios no saben nada de HTTP ni de respuestas web; simplemente reciben datos limpios, hacen cálculos, aplican reglas del negocio y se comunican con la base de datos o modelos.
+
+Detalle técnico: El controlador de autenticación (auth.controller) usa el servicio de usuarios (usuario.service), lo cual es una excelente práctica de reutilización de código.
+
+6. BASE DE DATOS (Database / Persistencia)
+Qué hace: El destino final. Es el lugar donde se guardan, modifican o consultan los datos reales del sistema (usuarios, platos, pedidos). Los servicios le hacen consultas (queries o mediante un ORM) para traer o almacenar la información que el cliente pidió originalmente.
