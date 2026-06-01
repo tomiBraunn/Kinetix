@@ -1,6 +1,7 @@
 const { hashPassword, comparePassword } = require('../utils/bcrypt');
 const { generateToken, verifyToken } = require('../utils/jwt');
 const kinesiologoModel = require('../models/kinesiologo');
+const { uploadAvatar } = require('../utils/avatar');
 
 async function register(req, res) {
   try {
@@ -23,6 +24,10 @@ async function register(req, res) {
       password_hash
     });
 
+    const avatar_url = await uploadAvatar(nombre, apellido, kinesiologo.id);
+    await kinesiologoModel.update(kinesiologo.id, { avatar_url });
+    kinesiologo.avatar_url = avatar_url;
+
     const token = generateToken({ id: kinesiologo.id, email: kinesiologo.email });
 
     res.status(201).json({
@@ -31,7 +36,8 @@ async function register(req, res) {
         id: kinesiologo.id,
         nombre: kinesiologo.nombre,
         apellido: kinesiologo.apellido,
-        email: kinesiologo.email
+        email: kinesiologo.email,
+        avatar_url: kinesiologo.avatar_url
       }
     });
   } catch (error) {
@@ -69,7 +75,8 @@ async function login(req, res) {
         id: kinesiologo.id,
         nombre: kinesiologo.nombre,
         apellido: kinesiologo.apellido,
-        email: kinesiologo.email
+        email: kinesiologo.email,
+        avatar_url: kinesiologo.avatar_url
       }
     });
   } catch (error) {
@@ -89,6 +96,7 @@ async function me(req, res) {
       nombre: kinesiologo.nombre,
       apellido: kinesiologo.apellido,
       email: kinesiologo.email,
+      avatar_url: kinesiologo.avatar_url,
       created_at: kinesiologo.created_at
     });
   } catch (error) {
@@ -137,6 +145,7 @@ async function googleCallback(req, res) {
     const apellido = payload.family_name || '';
 
     let kinesiologo = await kinesiologoModel.findByGoogleId(googleId);
+
     if (!kinesiologo) {
       kinesiologo = await kinesiologoModel.create({
         google_id: googleId,
@@ -144,6 +153,13 @@ async function googleCallback(req, res) {
         nombre,
         apellido
       });
+      const avatar_url = payload.picture || await uploadAvatar(nombre, apellido, kinesiologo.id);
+      await kinesiologoModel.update(kinesiologo.id, { avatar_url });
+      kinesiologo.avatar_url = avatar_url;
+    } else if (!kinesiologo.avatar_url) {
+      const avatar_url = payload.picture || await uploadAvatar(nombre, apellido, kinesiologo.id);
+      await kinesiologoModel.update(kinesiologo.id, { avatar_url });
+      kinesiologo.avatar_url = avatar_url;
     }
 
     const token = generateToken({ id: kinesiologo.id, email: kinesiologo.email });
@@ -153,7 +169,8 @@ async function googleCallback(req, res) {
         id: kinesiologo.id,
         nombre: kinesiologo.nombre,
         apellido: kinesiologo.apellido,
-        email: kinesiologo.email
+        email: kinesiologo.email,
+        avatar_url: kinesiologo.avatar_url
       }
     });
   } catch (error) {
@@ -203,6 +220,7 @@ async function githubCallback(req, res) {
     const apellido = nameParts.slice(1).join(' ') || '';
 
     let kinesiologo = await kinesiologoModel.findByGithubId(githubId);
+
     if (!kinesiologo) {
       kinesiologo = await kinesiologoModel.create({
         github_id: githubId,
@@ -210,6 +228,13 @@ async function githubCallback(req, res) {
         nombre,
         apellido
       });
+      const avatar_url = githubUser.avatar_url || await uploadAvatar(nombre, apellido, kinesiologo.id);
+      await kinesiologoModel.update(kinesiologo.id, { avatar_url });
+      kinesiologo.avatar_url = avatar_url;
+    } else if (!kinesiologo.avatar_url) {
+      const avatar_url = githubUser.avatar_url || await uploadAvatar(nombre, apellido, kinesiologo.id);
+      await kinesiologoModel.update(kinesiologo.id, { avatar_url });
+      kinesiologo.avatar_url = avatar_url;
     }
 
     const token = generateToken({ id: kinesiologo.id, email: kinesiologo.email });
@@ -219,7 +244,8 @@ async function githubCallback(req, res) {
         id: kinesiologo.id,
         nombre: kinesiologo.nombre,
         apellido: kinesiologo.apellido,
-        email: kinesiologo.email
+        email: kinesiologo.email,
+        avatar_url: kinesiologo.avatar_url
       }
     });
   } catch (error) {

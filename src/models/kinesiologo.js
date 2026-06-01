@@ -1,6 +1,6 @@
 const supabase = require('../utils/supabase');
 
-const TABLE = 'kinesiologo';
+const TABLE = 'kinesiologos';
 
 async function findByEmail(email) {
   const { data, error } = await supabase
@@ -52,4 +52,14 @@ async function findByGithubId(githubId) {
   return data;
 }
 
-module.exports = { findByEmail, findById, create, findByGoogleId, findByGithubId };
+async function update(id, payload) {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .update(payload)
+    .eq('id', id)
+    .select();
+  if (error) throw error;
+  return data?.[0] || null;
+}
+
+module.exports = { findByEmail, findById, create, findByGoogleId, findByGithubId, update };
