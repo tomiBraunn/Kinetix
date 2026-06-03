@@ -59,11 +59,12 @@
 
 /* ── Shared utilities ── */
 .gradient-text {
-  background: linear-gradient(143deg, #ff5faa 0%, #ffaac0 100%);
+  background: linear-gradient(142.73deg, #ff5faa 0%, #ffaac0 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   font-style: italic;
+  font-weight: 900;
 }
 
 .cta-gradient-text {
@@ -84,6 +85,7 @@
 .pink-text {
   color: #ffaac0;
   font-style: italic;
+  font-weight: 900;
 }
 
 .section-title {
@@ -111,7 +113,7 @@
   font-size: 16.5px;
   font-weight: 400;
   letter-spacing: 0.7px;
-  padding: 0 32px;
+  padding: 0 80px;
   height: 62px;
   border-radius: 9999px;
   border: none;
@@ -128,7 +130,7 @@
   font-size: 16.05px;
   font-weight: 400;
   letter-spacing: 0.8025px;
-  padding: 0 32px;
+  padding: 0 80px;
   height: 62px;
   border-radius: 9999px;
   border: 0.2px solid #fff;
@@ -193,6 +195,7 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  font-family: 'SN Pro', 'DM Sans', sans-serif;
   font-size: 26.28px;
   font-weight: 500;
 }
@@ -230,6 +233,7 @@
 }
 
 .nav-links a {
+  font-family: 'Inter', sans-serif;
   font-size: 18px;
   color: #fff;
   opacity: 0.85;
@@ -273,13 +277,21 @@
   padding: 60px 24px;
 }
 
+.hero-title-line {
+  font-size: 64px;
+  font-weight: 900;
+  line-height: 80px;
+  margin: 0;
+}
+
 .hero-title {
   font-size: 64px;
   font-weight: 400;
   letter-spacing: -1.28px;
-  line-height: 1.25;
+  line-height: 80px;
   color: #fff;
   margin-bottom: 40px;
+  text-align: center;
 }
 
 .hero-subtitle {
@@ -328,6 +340,7 @@
 }
 
 .stat-label {
+  font-family: 'Inter', sans-serif;
   font-size: 10px;
   font-weight: 400;
   letter-spacing: 1px;
@@ -336,6 +349,7 @@
 }
 
 .stat-value {
+  font-family: 'Inter', sans-serif;
   font-size: 30px;
   font-weight: 400;
   color: #fff;
@@ -429,6 +443,7 @@
 .dot-number {
   position: relative;
   z-index: 2;
+  font-family: 'Inter', sans-serif;
   font-size: 16px;
   font-weight: 400;
   color: #2b319c;
@@ -548,6 +563,7 @@
 }
 
 .skeletal-label {
+  font-family: 'Inter', sans-serif;
   font-size: 11px;
   color: rgba(255, 95, 170, 0.8);
   letter-spacing: 1.1px;
@@ -585,12 +601,14 @@
 }
 
 .games-number {
+  font-family: 'Inter', sans-serif;
   font-size: 30px;
   color: #ffaac0;
   line-height: 1.2;
 }
 
 .games-label {
+  font-family: 'Inter', sans-serif;
   font-size: 10px;
   color: rgba(255, 255, 255, 0.4);
   text-transform: uppercase;
@@ -623,6 +641,7 @@
 }
 
 .live-label {
+  font-family: 'Inter', sans-serif;
   font-size: 10px;
   color: rgba(255, 255, 255, 0.5);
   letter-spacing: 1px;
@@ -641,12 +660,14 @@
 }
 
 .range-value {
+  font-family: 'Inter', sans-serif;
   font-size: 20px;
   color: #fff;
   line-height: 1.4;
 }
 
 .range-unit {
+  font-family: 'Inter', sans-serif;
   font-size: 9px;
   color: rgba(255, 255, 255, 0.4);
   text-transform: uppercase;
@@ -753,11 +774,13 @@
 }
 
 .metric-label {
+  font-family: 'Inter', sans-serif;
   font-size: 16px;
   color: rgba(255, 255, 255, 0.9);
 }
 
 .metric-value {
+  font-family: 'Inter', sans-serif;
   font-size: 16px;
   color: #ff5faa;
   font-weight: 500;
@@ -902,6 +925,7 @@
 }
 
 .footer-right a {
+  font-family: 'Inter', sans-serif;
   font-size: 14px;
   color: rgba(255, 255, 255, 0.6);
   letter-spacing: 0.7px;

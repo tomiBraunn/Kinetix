@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react'
 import './App.css'
 
+//claude bits
+
 function ParticleCanvas() {
   const canvasRef = useRef(null)
 
@@ -142,7 +144,7 @@ export default function App() {
         <div className="navbar-inner">
           <div className="logo">
             <div className="logo-k-wrap">
-              <img src="https://www.figma.com/api/mcp/asset/dbf818bf-3002-4179-a8cd-467f6d93f96c" alt="" className="logo-k-img" />
+              <img src="https://www.figma.com/api/mcp/asset/0cc495b1-e0c8-44e2-8b05-f852030ceafd" alt="" className="logo-k-img" />
             </div>
             <span className="logo-text">inetix</span>
           </div>
@@ -169,9 +171,8 @@ export default function App() {
         <div className="particle p-pink-bright" style={{ top: '10%', left: '45%', animationName: 'float-c', animationDuration: '6.5s', animationDelay: '1s' }} />
         <div className="hero-content">
           <h1 className="hero-title">
-            Rehabilitación <em className="gradient-text">divertida.</em>
-            <br />
-            Resultados <em className="pink-text">reales.</em>
+            <p className="hero-title-line">Rehabilitación <em className="gradient-text">divertida.</em></p>
+            <p className="hero-title-line">Resultados <em className="pink-text">reales.</em></p>
           </h1>
           <p className="hero-subtitle">
             Transformamos la rehabilitación física en una experiencia divertida y motivadora.
@@ -384,7 +385,7 @@ export default function App() {
           <div className="footer-left">
             <div className="logo">
               <div className="logo-k-wrap">
-                <img src="https://www.figma.com/api/mcp/asset/daf3e330-1c02-4443-8950-4a5fcdcd51b5" alt="" className="logo-k-img" />
+                <img src="https://www.figma.com/api/mcp/asset/07efc64d-0221-4c01-b45c-46f077df12c4" alt="" className="logo-k-img" />
               </div>
               <span className="logo-text">inetix</span>
             </div>
