@@ -1,0 +1,149 @@
+### Health check
+GET http://localhost:3000/health
+
+### 1. Register
+# @name register
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{
+  "nombre": "Juan",
+  "apellido": "Perez",
+  "email": "juan{{$timestamp}}@test.com",
+  "password": "123456"
+}
+
+### 2. Login (usar email del register o uno existente)
+# @name login
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "juan@test.com",
+  "password": "123456"
+}
+
+### 3. Me (el avatar_url ahora es signed URL)
+GET http://localhost:3000/api/auth/me
+Authorization: Bearer {{login.response.body.token}}
+
+### 4. Refresh token
+POST http://localhost:3000/api/auth/refresh
+Authorization: Bearer {{login.response.body.token}}
+
+### --- Pacientes (requieren token) ---
+
+### 5. Crear paciente
+POST http://localhost:3000/api/pacientes
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "nombre": "Ana",
+  "apellido": "Lopez",
+  "fecha_nacimiento": "1990-05-15",
+  "tipo_lesion": "hombro",
+  "observaciones": "primera sesion"
+}
+
+### 6. Listar pacientes
+GET http://localhost:3000/api/pacientes
+Authorization: Bearer {{login.response.body.token}}
+
+### 7. Obtener paciente (reemplazar ID)
+GET http://localhost:3000/api/pacientes/ID_DEL_PACIENTE
+Authorization: Bearer {{login.response.body.token}}
+
+### 8. Actualizar paciente
+PUT http://localhost:3000/api/pacientes/ID_DEL_PACIENTE
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "observaciones": "evolucionando bien"
+}
+
+### 9. Eliminar paciente
+DELETE http://localhost:3000/api/pacientes/ID_DEL_PACIENTE
+Authorization: Bearer {{login.response.body.token}}
+
+### --- Uploads (requieren token) ---
+
+### 10. Subir avatar (foto perfil kinesiologo)
+POST http://localhost:3000/api/upload/avatar
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: multipart/form-data; boundary=boundary123
+
+--boundary123
+Content-Disposition: form-data; name="avatar"; filename="photo.jpg"
+Content-Type: image/jpeg
+
+< ./photo.jpg
+--boundary123--
+
+### 11. Subir foto de paciente
+POST http://localhost:3000/api/upload/paciente-foto
+Authorization: Bearer {{login.response.body.token}}
+Content-Type: multipart/form-data; boundary=boundary123
+
+--boundary123
+Content-Disposition: form-data; name="foto"; filename="paciente.jpg"
+Content-Type: image/jpeg
+
+< ./paciente.jpg
+--boundary123--
+
+### --- Error cases ---
+
+### Register missing fields
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "incompleto@test.com"
+}
+
+### Register duplicate
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{
+  "nombre": "Juan",
+  "apellido": "Perez",
+  "email": "existente@test.com",
+  "password": "123456"
+}
+
+### Login wrong password
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "juan@test.com",
+  "password": "wrong"
+}
+
+### Me no token
+GET http://localhost:3000/api/auth/me
+
+### Me invalid token
+GET http://localhost:3000/api/auth/me
+Authorization: Bearer token-invalido
+
+### --- OAuth (requieren credenciales reales) ---
+
+### Google callback
+POST http://localhost:3000/api/auth/google/callback
+Content-Type: application/json
+
+{
+  "id_token": "ID_TOKEN_DE_GOOGLE"
+}
+
+### GitHub callback
+POST http://localhost:3000/api/auth/github/callback
+Content-Type: application/json
+
+{
+  "code": "CODE_DE_GITHUB"
+}
