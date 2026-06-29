@@ -1,19 +1,13 @@
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes } from 'react'
 import { motion } from 'framer-motion'
+import googleG from '../../assets/google/google-g.png'
 
 const spring = { type: 'spring' as const, stiffness: 400, damping: 25 }
 
-// Official multicolor Google "G" logo (Material Symbols is monochrome, so the
-// brand mark stays an inline SVG).
+// Official Google "G" logo, downloaded from the Sign in with Google branding
+// guidelines so it stays pixel-perfect to the brand mark.
 function GoogleLogo() {
-  return (
-    <svg width="19" height="19" viewBox="0 0 19 19" fill="none" aria-hidden="true">
-      <path d="M18.17 9.72c0-.63-.05-1.24-.16-1.82H9.75v3.45h4.73c-.2 1.1-.83 2.03-1.77 2.66v2.2h2.85c1.67-1.54 2.63-3.8 2.63-6.49z" fill="#4285F4" />
-      <path d="M9.75 18.5c2.38 0 4.37-.79 5.82-2.14l-2.85-2.2c-.79.53-1.79.84-2.97.84-2.28 0-4.21-1.54-4.9-3.61H1.87v2.27A9.75 9.75 0 009.75 18.5z" fill="#34A853" />
-      <path d="M4.85 11.39c-.18-.53-.28-1.1-.28-1.69s.1-1.16.28-1.69V5.74H1.87A9.75 9.75 0 000 9.7c0 1.42.3 2.77.87 4z" fill="#FBBC05" />
-      <path d="M9.75 3.79c1.3 0 2.46.45 3.38 1.33l2.53-2.53C14.13 1.12 12.15 0 9.75 0A9.75 9.75 0 001.87 5.74l2.98 2.27c.69-2.07 2.62-3.61 4.9-3.61z" fill="#EA4335" />
-    </svg>
-  )
+  return <img src={googleG} alt="" aria-hidden="true" width={18} height={18} />
 }
 
 // Drop the DOM animation/drag handlers that collide with framer-motion's props.

@@ -8,6 +8,7 @@ import PasswordField from '../components/auth/PasswordField'
 import { SubmitButton, GoogleButton } from '../components/auth/Buttons'
 import OrDivider from '../components/auth/OrDivider'
 import { LoginIcon } from '../components/auth/icons'
+import GradientBackground from '../components/GradientBackground'
 import { useAuth } from '../context/AuthContext'
 
 type Errors = { email?: string; password?: string }
@@ -47,7 +48,10 @@ export default function Login() {
   }
 
   return (
-    <AuthCard icon={<LoginIcon />} title="Iniciar sesión">
+    <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden">
+      <GradientBackground />
+      <div className="relative z-10 w-full max-w-[544px]">
+        <AuthCard icon={<LoginIcon />} title="Iniciar sesión">
       <form onSubmit={handleSubmit} noValidate>
         <motion.div variants={item} className="mb-6">
           <Field
@@ -119,5 +123,7 @@ export default function Login() {
         <Link to="/register" className="text-accent font-bold hover:underline">Registrarse</Link>
       </motion.p>
     </AuthCard>
+      </div>
+    </div>
   )
 }
