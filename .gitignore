@@ -1,0 +1,7 @@
+.secrets/
+node_modules/
+.env
+.env.local
+.env.*.local
+# Keep the template under VCS
+!.env.example
