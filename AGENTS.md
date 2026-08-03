@@ -10,8 +10,8 @@ App interactiva que convierte los ejercicios de kinesiología en juegos, princip
 ## Equipo
 - **Micaela Bodner** — IA (MediaPipe, datasets, modelo de análisis de movimiento que corre server-side en el backend).
 - **Mia German** — UX/UI + Project Manager (Figma: identidad visual, pantallas, marketing).
-- **Tomás Braun** — Full stack enfocado en **backend** (Supabase, Node, auth, API REST + servicio de video/IA). Soy yo, el usuario que da las indicaciones.
-- **Rafael Shayo** — Full stack enfocado en **frontend web** (React: panel del kinesiólogo, sin cámara ni MediaPipe).
+- **Tomás Braun** — **Fullstack: webapp + backend** (React del panel del kinesiólogo + Supabase, Node, auth, API REST). Soy yo, el usuario que da las indicaciones. Webapp y Backend del sprint plan son míos.
+- **Rafael Shayo** — Full stack enfocado en **backend** (Node, API REST, Supabase).
 - **App móvil (paciente)** — donde corren los juegos. La hace otro equipo/proyecto, NO la hace Tomás.
 
 ## Cliente / referente
@@ -77,11 +77,11 @@ Ideas adicionales descritas: semáforo (verde = sentadilla, rojo = quieto), cont
 ### 🚧 S3 — Dashboard + Gestión de pacientes
 > Convierte el Home mockup en un dashboard real y conecta la UI de pacientes al CRUD que ya existe en backend.
 
-**Frontend (Rafa):**
+**Webapp (Tomás):**
 - Reemplazar `Home.tsx` mockup por dashboard real con datos del backend.
 - Layout de dashboard: **navbar lateral** (Pacientes, Sesiones, Estadísticas, Configuración) con estado activo + header con avatar/nombre del kinesiólogo (usar `AuthContext`).
 - **Pantalla Lista de pacientes** (`/pacientes`): tabla/cards con nombre, apellido, lesión, progreso; botón "+ Agregar paciente"; click → detalle. Conectar a `GET /api/pacientes`.
-- **Pantalla Crear paciente** (`/pacientes/nuevo`): formulario (nombre, apellido, fecha_nacimiento, tipo_lesion, observaciones) → `POST /api/pacientes`.
+- **Pantalla Crear paciente** (`/pacientes/nuevo`): formulario (nombre, apellido, fecha_nacimiento, tipo_lesion, observaciones, contacto) → `POST /api/pacientes`.
 - **Pantalla Detalle de paciente** (`/pacientes/:id`): datos + editar + botón "Iniciar juego" → `GET/PUT /api/pacientes/:id`.
 
 **Backend (Tomás):**
@@ -139,7 +139,7 @@ Archivo Figma: `y8NlmFOJusZ1nl1jvvZdBo`, página "Proyecto final".
 - Feedback en vivo en el dispositivo usando los landmarks detectados por MediaPipe.
 - Definir y documentar el contrato de métricas (tipos, unidades, frecuencia de envío).
 
-**Frontend (Rafa):**
+**Frontend (Tomás):**
 - **Pantalla Selección de juego** (`/juego`): cards de los 3 juegos (Surf, Flamenco, Alcanzá la estrella) seleccionables.
 - Inicio de sesión desde la webapp: al elegir paciente + juego, llamar `POST /api/sesiones` para registrar el inicio y disparar la sesión en la app móvil del paciente.
 
@@ -190,7 +190,7 @@ Archivo Figma: `y8NlmFOJusZ1nl1jvvZdBo`, página "Proyecto final".
 ### 🚧 S6 — Resultados, métricas y panel del kinesiólogo
 > Cierra el flujo: el kinesiólogo ve la evolución de cada paciente.
 
-**Frontend (Rafa):**
+**Frontend (Tomás):**
 - **Pantalla Resultados / análisis** (`/pacientes/:id/sesiones/:sesionId/resultados`):
   - Repeticiones correctas, rango de movimiento, precisión, tiempo total, puntaje.
   - Visualización con barras / indicadores.
@@ -216,13 +216,16 @@ Archivo Figma: `y8NlmFOJusZ1nl1jvvZdBo`, página "Proyecto final".
 ---
 
 ## Estado actual del repo (julio 2026)
-- Últimos commits: `sprint#2`, `login + register funcionan`, merge de front y back.
+- Últimos commits: `f6b3666` (chore: AGENTS.md + .gitignore), `b459b87` (fix test .env), `3b72332` (dashboard endpoint), `2a02a1e` (campos Figma pacientes), `48ad077` (schema.sql + .env.example).
 - **S1 + S2 completos.** Auth (email/pass + Google + GitHub), CRUD pacientes, upload imágenes, login/register UI, router, AuthContext.
-- **Pendiente:** sesiones, métricas, integración IA, dashboard real, gestión de pacientes UI, juegos, resultados.
-- `schema.sql` desactualizado (tablas en singular vs BD real en plural; campos de paciente distintos). Alinear en S3.
+- **S3 backend completado** (commit `48ad077` → `3b72332`): schema.sql alineado con BD real, `.env.example`, CRUD pacientes con campos de Figma (dni, email_paciente, telefono, genero, contacto_emergencia_nombre/telefono, fecha_inicio_rehabilitacion), `GET /api/dashboard` (total_pacientes, pacientes_activos, sesiones_hoy). Migración `pacientes_campos_figma` aplicada.
+- **S3 webapp (pendiente):** reemplazar `Home.tsx` mockup por dashboard real + pantallas de pacientes.
+- **Pendiente:** sesiones (S4), métricas (S4), integración IA, juegos, resultados, dashboard real / gestión de pacientes UI (S3 webapp).
+- `schema.sql` ya alineado con la BD real (campos con campos reales).
 - Tablas `sesiones` y `metricas` definidas en SQL pero sin código (se implementan en S4).
 - Hay código legacy en `src/` (landing + prototipo Phaser Surf) NO conectado al `front/src/` actual.
 - `Home.tsx` es mockup estático con números hardcodeados (se reemplaza en S3).
+- **RLS:** habilitado en todas las tablas (`kinesiologos`, `metricas` incluidos) — quedan sin políticas (info), ok porque todo el acceso va por backend con service_role key.
 
 ## Funcionamiento general / flujo
 1. El kinesiólogo entra desde la webapp, crea o selecciona un paciente e inicia una sesión de juego.
