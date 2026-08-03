@@ -5,3 +5,14 @@ node_modules/
 .env.*.local
 # Keep the template under VCS
 !.env.example
+
+# Ralph (agente autónomo) - solo local, no commitear
+.opencode/
+scripts/ralph/
+prd.json
+progress.txt
+logs/
+archive/
+
+# Logs varios
+*.log
