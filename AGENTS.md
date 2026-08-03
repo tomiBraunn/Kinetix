@@ -254,8 +254,8 @@ Archivo Figma: `y8NlmFOJusZ1nl1jvvZdBo`, página "Proyecto final".
 - Últimos commits: `f6b3666` (chore: AGENTS.md + .gitignore), `b459b87` (fix test .env), `3b72332` (dashboard endpoint), `2a02a1e` (campos Figma pacientes), `48ad077` (schema.sql + .env.example).
 - **S1 + S2 completos.** Auth (email/pass + Google + GitHub), CRUD pacientes, upload imágenes, login/register UI, router, AuthContext.
 - **S3 backend completado** (commit `48ad077` → `3b72332`): schema.sql alineado con BD real, `.env.example`, CRUD pacientes con campos de Figma (dni, email_paciente, telefono, genero, contacto_emergencia_nombre/telefono, fecha_inicio_rehabilitacion), `GET /api/dashboard` (total_pacientes, pacientes_activos, sesiones_hoy). Migración `pacientes_campos_figma` aplicada.
-- **S3 webapp (pendiente):** reemplazar `Home.tsx` mockup por dashboard real + pantallas de pacientes.
-- **Pendiente:** sesiones (S4), métricas (S4), integración IA, juegos, resultados, dashboard real / gestión de pacientes UI (S3 webapp).
+- **S3 webapp completado** (commit `b686e7f`): dashboard real (reemplaza Home mockup) con datos de `/api/dashboard` + últimos pacientes, layout con sidebar (Inicio, Pacientes, Sesiones, Estadísticas, Configuración) + header con avatar/nombre, lista de pacientes (`/pacientes`, búsqueda + orden + edad calculada), crear (`/pacientes/nuevo`, formulario con campos de Figma), detalle (`/pacientes/:id`, ver + editar + botón "Iniciar juego" → stub `/juego`), stub de selección de juego (S4). Verificado con E2E (playwright): registro→dashboard→crear→editar→detalle→logout sin errores de consola.
+- **Pendiente:** sesiones (S4), métricas (S4), integración IA, juegos, resultados, selección de juego funcional (S4).
 - `schema.sql` ya alineado con la BD real (campos con campos reales).
 - Tablas `sesiones` y `metricas` definidas en SQL pero sin código (se implementan en S4).
 - Hay código legacy en `src/` (landing + prototipo Phaser Surf) NO conectado al `front/src/` actual.
