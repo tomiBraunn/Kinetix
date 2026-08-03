@@ -124,8 +124,23 @@ const server = app.listen(PORT, async () => {
   // Pacientes CRUD
   let pacienteId = null;
   await check('POST pacientes no auth', 401, () => req('POST', '/api/pacientes', JSON.stringify({ nombre: 'Ana', apellido: 'Lopez' })));
-  const created = await check('POST pacientes create', 201, () => req('POST', '/api/pacientes', JSON.stringify({ nombre: 'Ana', apellido: 'Lopez', tipo_lesion: 'hombro' }), token));
-  if (created && created.body && created.body.id) pacienteId = created.body.id;
+  const created = await check('POST pacientes create', 201, () => req('POST', '/api/pacientes', JSON.stringify({
+    nombre: 'Ana', apellido: 'Lopez', tipo_lesion: 'hombro',
+    dni: '12345678', email_paciente: 'ana@test.com', telefono: '+54 9 11 2222 222',
+    genero: 'F', contacto_emergencia_nombre: 'Maria', contacto_emergencia_telefono: '+54 9 11 3333 3333',
+    fecha_inicio_rehabilitacion: '2026-07-01'
+  }), token));
+  if (created && created.body && created.body.id) {
+    pacienteId = created.body.id;
+    const hasFields = !!(created.body.dni && created.body.email_paciente && created.body.contacto_emergencia_nombre);
+    if (!hasFields) {
+      failed++;
+      console.log('✗ FAIL: campos nuevos (dni, email_paciente, contacto) no se guardaron');
+    } else {
+      passed++;
+      console.log('✓ PASS: campos nuevos guardados correctamente');
+    }
+  }
 
   await check('POST pacientes missing fields', 400, () => req('POST', '/api/pacientes', JSON.stringify({}), token));
   await check('GET pacientes list', 200, () => req('GET', '/api/pacientes', null, token));
