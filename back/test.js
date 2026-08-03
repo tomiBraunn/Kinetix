@@ -1,6 +1,6 @@
 //node test.js
 
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const app = require('./src/app');
 const http = require('http');
 const PORT = process.env.TEST_PORT || 3099;
