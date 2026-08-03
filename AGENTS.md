@@ -3,15 +3,19 @@
 ## Qué es Kinetix
 App interactiva que convierte los ejercicios de kinesiología en juegos, principalmente para **adultos mayores** (tercera edad) que necesitan rehabilitación física. Mientras el paciente juega, una **IA analiza en tiempo real equilibrio, postura y movimiento** con MediaPipe. El kinesiólogo usa una computadora con un panel donde ve métricas, historial y evolución de cada paciente.
 
-**Problema:** los ejercicios de rehabilitación son repetitivos y aburridos; la constancia y correcta ejecución son clave para la recuperación. Además, el kinesiólogo suele carecer de herramientas precisas para medir el rendimiento en tiempo real.
+**Problemática (anteproyecto):** en los consultorios de kinesiología, los ejercicios de rehabilitación suelen ser repetitivos, poco atractivos y aburridos, lo que afecta la motivación y el compromiso del paciente. Esto es problemático porque la constancia y la correcta ejecución de los ejercicios son clave para una buena recuperación. Además, aunque el kinesiólogo supervisa las sesiones, muchas veces no cuenta con herramientas precisas para medir en tiempo real el rendimiento del paciente (movimientos, precisión, progreso) de forma objetiva y dinámica.
 
-**Solución:** juegos divertidos que validan el movimiento + IA que mide precisión, rango de movimiento, estabilidad y progreso + panel para el kinesiólogo.
+**Solución (anteproyecto):** app interactiva para consultorios en la que el paciente realiza ejercicios a través de **juegos divertidos y dinámicos**, mientras un sistema de IA analiza sus movimientos en segundo plano. La app funciona en el consultorio y la usa el paciente durante la sesión, pero toda la información generada está dirigida al kinesiólogo. Incluye:
+- Juegos diseñados para ejercicios de rehabilitación (movimientos de rodilla).
+- IA que analiza el movimiento en tiempo real, evalúa si los ejercicios están bien hechos y mide precisión, rango de movimiento y progreso.
+- Experiencia visual atractiva y alegre que rompe con el ambiente tradicional del consultorio.
+- Panel para el kinesiólogo: métricas y evolución del paciente, registrar sesiones y pacientes, ajustar ejercicios según el progreso.
 
 ## Equipo
 - **Micaela Bodner** — IA (MediaPipe, datasets, modelo de análisis de movimiento que corre server-side en el backend).
 - **Mia German** — UX/UI + Project Manager (Figma: identidad visual, pantallas, marketing).
 - **Tomás Braun** — **Fullstack: webapp + backend** (React del panel del kinesiólogo + Supabase, Node, auth, API REST). Soy yo, el usuario que da las indicaciones. Webapp y Backend del sprint plan son míos.
-- **Rafael Shayo** — Full stack enfocado en **backend** (Node, API REST, Supabase).
+- **Rafael Shayo** — Full stack enfocado en **frontend** (según anteproyecto; Webapp panel del kinesiólogo).
 - **App móvil (paciente)** — donde corren los juegos. La hace otro equipo/proyecto, NO la hace Tomás.
 
 ## Cliente / referente
@@ -53,7 +57,7 @@ Kinetix/
 2. **Flamenco Challenge** — detecta cuando una pierna se levanta (tobillo derecho sube por encima de un umbral respecto al otro). Cronómetro arranca al levantar el pie, se detiene si baja. Mide equilibrio + tiempo. Landmarks: 27, 28 (tobillos), 25, 26 (rodillas).
 3. **Alcanzá la estrella** — estrellas en distintas posiciones; el paciente las toca con la mano **sin mover los pies**. Mide equilibrio + tiempo + límites de estabilidad. Landmarks: 15, 16 (muñecas) + 27, 28 (tobillos).
 
-Ideas adicionales descritas: semáforo (verde = sentadilla, rojo = quieto), contador de repeticiones "pro", modo desafío por tiempo, progresión de niveles, feedback en vivo (✔ bien / ❌ "bajá más la rodilla" / ⚠ "te estás inclinando"), equilibrio en plataforma, no te caigas (cuerda floja), seguir el punto, zonas de estabilidad.
+Ideas adicionales descritas: semáforo (verde = sentadilla, rojo = quieto), contador de repeticiones "pro", **modo desafío por tiempo** ("hacé 10 repeticiones correctas en 30 segundos" — simple de programar y divertido con cuenta regresiva), progresión de niveles, feedback en vivo (✔ bien / ❌ "bajá más la rodilla" / ⚠ "te estás inclinando"), equilibrio en plataforma, no te caigas (cuerda floja), seguir el punto, zonas de estabilidad.
 
 **MVP:** un muy buen juego donde la IA pueda analizar un valor + toda la app manejable y entendible para el kinesiólogo y utilizable para el paciente.
 
@@ -215,6 +219,37 @@ Archivo Figma: `y8NlmFOJusZ1nl1jvvZdBo`, página "Proyecto final".
 
 ---
 
+## Planificación oficial por área (anteproyecto)
+> La planificación original del anteproyecto organiza el trabajo en 6 sprints por área. El plan re-armado de arriba (S3–S6) está alineado a esto y al estado real del repo.
+
+**IA (Micaela):**
+- S1: investigación MediaPipe Pose Landmarker, landmarks rodilla/tobillo/cadera, ángulos básicos, validar sentadilla correcta/incorrecta, definir métricas (equilibrio, estabilidad, rango de movimiento).
+- S2: detección en tiempo real con cámara (levantamiento de piernas, estabilidad, manos; ajustar cálculos en vivo).
+- S3: **Flamenco Challenge** — lógica con landmarks de rodillas/tobillos, detectar pierna levantada, cronómetro, puntaje, feedback visual, validaciones de estabilidad.
+- S4: **Alcanzá la estrella** — detección de muñecas, colisiones mano↔estrella, generación aleatoria de objetivos, puntaje por precisión y estabilidad.
+- S5: feedback inteligente en tiempo real ("Muy bien", "Subí más la pierna", "No muevas los pies") + métricas (tiempo, ángulos, estabilidad, repeticiones).
+- S6: integración final con la app y panel del kinesiólogo (guardar datos de sesiones, mostrar progreso/puntajes/métricas).
+
+**UX/UI (Mia):**
+- S1: identidad visual Kinetix, logo + variantes (K icónica), paleta, tipografías (diversión + movimiento + tecnología), componentes base (botones, inputs, cards).
+- S2: landing (logo, eslogan, botones de acceso), login y registro del kinesiólogo, estados de error y éxito.
+- S3: Home/flujo principal — info relevante (pacientes recientes, sesiones activas, accesos rápidos, "Iniciar juego"), cards y secciones claras.
+- S4: registro del paciente (nombre, lesión, observaciones) + selección del tipo de juego con cards interactivas.
+- S5: selección de juego + gameplay (cámara del paciente, indicadores visuales, estímulos dinámicos, acciones correctas/incorrectas en tiempo real).
+- S6: resultados y análisis (precisión, progreso, cumplimiento), gráficos simples, opciones de guardar sesión/continuar/volver. + pasar a celular.
+
+**Frontend (Rafa):**
+- S1: proyecto base React, estructura de carpetas, rutas, estilos con paleta/tipografías de UX/UI, componentes base (botones, inputs, cards, navbar lateral, header), responsive básico, conexión inicial con backend.
+- S2: formularios de registro/login, mensajes de error/éxito, acceso desde celular, conexión con backend, manejo de sesión. Pantallas: Home, Registro, Login.
+- S3: dashboard principal — layout con menú lateral (Pacientes, Sesiones, Estadísticas, Configuración), estado activo, headers, conexión con backend para datos básicos.
+- S4: gestión de pacientes — lista (cards/tabla), botón agregar, formulario nuevo paciente, detalle, editar, guardar, botón "Iniciar juego". Pantallas: Lista, Crear, Detalle.
+- S5: juego de rehabilitación — cámara en tiempo real, contador de repeticiones, cronómetro, feedback visual correcto/incorrecto, espacio para integración con IA. Pantallas: Inicio de juego, Selección de juego, Gameplay.
+- S6: resultados y métricas — progreso, repeticiones correctas, rango de movimiento, precisión, tiempo total, barras, resumen, conexión con backend para guardar resultados, historial de sesiones.
+
+> **Discrepancia anotada:** el S5 de frontend del anteproyecto (cámara/gameplay en la webapp) quedó **reemplazado por la arquitectura híbrida** decidida después: los juegos, la cámara y MediaPipe corren en la **app móvil** del paciente; la webapp del kinesiólogo solo gestiona y visualiza. El plan re-armado (S3–S6) arriba es la fuente de verdad actual.
+
+---
+
 ## Estado actual del repo (julio 2026)
 - Últimos commits: `f6b3666` (chore: AGENTS.md + .gitignore), `b459b87` (fix test .env), `3b72332` (dashboard endpoint), `2a02a1e` (campos Figma pacientes), `48ad077` (schema.sql + .env.example).
 - **S1 + S2 completos.** Auth (email/pass + Google + GitHub), CRUD pacientes, upload imágenes, login/register UI, router, AuthContext.
@@ -241,7 +276,8 @@ Todo conectado por pedidos entre webapp, backend (API REST) y app móvil (MediaP
 - Trello: https://trello.com/b/6a02078bea14e403ad074b0b/kinetix-tareas
 
 ## Notas de contexto
-- El usuario que da las indicaciones es **Tomás Braun** (backend). Cuando habla de "yo" en el contexto del proyecto, se refiere a su rol de backend/full stack.
+- El usuario que da las indicaciones es **Tomás Braun** (fullstack webapp + backend). Cuando habla de "yo" en el contexto del proyecto, se refiere a su rol de fullstack.
+- **Roles según anteproyecto:** Tomás = backend (pero sus tareas actualizadas lo tienen como **fullstack webapp + backend**); Rafael = frontend. Webapp de los sprints la cubre Tomás.
 - Antes de crear archivos o hacer cambios grandes, confirmar con Tomás.
 - Para diseño visual, consultar los Figma de arriba (hay MCP de figma configurado con token en `.secrets/figma-token`).
 - Para base de datos, hay MCP de Supabase configurado.
