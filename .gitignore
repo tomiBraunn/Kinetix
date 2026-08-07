@@ -12,6 +12,10 @@ build/
 .env
 .env.local
 .env.*.local
+!.env.example
+
+# secrets
+.secrets/
 
 # editor
 .vscode/
@@ -30,3 +34,15 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
+
+# temp
+.tmp-figma/
+
+# misc
+*.err
+opencode.json
+skills-lock.json
+front/src/rundev.bat
+back/start-server.cmd
+

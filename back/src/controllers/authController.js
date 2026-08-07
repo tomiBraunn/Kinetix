@@ -178,6 +178,71 @@ async function googleCallback(req, res) {
   }
 }
 
+// Redirect-based flow (more reliable than the popup/id_token flow).
+// Passport middleware populates req.user with the Google profile.
+async function googleRedirectCallback(req, res) {
+  try {
+    if (!req.user) {
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=google_auth_failed`);
+    }
+
+    const profile = req.user;
+    const googleId = profile.id;
+    const email = (profile.emails && profile.emails[0] && profile.emails[0].value) || '';
+    const nombre = profile.name && profile.name.givenName ? profile.name.givenName : (profile.displayName || '').split(' ')[0] || '';
+    const apellido = profile.name && profile.name.familyName ? profile.name.familyName : (profile.displayName || '').split(' ').slice(1).join(' ') || '';
+    const picture = (profile.photos && profile.photos[0] && profile.photos[0].value) || null;
+
+    let kinesiologo = await kinesiologoModel.findByGoogleId(googleId);
+
+    if (!kinesiologo) {
+      // No hay cuenta con este google_id. Puede ser que el email ya exista
+      // (registrado con contraseña): en ese caso vinculamos el google_id a esa
+      // cuenta en lugar de crear una nueva (chocaría con el email único).
+      const existing = email ? await kinesiologoModel.findByEmail(email) : null;
+      if (existing) {
+        const updates = { google_id: googleId };
+        if (!existing.avatar_url) {
+          updates.avatar_url = picture || await uploadAvatar(nombre, apellido, existing.id);
+        }
+        await kinesiologoModel.update(existing.id, updates);
+        kinesiologo = { ...existing, ...updates };
+      } else {
+        kinesiologo = await kinesiologoModel.create({
+          google_id: googleId,
+          email,
+          nombre,
+          apellido
+        });
+        const avatar_url = picture || await uploadAvatar(nombre, apellido, kinesiologo.id);
+        await kinesiologoModel.update(kinesiologo.id, { avatar_url });
+        kinesiologo.avatar_url = avatar_url;
+      }
+    } else if (!kinesiologo.avatar_url) {
+      const avatar_url = picture || await uploadAvatar(nombre, apellido, kinesiologo.id);
+      await kinesiologoModel.update(kinesiologo.id, { avatar_url });
+      kinesiologo.avatar_url = avatar_url;
+    }
+
+    const token = generateToken({ id: kinesiologo.id, email: kinesiologo.email });
+    const user = {
+      id: kinesiologo.id,
+      nombre: kinesiologo.nombre,
+      apellido: kinesiologo.apellido,
+      email: kinesiologo.email,
+      avatar_url: kinesiologo.avatar_url
+    };
+
+    // Hand the JWT back to the SPA via query string. The frontend will read it,
+    // store it, and clean the URL.
+    const params = new URLSearchParams({ token, user: JSON.stringify(user) });
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback?${params.toString()}`);
+  } catch (error) {
+    console.error('googleRedirectCallback error:', error);
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=google_auth_failed`);
+  }
+}
+
 async function githubCallback(req, res) {
   try {
     const { code } = req.body;
@@ -253,4 +318,4 @@ async function githubCallback(req, res) {
   }
 }
 
-module.exports = { register, login, me, refresh, googleCallback, githubCallback };
+module.exports = { register, login, me, refresh, googleCallback, googleRedirectCallback, githubCallback };
