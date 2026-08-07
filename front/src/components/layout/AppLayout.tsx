@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import Logo from '../Logo'
 
 type NavItem = {
   to: string
@@ -12,7 +13,7 @@ const iconClass = 'material-symbols-rounded text-[22px]'
 const NAV_ITEMS: NavItem[] = [
   {
     to: '/home',
-    label: 'Inicio',
+    label: 'Home',
     icon: <span className={iconClass}>home</span>,
   },
   {
@@ -21,19 +22,14 @@ const NAV_ITEMS: NavItem[] = [
     icon: <span className={iconClass}>group</span>,
   },
   {
-    to: '/sesiones',
-    label: 'Sesiones',
-    icon: <span className={iconClass}>sports_gymnastics</span>,
+    to: '/juego',
+    label: 'Juegos',
+    icon: <span className={iconClass}>sports_esports</span>,
   },
   {
-    to: '/estadisticas',
-    label: 'Estadísticas',
-    icon: <span className={iconClass}>monitoring</span>,
-  },
-  {
-    to: '/configuracion',
-    label: 'Configuración',
-    icon: <span className={iconClass}>settings</span>,
+    to: '/analisis',
+    label: 'Análisis',
+    icon: <span className={iconClass}>bar_chart</span>,
   },
 ]
 
@@ -44,10 +40,9 @@ export default function AppLayout() {
   return (
     <div className="min-h-screen bg-bg-home flex">
       {/* Sidebar */}
-      <aside className="w-[260px] flex-shrink-0 bg-primary text-white hidden md:flex flex-col sticky top-0 h-screen">
-        <div className="px-6 py-6 flex items-center gap-3">
-          <span className="material-symbols-rounded text-[28px]">self_improvement</span>
-          <span className="text-xl font-black tracking-tight">Kinetix</span>
+      <aside className="w-[260px] flex-shrink-0 bg-[#F0F2FF] hidden md:flex flex-col sticky top-0 h-screen border-r border-primary/10">
+        <div className="px-6 py-6">
+          <Logo />
         </div>
 
         <nav className="flex-1 px-4 space-y-1 mt-2">
@@ -58,8 +53,8 @@ export default function AppLayout() {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-3 rounded-[14px] text-sm font-semibold transition-colors ` +
                 (isActive
-                  ? 'bg-white/15 text-white shadow-inner'
-                  : 'text-white/70 hover:bg-white/8 hover:text-white')
+                  ? 'bg-primary text-white rounded-[20px]'
+                  : 'text-text-label hover:bg-primary/8 hover:text-primary')
               }
             >
               {item.icon}
@@ -71,7 +66,7 @@ export default function AppLayout() {
         <div className="p-4">
           <button
             onClick={logout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-[14px] text-sm font-semibold text-white/70 hover:bg-white/8 hover:text-white transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-[14px] text-sm font-semibold text-text-label hover:bg-primary/8 hover:text-primary transition-colors"
           >
             <span className={iconClass}>logout</span>
             Cerrar sesión
@@ -82,14 +77,9 @@ export default function AppLayout() {
       {/* Main column */}
       <div className="flex-1 flex flex-col min-w-0">
         <header className="bg-white/70 backdrop-blur border-b border-accent/10 px-6 py-4 flex items-center justify-between sticky top-0 z-40">
-          <NavLink to="/home" className="md:hidden font-black text-primary text-xl">
-            Kinetix
+          <NavLink to="/home" className="md:hidden">
+            <Logo />
           </NavLink>
-
-          <div className="hidden md:flex items-center gap-2 text-text-muted">
-            <span className="material-symbols-rounded text-[20px]">join_full</span>
-            <span className="text-sm font-semibold">Panel del kinesiólogo</span>
-          </div>
 
           <div className="flex items-center gap-3 ml-auto">
             {user?.avatar_url ? (

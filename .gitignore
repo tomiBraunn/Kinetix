@@ -16,3 +16,7 @@ archive/
 
 # Logs varios
 *.log
+
+# Skills locales (no commitear)
+.agents/skills/
+.claude/skills/

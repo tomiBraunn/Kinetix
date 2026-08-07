@@ -10,6 +10,7 @@ import AuthRoute from './components/auth/AuthRoute'
 import PublicRoute from './components/auth/PublicRoute'
 import AppLayout from './components/layout/AppLayout'
 import SeleccionJuego from './pages/SeleccionJuego.tsx'
+import Analisis from './pages/Analisis.tsx'
 
 export default function App() {
   return (
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="/pacientes/nuevo" element={<CrearPaciente />} />
           <Route path="/pacientes/:id" element={<DetallePaciente />} />
           <Route path="/juego" element={<SeleccionJuego />} />
+          <Route path="/analisis" element={<Analisis />} />
         </Route>
 
         <Route
