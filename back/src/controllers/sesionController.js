@@ -31,4 +31,18 @@ async function finalizar(req, res) {
   }
 }
 
-module.exports = { create, finalizar }
+async function listar(req, res) {
+  try {
+    const paciente_id = req.query.pacienteId ?? null
+    const sesiones = await sesionModel.listar({
+      kinesiologo_id: req.userId,
+      paciente_id,
+      limit: 100,
+    })
+    res.json(sesiones)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+}
+
+module.exports = { create, finalizar, listar }
