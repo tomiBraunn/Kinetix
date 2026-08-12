@@ -39,8 +39,8 @@ export default function GamePage() {
   const [feedbackKey, setFeedbackKey] = useState(0)
   const [mostrarFeedback, setMostrarFeedback] = useState(false)
 
-  // Arranca MediaPipe Pose; se pausa cuando el juego está pausado
-  usePoseAI('surf', !pausado)
+  // Arranca MediaPipe Pose con las dimensiones correctas del canvas de surf
+  usePoseAI('surf', !pausado, HEADER_H)
 
   // Crea sesión al montar (solo si hay paciente seleccionado)
   useEffect(() => {
