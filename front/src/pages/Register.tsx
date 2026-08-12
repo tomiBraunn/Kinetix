@@ -7,7 +7,7 @@ import Field from '../components/auth/Field'
 import PasswordField from '../components/auth/PasswordField'
 import { SubmitButton, GoogleButton } from '../components/auth/Buttons'
 import OrDivider from '../components/auth/OrDivider'
-import { RegisterIcon } from '../components/auth/icons'
+import { RegisterIcon, MailIcon } from '../components/auth/icons'
 import GradientBackground from '../components/GradientBackground'
 import { useAuth } from '../context/AuthContext'
 
@@ -20,6 +20,7 @@ export default function Register() {
 
   const [form, setForm] = useState<Form>({ nombre: '', apellido: '', email: '', password: '', confirm: '' })
   const [errors, setErrors] = useState<Errors>({})
+  const [done, setDone] = useState(false)
 
   const set = (k: keyof Form) => (e: { target: { value: string } }) => {
     setForm((f) => ({ ...f, [k]: e.target.value }))
@@ -43,13 +44,14 @@ export default function Register() {
     setErrors(found)
     if (Object.keys(found).length > 0) return
     try {
-      await register({
+      const authed = await register({
         nombre: form.nombre.trim(),
         apellido: form.apellido.trim(),
         email: form.email.trim(),
         password: form.password
       })
-      navigate('/home', { replace: true })
+      if (authed) navigate('/home', { replace: true })
+      else setDone(true)
     } catch {
       // Error surfaced via useAuth().error
     }
@@ -59,8 +61,34 @@ export default function Register() {
     <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden">
       <GradientBackground />
       <div className="relative z-10 w-full max-w-[544px]">
-        <AuthCard icon={<RegisterIcon />} title="Registrarse">
-      <form onSubmit={handleSubmit} noValidate>
+        <AuthCard icon={done ? <MailIcon /> : <RegisterIcon />} title={done ? 'Revisá tu email' : 'Registrarse'}>
+          {done ? (
+            <motion.div variants={item} initial="hidden" animate="show">
+              <div className="mb-6 rounded-2xl bg-violet-50 p-5 text-center">
+                <span className="material-symbols-rounded text-[44px] text-accent">mark_email_read</span>
+                <p className="text-text-label font-bold mt-3 leading-snug">
+                  Te enviamos un mail a <span className="text-primary">{form.email}</span> para verificar tu cuenta.
+                </p>
+                <p className="text-text-muted text-sm font-medium mt-2">
+                  Hacé clic en el link que te mandamos para activar tu cuenta y poder iniciar sesión.
+                </p>
+              </div>
+              <p className="text-text-muted text-sm font-medium text-center">
+                ¿No llegó el mail? Revisá la carpeta de spam o{' '}
+                <Link to="/register" className="text-accent font-bold hover:underline">registrate de nuevo</Link>.
+              </p>
+              <div className="mt-6">
+                <Link
+                  to="/login"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent text-white text-sm font-bold px-6 py-3 hover:bg-[#C83890] transition-colors"
+                >
+                  Ir a iniciar sesión
+                </Link>
+              </div>
+            </motion.div>
+          ) : (
+            <>
+              <form onSubmit={handleSubmit} noValidate>
         <motion.div variants={item} className="mb-6 grid grid-cols-2 gap-5">
           <Field label="Nombre" placeholder="Federico" value={form.nombre} onChange={set('nombre')} error={errors.nombre} />
           <Field label="Apellido" placeholder="Holis" value={form.apellido} onChange={set('apellido')} error={errors.apellido} />
@@ -96,18 +124,20 @@ export default function Register() {
         </motion.div>
       </form>
 
-      <motion.div variants={item} className="my-8">
-        <OrDivider />
-      </motion.div>
+        <motion.div variants={item} className="my-8">
+          <OrDivider />
+        </motion.div>
 
-      <motion.div variants={item}>
-        <GoogleButton />
-      </motion.div>
+        <motion.div variants={item}>
+          <GoogleButton />
+        </motion.div>
 
-      <motion.p variants={item} className="text-center mt-6 text-text-label text-sm">
-        ¿Ya tenés cuenta?{' '}
-        <Link to="/login" className="text-accent font-bold hover:underline">Iniciar sesión</Link>
-      </motion.p>
+        <motion.p variants={item} className="text-center mt-6 text-text-label text-sm">
+          ¿Ya tenés cuenta?{' '}
+          <Link to="/login" className="text-accent font-bold hover:underline">Iniciar sesión</Link>
+        </motion.p>
+            </>
+          )}
     </AuthCard>
       </div>
     </div>

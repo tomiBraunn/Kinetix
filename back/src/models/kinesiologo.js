@@ -18,7 +18,7 @@ async function findById(id) {
     .select('*')
     .eq('id', id)
     .single();
-  if (error) throw error;
+  if (error && error.code !== 'PGRST116') throw error;
   return data;
 }
 
@@ -52,6 +52,26 @@ async function findByGithubId(githubId) {
   return data;
 }
 
+async function findByVerificationToken(token) {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('*')
+    .eq('verification_token', token)
+    .single();
+  if (error && error.code !== 'PGRST116') throw error;
+  return data;
+}
+
+async function findByResetToken(token) {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('*')
+    .eq('reset_token', token)
+    .single();
+  if (error && error.code !== 'PGRST116') throw error;
+  return data;
+}
+
 async function update(id, payload) {
   const { data, error } = await supabase
     .from(TABLE)
@@ -62,4 +82,4 @@ async function update(id, payload) {
   return data?.[0] || null;
 }
 
-module.exports = { findByEmail, findById, create, findByGoogleId, findByGithubId, update };
+module.exports = { findByEmail, findById, create, findByGoogleId, findByGithubId, findByVerificationToken, findByResetToken, update };

@@ -1,5 +1,9 @@
 //node test.js
 
+// Modo test: el register devuelve verificationToken/resetToken en la respuesta
+// (sin enviar mails) para poder ejercitar el flujo completo de verificación.
+process.env.NODE_ENV = 'test';
+
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const app = require('./src/app');
 const http = require('http');
@@ -66,28 +70,57 @@ async function check(name, expectedStatus, fn) {
 const server = app.listen(PORT, async () => {
   console.log(`\n Kinetix Backend Tests\n`);
 
-  // Auth
+  // Auth (Supabase Auth / GoTrue)
   await check('GET /health', 200, () => req('GET', '/health'));
   await check('POST register missing fields', 400, () => req('POST', '/api/auth/register', JSON.stringify({ email: 'only@test.com' })));
 
   const email = 'auto' + Date.now() + '@test.com';
   const reg = await check('POST register', 201, () => req('POST', '/api/auth/register', JSON.stringify({ nombre: 'Auto', apellido: 'Test', email, password: 'abc123' })));
-  if (reg && reg.body && reg.body.token) token = reg.body.token;
 
   await check('POST register duplicate', 409, () => req('POST', '/api/auth/register', JSON.stringify({ nombre: 'Auto', apellido: 'Test', email, password: 'abc123' })));
 
+  const verificationToken = (reg && reg.body && reg.body.verificationToken) || null;
+  await check('POST login before email verification', 403, () => req('POST', '/api/auth/login', JSON.stringify({ email, password: 'abc123' })));
+  await check('POST verificar-email missing fields', 400, () => req('POST', '/api/auth/verificar-email', JSON.stringify({})));
+  if (verificationToken) {
+    await check('POST verificar-email with token', 200, () => req('POST', '/api/auth/verificar-email', JSON.stringify({ email, token: verificationToken })));
+  }
+  await check('POST verificar-email invalid token', 400, () => req('POST', '/api/auth/verificar-email', JSON.stringify({ email, token: 'bogus' })));
+
   const log = await check('POST login', 200, () => req('POST', '/api/auth/login', JSON.stringify({ email, password: 'abc123' })));
+  const refreshToken = (log && log.body && log.body.refresh_token) || null;
   if (log && log.body && log.body.token) token = log.body.token;
 
   await check('POST login wrong password', 401, () => req('POST', '/api/auth/login', JSON.stringify({ email, password: 'wrong' })));
   await check('GET me with token', 200, () => req('GET', '/api/auth/me', null, token));
   await check('GET me no token', 401, () => req('GET', '/api/auth/me'));
   await check('GET me invalid token', 403, () => req('GET', '/api/auth/me', null, 'bad-token'));
-  await check('POST refresh', 200, () => req('POST', '/api/auth/refresh', null, token));
-  await check('POST google/callback missing id_token', 400, () => req('POST', '/api/auth/google/callback', JSON.stringify({})));
-  await check('POST google/callback bad token', 401, () => req('POST', '/api/auth/google/callback', JSON.stringify({ id_token: 'fake' })));
-  await check('POST github/callback missing code', 400, () => req('POST', '/api/auth/github/callback', JSON.stringify({})));
-  await check('POST github/callback bad code', 401, () => req('POST', '/api/auth/github/callback', JSON.stringify({ code: 'fake' })));
+  await check('POST refresh', 200, async () => {
+    if (!refreshToken) return { status: 0 };
+    return req('POST', '/api/auth/refresh', JSON.stringify({ refresh_token: refreshToken }));
+  });
+  await check('POST refresh invalid token', 401, () => req('POST', '/api/auth/refresh', JSON.stringify({ refresh_token: 'bogus' })));
+  await check('POST oauth-callback missing token', 400, () => req('POST', '/api/auth/oauth-callback', JSON.stringify({})));
+  await check('POST oauth-callback invalid token', 401, () => req('POST', '/api/auth/oauth-callback', JSON.stringify({ access_token: 'fake' })));
+
+  // Forgot / reset password
+  await check('POST forgot-password missing email', 400, () => req('POST', '/api/auth/forgot-password', JSON.stringify({})));
+  const forgot = await check('POST forgot-password', 200, () => req('POST', '/api/auth/forgot-password', JSON.stringify({ email })));
+  const resetToken = (forgot && forgot.body && forgot.body.resetToken) || null;
+  await check('POST reset-password missing fields', 400, () => req('POST', '/api/auth/reset-password', JSON.stringify({})));
+  await check('POST reset-password short password', 400, () => req('POST', '/api/auth/reset-password', JSON.stringify({ email, token: resetToken || 'x', password: 'short' })));
+  if (resetToken) {
+    await check('POST reset-password with token', 200, () => req('POST', '/api/auth/reset-password', JSON.stringify({ email, token: resetToken, password: 'nuevaPass123' })));
+    await check('POST login with new password', 200, () => req('POST', '/api/auth/login', JSON.stringify({ email, password: 'nuevaPass123' })));
+    await check('POST reset-password reused token', 400, () => req('POST', '/api/auth/reset-password', JSON.stringify({ email, token: resetToken, password: 'otraPass123' })));
+  }
+  await check('POST reset-password invalid token', 400, () => req('POST', '/api/auth/reset-password', JSON.stringify({ email, token: 'bogus', password: 'otraPass123' })));
+
+  // El cambio de contraseña revoca las sesiones anteriores del usuario:
+  // generamos una sesión fresca para el resto de los tests.
+  const relog = await check('POST login fresh session', 200, () => req('POST', '/api/auth/login', JSON.stringify({ email, password: 'nuevaPass123' })));
+  const refreshToken2 = (relog && relog.body && relog.body.refresh_token) || null;
+  if (relog && relog.body && relog.body.token) token = relog.body.token;
 
   // Avatar
   await check('register returns avatar_url', 201, async () => {
@@ -95,7 +128,8 @@ const server = app.listen(PORT, async () => {
     return { status: r.status, body: r.body, pass: r.status === 201 && !!r.body.kinesiologo.avatar_url };
   });
   await check('login returns avatar_url', 200, async () => {
-    const r = await req('POST', '/api/auth/login', JSON.stringify({ email, password: 'abc123' }));
+    // La contraseña cambió en el flujo de reset (arriba).
+    const r = await req('POST', '/api/auth/login', JSON.stringify({ email, password: 'nuevaPass123' }));
     return { status: r.status, body: r.body, pass: r.status === 200 && !!r.body.kinesiologo.avatar_url };
   });
   await check('me returns avatar_url', 200, async () => {

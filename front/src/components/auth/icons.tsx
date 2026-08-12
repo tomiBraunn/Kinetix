@@ -28,3 +28,15 @@ export function LoginIcon() {
 export function RegisterIcon() {
   return <Icon name="person_add" size={20} className="text-primary" />
 }
+
+export function MailIcon() {
+  return <Icon name="mail" size={20} className="text-primary" />
+}
+
+export function KeyIcon() {
+  return <Icon name="key" size={20} className="text-primary" />
+}
+
+export function CheckIcon() {
+  return <Icon name="task_alt" size={20} className="text-primary" />
+}

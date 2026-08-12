@@ -87,9 +87,9 @@ export default function Login() {
             <input type="checkbox" className="h-5 w-5 rounded-md border-primary accent-primary" />
             <span className="text-text-label text-[15px] font-semibold">Recordarme</span>
           </label>
-          <a href="#" className="text-accent text-[15px] font-bold hover:underline">
+          <Link to="/olvidaste-password" className="text-accent text-[15px] font-bold hover:underline">
             ¿Olvidaste tu contraseña?
-          </a>
+          </Link>
         </motion.div>
 
         {error && (

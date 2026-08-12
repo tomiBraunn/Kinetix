@@ -1,6 +1,9 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Login from './pages/Login.tsx'
 import Register from './pages/Register.tsx'
+import VerifyEmail from './pages/VerifyEmail.tsx'
+import ForgotPassword from './pages/ForgotPassword.tsx'
+import ResetPassword from './pages/ResetPassword.tsx'
 import Home from './pages/Home.tsx'
 import AuthCallback from './pages/AuthCallback.tsx'
 import Pacientes from './pages/Pacientes.tsx'
@@ -19,6 +22,9 @@ export default function App() {
         <Route path="/" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+        <Route path="/verificar-email" element={<PublicRoute><VerifyEmail /></PublicRoute>} />
+        <Route path="/olvidaste-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+        <Route path="/restablecer-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
         <Route path="/auth/callback" element={<AuthCallback />} />
 
         <Route

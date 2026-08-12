@@ -15,7 +15,7 @@ type AuthContextValue = {
   error: string | null
   loading: boolean
   login: (email: string, password: string) => Promise<StoredKinesiologo>
-  register: (data: { nombre: string; apellido: string; email: string; password: string }) => Promise<StoredKinesiologo>
+  register: (data: { nombre: string; apellido: string; email: string; password: string }) => Promise<boolean>
   loginWithGoogle: (idToken: string) => Promise<StoredKinesiologo>
   applySession: (token: string, user: StoredKinesiologo) => void
   logout: () => void
@@ -81,12 +81,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const register = useCallback(
-    async (data: { nombre: string; apellido: string; email: string; password: string }) => {
+    async (data: { nombre: string; apellido: string; email: string; password: string }): Promise<boolean> => {
       setLoading(true)
       setError(null)
       try {
-        const res = await api.post<AuthResponse>('/auth/register', data)
-        return finishAuth(res)
+        const res = await api.post<AuthResponse & { message?: string }>('/auth/register', data)
+        if (res.token) {
+          finishAuth(res)
+          return true // cuenta creada y ya verificada (dev sin mailer)
+        }
+        return false // requiere verificación por email
       } catch (err) {
         setError(describeError(err))
         throw err

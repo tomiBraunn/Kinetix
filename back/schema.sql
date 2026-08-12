@@ -15,6 +15,11 @@ CREATE TABLE IF NOT EXISTS kinesiologos (
   google_id varchar(255) UNIQUE,
   github_id varchar(255) UNIQUE,
   avatar_url text,
+  email_verificado boolean NOT NULL DEFAULT false,
+  verification_token varchar(255),
+  verification_token_expira timestamptz,
+  reset_token varchar(255),
+  reset_token_expira timestamptz,
   created_at timestamptz DEFAULT now()
 );
 
