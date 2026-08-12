@@ -7,7 +7,7 @@ export default function EstrellasPage() {
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
       <button
-        onClick={() => navigate('/juegos')}
+        onClick={() => navigate('/juego')}
         style={{
           position: 'absolute', top: 16, left: 16, zIndex: 10,
           background: 'rgba(0,0,0,0.5)', color: '#fff',
