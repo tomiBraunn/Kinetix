@@ -43,10 +43,10 @@ export default function App() {
             <Route path="/analisis" element={<Analisis />} />
           </Route>
 
-          {/* Juegos full-screen (protegidos, sin sidebar) */}
-          <Route path="/juego/surf" element={<AuthRoute><GamePage /></AuthRoute>} />
-          <Route path="/juego/flamenco" element={<AuthRoute><FlamencoPage /></AuthRoute>} />
-          <Route path="/juego/estrellas" element={<AuthRoute><EstrellasPage /></AuthRoute>} />
+          {/* Juegos full-screen (públicos para pruebas de IA sin backend) */}
+          <Route path="/juego/surf" element={<GamePage />} />
+          <Route path="/juego/flamenco" element={<FlamencoPage />} />
+          <Route path="/juego/estrellas" element={<EstrellasPage />} />
 
           {/* Catch-all */}
           <Route path="*" element={<PublicRoute><Login /></PublicRoute>} />
