@@ -1,4 +1,4 @@
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 
 const JUEGOS = [
   {
@@ -6,24 +6,33 @@ const JUEGOS = [
     descripcion: 'Atrapá peces inclinándote sin perder el equilibrio.',
     icon: 'surfing',
     tint: 'bg-sky-100 text-sky-600',
+    ruta: '/juego/surf',
   },
   {
     nombre: 'Flamenco Challenge',
     descripcion: 'Levantá una pierna y aguantá el equilibrio el mayor tiempo posible.',
     icon: 'directions_walk',
     tint: 'bg-pink-100 text-accent',
+    ruta: '/juego/flamenco',
   },
   {
     nombre: 'Alcanzá la estrella',
     descripcion: 'Tocá las estrellas con la mano sin mover los pies.',
     icon: 'star',
     tint: 'bg-violet-100 text-primary',
+    ruta: '/juego/estrellas',
   },
 ]
 
 export default function SeleccionJuego() {
   const [params] = useSearchParams()
+  const navigate = useNavigate()
   const pacienteId = params.get('pacienteId')
+
+  function irAJuego(ruta: string) {
+    const destino = pacienteId ? `${ruta}?pacienteId=${pacienteId}` : ruta
+    navigate(destino)
+  }
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -37,7 +46,7 @@ export default function SeleccionJuego() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        {JUEGOS.map((j, i) => (
+        {JUEGOS.map((j) => (
           <div
             key={j.nombre}
             className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 flex flex-col"
@@ -49,14 +58,15 @@ export default function SeleccionJuego() {
             <p className="text-text-muted text-sm font-medium mb-5 flex-1">{j.descripcion}</p>
             <button
               className="rounded-full bg-accent text-white text-sm font-bold text-center py-3 hover:bg-[#C83890] transition-colors cursor-pointer"
-              title="Selección e inicio de sesión se habilitan en el Sprint 4"
-              onClick={() => alert('El inicio de la sesión de juego llega en el Sprint 4.')}
+              onClick={() => irAJuego(j.ruta)}
             >
-              Elegir juego
+              Iniciar juego
             </button>
-            <p className="text-text-placeholder text-xs font-semibold text-center mt-2">
-              Inicio de juego disponible en Sprint 4 · {pacienteId ? 'Paciente seleccionado' : 'Sin paciente'}
-            </p>
+            {!pacienteId && (
+              <p className="text-text-placeholder text-xs font-semibold text-center mt-2">
+                Sin paciente seleccionado — la sesión no se guardará
+              </p>
+            )}
           </div>
         ))}
       </div>

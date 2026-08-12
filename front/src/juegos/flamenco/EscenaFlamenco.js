@@ -189,6 +189,13 @@ export default class EscenaFlamenco extends Phaser.Scene {
     if (this.piernaArriba && this.timerActual > this.mejorTiempo) {
       this.mejorTiempo = this.timerActual
     }
+    window.dispatchEvent(new CustomEvent('kinetix:flamenco:fin', {
+      detail: {
+        mejor_tiempo_segundos: parseFloat(this.mejorTiempo.toFixed(1)),
+        intentos: this.intentos,
+        duracion_segundos: 60,
+      },
+    }))
     const { width, height } = this.scale
 
     const overlay = this.add.graphics()
