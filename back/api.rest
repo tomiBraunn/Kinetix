@@ -147,3 +147,7 @@ Content-Type: application/json
 {
   "code": "CODE_DE_GITHUB"
 }
+
+### 17. Dashboard (resumen)
+GET http://localhost:3000/api/dashboard
+Authorization: Bearer {{login.response.body.token}}

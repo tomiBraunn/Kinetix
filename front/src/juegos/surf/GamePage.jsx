@@ -103,7 +103,7 @@ export default function GamePage() {
           <button onClick={togglePausa} style={{ background: 'linear-gradient(135deg, #e91e8c, #b01060)', color: '#fff', border: 'none', borderRadius: 22, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
             {pausado ? '▶ Reanudar' : 'Pausar ⏸'}
           </button>
-          <button onClick={() => navigate('/juegos')} style={{ background: '#1a237e', color: '#fff', border: 'none', borderRadius: 22, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+          <button onClick={() => navigate('/juego')} style={{ background: '#1a237e', color: '#fff', border: 'none', borderRadius: 22, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
             Salir ↩
           </button>
         </div>

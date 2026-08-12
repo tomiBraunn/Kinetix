@@ -14,6 +14,7 @@ build/
 .env.*.local
 !.env.example
 
+<<<<<<< HEAD
 # secrets
 .secrets/
 
@@ -46,3 +47,19 @@ skills-lock.json
 front/src/rundev.bat
 back/start-server.cmd
 
+=======
+# Ralph (agente autónomo) - solo local, no commitear
+.opencode/
+scripts/ralph/
+prd.json
+progress.txt
+logs/
+archive/
+
+# Logs varios
+*.log
+
+# Skills locales (no commitear)
+.agents/skills/
+.claude/skills/
+>>>>>>> 87790cfa9716c245a9597dd98adf07acb9277c19
