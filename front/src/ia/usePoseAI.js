@@ -1,47 +1,64 @@
 import { useEffect, useRef } from 'react'
 import { kinetixAI } from './KinetixAI'
+import { getStream } from './CameraStream'
 
 /**
- * Hook que arranca MediaPipe Pose para el juego indicado.
- * Abre su propia cámara para MediaPipe (el video de Phaser
- * sigue siendo el de fondo; el navegador reutiliza el mismo
- * dispositivo sin pedir permiso dos veces).
- *
+ * Arranca MediaPipe Pose sobre el stream de cámara compartido (abierto por Phaser).
  * @param {'surf'|'flamenco'|'estrellas'} gameMode
- * @param {boolean} enabled  false para desactivar (ej. cuando el juego está pausado)
+ * @param {boolean} enabled  false para pausar la detección
+ * @param {number}  headerH  altura del header en px (solo surf usa 58, el resto 0)
  */
-export function usePoseAI(gameMode, enabled = true) {
+export function usePoseAI(gameMode, enabled = true, headerH = 0) {
   const videoRef = useRef(null)
-  const streamRef = useRef(null)
 
   useEffect(() => {
-    if (!enabled) return
+    if (!enabled) {
+      kinetixAI.stop()
+      return
+    }
 
-    const video = document.createElement('video')
-    video.autoplay = true
-    video.playsInline = true
-    video.muted = true
-    videoRef.current = video
+    const canvasW = window.innerWidth
+    const canvasH = window.innerHeight - headerH
 
-    let cancelled = false
-
-    navigator.mediaDevices
-      .getUserMedia({ video: { facingMode: 'user' }, audio: false })
-      .then(stream => {
-        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return }
-        streamRef.current = stream
-        video.srcObject = stream
-        video.onloadeddata = () => {
-          if (!cancelled) kinetixAI.start(gameMode, video)
+    // Reutiliza el stream de cámara que ya abrió Phaser
+    // Si Phaser todavía no lo abrió, espera 200ms y reintenta
+    function tryStart(retries = 10) {
+      const stream = getStream()
+      if (!stream) {
+        if (retries <= 0) {
+          console.warn('[usePoseAI] Stream no disponible')
+          return
         }
-      })
-      .catch(err => console.warn('[KinetixAI] Cámara no disponible:', err))
+        setTimeout(() => tryStart(retries - 1), 200)
+        return
+      }
+
+      // Crea un video element oculto que consume el mismo stream
+      const video = document.createElement('video')
+      video.autoplay = true
+      video.playsInline = true
+      video.muted = true
+      video.srcObject = stream
+      videoRef.current = video
+
+      video.addEventListener('loadeddata', () => {
+        kinetixAI.start(gameMode, video, canvasW, canvasH)
+      }, { once: true })
+
+      // Por si loadeddata ya pasó
+      if (video.readyState >= 2) {
+        kinetixAI.start(gameMode, video, canvasW, canvasH)
+      }
+    }
+
+    tryStart()
 
     return () => {
-      cancelled = true
       kinetixAI.stop()
-      streamRef.current?.getTracks().forEach(t => t.stop())
-      streamRef.current = null
+      if (videoRef.current) {
+        videoRef.current.srcObject = null
+        videoRef.current = null
+      }
     }
-  }, [gameMode, enabled])
+  }, [gameMode, enabled, headerH])
 }

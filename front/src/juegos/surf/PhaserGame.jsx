@@ -1,22 +1,18 @@
 import { useEffect, useRef } from 'react'
 import Phaser from 'phaser'
 import EscenaPrincipal from './EscenaPrincipal'
+import { openCamera, closeCamera } from '../../ia/CameraStream'
 
 export default function PhaserGame({ headerHeight = 0 }) {
   const contenedorRef = useRef(null)
   const videoRef      = useRef(null)
   const gameRef       = useRef(null)
-  const streamRef     = useRef(null)
 
   useEffect(() => {
     if (gameRef.current) return
 
-    navigator.mediaDevices
-      .getUserMedia({ video: { facingMode: 'user' }, audio: false })
-      .then(stream => {
-        streamRef.current = stream
-        if (videoRef.current) videoRef.current.srcObject = stream
-      })
+    openCamera()
+      .then(stream => { if (videoRef.current) videoRef.current.srcObject = stream })
       .catch(err => console.warn('Cámara no disponible:', err))
 
     gameRef.current = new Phaser.Game({
@@ -29,7 +25,7 @@ export default function PhaserGame({ headerHeight = 0 }) {
     })
 
     return () => {
-      streamRef.current?.getTracks().forEach(t => t.stop())
+      closeCamera()
       gameRef.current?.destroy(true)
       gameRef.current = null
     }
