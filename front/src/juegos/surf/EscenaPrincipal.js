@@ -230,6 +230,9 @@ export default class EscenaPrincipal extends Phaser.Scene {
 
   _finJuego() {
     this.jugando = false
+    window.dispatchEvent(new CustomEvent('kinetix:surf:fin', {
+      detail: { puntos: this.puntos, duracion_segundos: 60 },
+    }))
     const { width, height } = this.scale
 
     const overlay = this.add.graphics().setDepth(20)

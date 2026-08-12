@@ -182,6 +182,13 @@ export default class EscenaEstrellas extends Phaser.Scene {
 
   _finJuego() {
     this.jugando = false
+    window.dispatchEvent(new CustomEvent('kinetix:estrellas:fin', {
+      detail: {
+        estrellas_alcanzadas: this.puntos,
+        movimientos_pies: this.equilibrioRoto,
+        duracion_segundos: 60,
+      },
+    }))
     const { width, height } = this.scale
 
     const overlay = this.add.graphics()

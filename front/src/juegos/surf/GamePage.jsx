@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import PhaserGame from './PhaserGame'
+import { usePoseAI } from '../../ia/usePoseAI'
+import { crearSesion, finalizarSesion } from '../../lib/sesiones.ts'
 
 const HEADER_H = 58
 
@@ -26,12 +28,37 @@ const pillStyle = {
 
 export default function GamePage() {
   const navigate = useNavigate()
+  const [params] = useSearchParams()
+  const pacienteId = params.get('pacienteId')
+  const sesionIdRef = useRef(null)
+
   const [puntos, setPuntos] = useState(0)
   const [tiempo, setTiempo] = useState(60)
   const [pausado, setPausado] = useState(false)
   const [instruccion, setInstruccion] = useState(0)
   const [feedbackKey, setFeedbackKey] = useState(0)
   const [mostrarFeedback, setMostrarFeedback] = useState(false)
+
+  // Arranca MediaPipe Pose; se pausa cuando el juego está pausado
+  usePoseAI('surf', !pausado)
+
+  // Crea sesión al montar (solo si hay paciente seleccionado)
+  useEffect(() => {
+    if (!pacienteId) return
+    crearSesion(pacienteId, 'surf')
+      .then(s => { sesionIdRef.current = s.id })
+      .catch(console.warn)
+  }, [pacienteId])
+
+  // Guarda resultados al terminar el juego
+  useEffect(() => {
+    const handler = (e) => {
+      if (!sesionIdRef.current) return
+      finalizarSesion(sesionIdRef.current, { juego: 'surf', ...e.detail }).catch(console.warn)
+    }
+    window.addEventListener('kinetix:surf:fin', handler)
+    return () => window.removeEventListener('kinetix:surf:fin', handler)
+  }, [])
 
   useEffect(() => {
     const handler = (e) => {
