@@ -43,4 +43,25 @@ async function findById(id) {
   return data
 }
 
-module.exports = { create, finalizar, findById }
+// Sesiones de un kinesiólogo, opcionalmente filtradas por paciente
+async function listar({ kinesiologo_id, paciente_id, limit = 50 }) {
+  let q = supabase
+    .from('sesiones')
+    .select(`
+      id, juego, estado, iniciada_en, finalizada_en, duracion_segundos,
+      pacientes ( id, nombre, apellido ),
+      metricas_sesion ( repeticiones_correctas, datos_ia_raw )
+    `)
+    .eq('kinesiologo_id', kinesiologo_id)
+    .eq('estado', 'finalizada')
+    .order('iniciada_en', { ascending: false })
+    .limit(limit)
+
+  if (paciente_id) q = q.eq('paciente_id', paciente_id)
+
+  const { data, error } = await q
+  if (error) throw error
+  return data
+}
+
+module.exports = { create, finalizar, findById, listar }
