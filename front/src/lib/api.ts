@@ -31,14 +31,17 @@ type RequestOptions = {
 
 async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
   const { method = 'GET', body, token, signal } = opts
+  const isFormData = body instanceof FormData
 
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  const headers: Record<string, string> = {}
+  if (!isFormData) headers['Content-Type'] = 'application/json'
   if (token) headers.Authorization = `Bearer ${token}`
 
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
     headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    // FormData sets its own multipart boundary — never JSON.stringify it.
+    body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
     signal,
   })
 

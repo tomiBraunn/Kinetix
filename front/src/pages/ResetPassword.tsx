@@ -56,7 +56,7 @@ export default function ResetPassword() {
                 </p>
               </div>
               <Link
-                to="/olvidaste-password"
+                to="/olvidaste-contraseña"
                 className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent text-white text-sm font-bold px-6 py-3 hover:bg-[#C83890] transition-colors"
               >
                 Pedir un link nuevo

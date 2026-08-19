@@ -18,15 +18,15 @@ function PacientesSkeleton() {
     <div className="max-w-6xl mx-auto animate-pulse">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div className="space-y-2">
-          <div className="h-8 w-64 rounded bg-white/70" />
-          <div className="h-4 w-80 rounded bg-white/70" />
+          <div className="h-8 w-64 rounded bg-slate-200" />
+          <div className="h-4 w-80 rounded bg-slate-200" />
         </div>
-        <div className="h-12 w-56 rounded-full bg-white/70" />
+        <div className="h-12 w-56 rounded-full bg-slate-200" />
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="h-[46px] w-full max-w-sm rounded-full bg-white/70" />
-        <div className="h-[46px] w-40 rounded-full bg-white/70" />
+        <div className="h-[46px] w-full max-w-sm rounded-full bg-slate-200" />
+        <div className="h-[46px] w-40 rounded-full bg-slate-200" />
       </div>
 
       <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] overflow-hidden">
@@ -41,7 +41,6 @@ function PacientesSkeleton() {
               </div>
               <div className="hidden md:block h-3 w-10 rounded bg-slate-200 shrink-0" />
               <div className="hidden lg:block h-5 w-20 rounded-full bg-slate-200 shrink-0" />
-              <div className="hidden sm:block h-5 w-16 rounded-full bg-slate-200 shrink-0" />
             </div>
           ))}
         </div>
@@ -178,7 +177,6 @@ export default function Pacientes() {
                   <th className="px-6 py-4 hidden md:table-cell">Edad</th>
                   <th className="px-6 py-4 hidden lg:table-cell">Mejorar</th>
                   <th className="px-6 py-4 hidden lg:table-cell">Desde</th>
-                  <th className="px-6 py-4 hidden sm:table-cell">Estado</th>
                   <th className="px-6 py-4 text-right">Detalle</th>
                 </tr>
               </thead>
@@ -220,18 +218,6 @@ export default function Pacientes() {
                       </td>
                       <td className="px-6 py-4 hidden lg:table-cell text-text-muted text-sm font-medium">
                         {formatearFecha(p.fecha_inicio_rehabilitacion)}
-                      </td>
-                      <td className="px-6 py-4 hidden sm:table-cell">
-                        <span
-                          className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 py-1 ${
-                            p.activo ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-text-muted'
-                          }`}
-                        >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${p.activo ? 'bg-emerald-500' : 'bg-slate-400'}`}
-                          />
-                          {p.activo ? 'Activo' : 'Inactivo'}
-                        </span>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <Link

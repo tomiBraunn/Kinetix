@@ -35,7 +35,7 @@ export default function App() {
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
         <Route path="/verificar-email" element={<PublicRoute><VerifyEmail /></PublicRoute>} />
-        <Route path="/olvidaste-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+        <Route path="/olvidaste-contraseña" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
         <Route path="/restablecer-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
         <Route path="/auth/callback" element={<AuthCallback />} />
 

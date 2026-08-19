@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import logoMark from "../assets/logo-mark.png";
+import smiles from "../assets/smiles.svg";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../lib/api";
 import { nombreCompleto, iniciales, type Paciente } from "../lib/pacientes";
@@ -29,7 +30,7 @@ function StatCard({
   className?: string;
 }) {
   return (
-    <div className={`bg-white rounded-[18px] p-6 shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] ${className ?? ""}`}>
+    <div className={`bg-white rounded-[18px] p-6 shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] border-b-4 border-accent ${className ?? ""}`}>
       <div className="flex items-start justify-between mb-4">
         {title ? (
           <p className="text-text-label font-black text-sm">{title}</p>
@@ -55,13 +56,13 @@ function StatCard({
 function HomeSkeleton() {
   return (
     <div className="max-w-6xl mx-auto animate-pulse">
-      <div className="mb-8 rounded-4xl min-w-full h-80 bg-white/70" />
+      <div className="mb-8 rounded-4xl min-w-full h-80 bg-slate-200" />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         {[0, 1, 2, 3, 4].map((i) => (
           <div
             key={i}
-            className={`h-[150px] rounded-[18px] bg-white/70 ${i === 4 ? "lg:col-span-2" : ""}`}
+            className={`h-[150px] rounded-[18px] bg-slate-200 ${i === 4 ? "lg:col-span-2" : ""}`}
           />
         ))}
       </div>
@@ -76,15 +77,14 @@ function HomeSkeleton() {
                 <div className="h-3.5 w-32 rounded bg-slate-200" />
                 <div className="h-3 w-24 rounded bg-slate-100" />
               </div>
-              <div className="hidden sm:block h-5 w-16 rounded-full bg-slate-200" />
             </li>
           ))}
         </ul>
       </div>
 
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 h-[172px] rounded-[18px] bg-white/70" />
-        <div className="h-[172px] rounded-[18px] bg-white/70" />
+        <div className="lg:col-span-2 h-[172px] rounded-[18px] bg-slate-200" />
+        <div className="h-[172px] rounded-[18px] bg-slate-200" />
       </div>
     </div>
   );
@@ -259,18 +259,6 @@ export default function Home() {
                       {p.tipo_lesion || "Sin lesión registrada"}
                     </p>
                   </div>
-                  <span
-                    className={`hidden sm:inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 py-1 ${
-                      p.activo
-                        ? "bg-emerald-50 text-emerald-600"
-                        : "bg-slate-100 text-text-muted"
-                    }`}
-                  >
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${p.activo ? "bg-emerald-500" : "bg-slate-400"}`}
-                    />
-                    {p.activo ? "Activo" : "Inactivo"}
-                  </span>
                 </Link>
               </li>
             ))}
@@ -278,11 +266,20 @@ export default function Home() {
         )}
       </div>
 
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-gradient-to-r from-accent to-accent-light rounded-[18px] p-8 text-white relative overflow-hidden">
-          <span className="material-symbols-rounded absolute right-6 top-6 text-[64px] text-white/25 rotate-12">
-            sentiment_satisfied
-          </span>
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div
+          className="lg:col-span-4 rounded-[18px] p-8 text-white relative overflow-hidden"
+          style={{
+            background:
+              "linear-gradient(90deg, #F82192 9.79%, #FF5FAA 53.41%, #FF89B5 75.23%, #FFAAC0 97.04%)",
+          }}
+        >
+          <img
+            src={smiles}
+            alt=""
+            aria-hidden="true"
+            className="absolute right-4 top-1/2 -translate-y-1/2 w-40 h-40 opacity-70 pointer-events-none"
+          />
           <p className="text-3xl sm:text-4xl font-black leading-tight max-w-lg">
             Cada movimiento cuenta, pero cada sonrisa también.
           </p>
@@ -291,17 +288,22 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="bg-primary rounded-[18px] p-6 text-white relative overflow-hidden">
-          <span className="material-symbols-rounded absolute -right-4 -bottom-6 text-[110px] text-white/10">
-            self_improvement
+        <div className="lg:col-span-1 bg-primary rounded-[18px] p-6 text-white relative overflow-hidden">
+          <span className="material-symbols-rounded absolute top-5 right-5 text-[22px] text-accent">
+            lightbulb
           </span>
-          <span className="material-symbols-rounded text-[28px]">lightbulb</span>
-          <p className="text-white/80 text-xs font-bold uppercase tracking-wider mt-2 mb-1">
+          <p className="text-white/80 text-xs font-bold uppercase tracking-wider mb-3">
             Consejo del día
           </p>
-          <p className="font-bold max-w-md leading-snug">
-            La constancia es la clave de la rehabilitación. Un paciente que juega,
-            vuelve.
+          <p className="text-lg font-bold leading-snug mb-2">
+            Optimiza el
+            <br />
+            Descanso
+          </p>
+          <p className="text-white/70 text-sm font-medium leading-snug">
+            Pacientes con 8h de sueño
+            <br />
+            recuperan 20% más rápido.
           </p>
         </div>
       </div>
