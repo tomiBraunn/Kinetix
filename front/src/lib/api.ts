@@ -2,7 +2,14 @@
 // In dev, Vite proxies /api -> http://localhost:3000 (see vite.config.js).
 // In prod, /api hits the same origin via your reverse proxy.
 
+import { clearSession } from './auth'
+
 const BASE_URL = '/api'
+
+// El backend devuelve 403 cuando el token de Supabase Auth es inválido o
+// expiró (ver back/src/middlewares/index.js). Se maneja acá, no en cada
+// caller, para que cualquier request autenticado dispare el logout.
+export const SESSION_EXPIRED_EVENT = 'kinetix:session-expired'
 
 export class ApiError extends Error {
   status: number
@@ -43,6 +50,12 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
       (data && typeof data === 'object' && 'error' in data && typeof (data as { error: unknown }).error === 'string'
         ? (data as { error: string }).error
         : null) ?? `Request failed with status ${res.status}`
+
+    if (res.status === 403 && token) {
+      clearSession()
+      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
+    }
+
     throw new ApiError(res.status, message, data)
   }
 

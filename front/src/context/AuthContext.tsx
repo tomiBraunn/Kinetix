@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { api, ApiError } from '../lib/api'
+import { api, ApiError, SESSION_EXPIRED_EVENT } from '../lib/api'
 import { clearSession, getStoredUser, getToken, saveSession, type StoredKinesiologo } from '../lib/auth'
 
 type AuthResponse = {
@@ -134,6 +134,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null)
     setUser(null)
     setError(null)
+  }, [])
+
+  // api.ts dispatches this when a request comes back 403 (token inválido o
+  // expirado) — clearSession() ya corrió ahí, acá solo sincronizamos el
+  // estado de React para que AuthRoute mande a /login.
+  useEffect(() => {
+    function onSessionExpired() {
+      setToken(null)
+      setUser(null)
+    }
+    window.addEventListener(SESSION_EXPIRED_EVENT, onSessionExpired)
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onSessionExpired)
   }, [])
 
   const clearError = useCallback(() => setError(null), [])
