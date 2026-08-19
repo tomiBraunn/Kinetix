@@ -75,10 +75,14 @@ function toUserPayload(k) {
 }
 
 // Re-apunta los datos de un kinesiologo viejo (id aleatorio) al id de auth.users.
-// Los pacientes referencian por FK kinesiologo_id: se mueven antes de cambiar el id.
+// El FK pacientes.kinesiologo_id -> kinesiologos.id tiene ON UPDATE CASCADE,
+// así que cambiar el id del padre ya propaga solo a los pacientes referenciados.
 async function relinkKinesiologo(oldId, newId) {
-  await supabase.from('pacientes').update({ kinesiologo_id: newId }).eq('kinesiologo_id', oldId);
-  await supabase.from('kinesiologos').update({ id: newId }).eq('id', oldId);
+  const { error: kinesiologoError } = await supabase
+    .from('kinesiologos')
+    .update({ id: newId })
+    .eq('id', oldId);
+  if (kinesiologoError) throw kinesiologoError;
 }
 
 // Se asegura de que exista la fila de perfil (kinesiologos) para un user de

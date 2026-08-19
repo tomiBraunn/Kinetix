@@ -11,6 +11,45 @@ import {
 
 type Orden = 'nombre' | 'apellido' | 'fecha_nacimiento'
 
+// Esqueleto de la página completa (título, buscador y tabla) para que no
+// haya salto de layout cuando termina de cargar.
+function PacientesSkeleton() {
+  return (
+    <div className="max-w-6xl mx-auto animate-pulse">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div className="space-y-2">
+          <div className="h-8 w-64 rounded bg-white/70" />
+          <div className="h-4 w-80 rounded bg-white/70" />
+        </div>
+        <div className="h-12 w-56 rounded-full bg-white/70" />
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="h-[46px] w-full max-w-sm rounded-full bg-white/70" />
+        <div className="h-[46px] w-40 rounded-full bg-white/70" />
+      </div>
+
+      <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] overflow-hidden">
+        <div className="h-[52px] bg-bg-header/60" />
+        <div className="divide-y divide-slate-50">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex items-center gap-4 px-6 py-4">
+              <div className="w-10 h-10 rounded-full bg-slate-200 shrink-0" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="h-3.5 w-40 rounded bg-slate-200" />
+                <div className="h-3 w-28 rounded bg-slate-100" />
+              </div>
+              <div className="hidden md:block h-3 w-10 rounded bg-slate-200 shrink-0" />
+              <div className="hidden lg:block h-5 w-20 rounded-full bg-slate-200 shrink-0" />
+              <div className="hidden sm:block h-5 w-16 rounded-full bg-slate-200 shrink-0" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function Pacientes() {
   const [pacientes, setPacientes] = useState<Paciente[]>([])
   const [loading, setLoading] = useState(true)
@@ -53,6 +92,10 @@ export default function Pacientes() {
     })
     return lista
   }, [pacientes, busqueda, orden])
+
+  if (loading) {
+    return <PacientesSkeleton />
+  }
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -107,13 +150,7 @@ export default function Pacientes() {
         </div>
       )}
 
-      {loading ? (
-        <div className="space-y-3">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="h-[72px] rounded-[16px] bg-white/70 animate-pulse" />
-          ))}
-        </div>
-      ) : filtrados.length === 0 ? (
+      {filtrados.length === 0 ? (
         <div className="bg-white rounded-[18px] p-12 text-center shadow-sm">
           <span className="material-symbols-rounded text-[44px] text-text-placeholder">group</span>
           <p className="text-text-muted font-semibold mt-3">
