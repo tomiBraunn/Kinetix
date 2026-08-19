@@ -53,12 +53,17 @@ CREATE TABLE IF NOT EXISTS sesiones (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   paciente_id uuid NOT NULL REFERENCES pacientes(id) ON DELETE CASCADE,
   kinesiologo_id uuid NOT NULL REFERENCES kinesiologos(id) ON DELETE CASCADE,
+  juego text CHECK (juego IN ('surf', 'flamenco', 'estrellas')),
   iniciada_en timestamp DEFAULT now(),
   finalizada_en timestamp,
   duracion_segundos int,
   estado text DEFAULT 'en_curso' CHECK (estado IN ('en_curso', 'finalizada', 'cancelada')),
   notas text
 );
+
+-- Migración: agregar columna juego si la tabla ya existe
+-- Ejecutar una sola vez en Supabase SQL Editor:
+-- ALTER TABLE sesiones ADD COLUMN IF NOT EXISTS juego text CHECK (juego IN ('surf', 'flamenco', 'estrellas'));
 
 -- ============================================================
 -- metricas (crudas por sesión — llegan desde la app móvil)

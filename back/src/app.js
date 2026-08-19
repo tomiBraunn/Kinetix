@@ -17,5 +17,6 @@ app.use('/api/auth', require('./routes/index'));
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/pacientes', require('./routes/pacientes'));
 app.use('/api/dashboard', require('./routes/dashboard'));
+app.use('/api/sesiones', require('./routes/sesiones'));
 
 module.exports = app;

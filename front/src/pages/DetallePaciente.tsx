@@ -10,6 +10,14 @@ import {
   type Paciente,
   type PacienteInput,
 } from '../lib/pacientes'
+import {
+  getSesiones,
+  type SesionRow,
+  JUEGO_LABEL,
+  JUEGO_ICON,
+  resultadoPrincipal,
+  formatFecha,
+} from '../lib/sesiones'
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
@@ -28,6 +36,8 @@ export default function DetallePaciente() {
   const [editando, setEditando] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [sesiones, setSesiones] = useState<SesionRow[]>([])
+  const [loadingSesiones, setLoadingSesiones] = useState(true)
 
   useEffect(() => {
     let active = true
@@ -44,9 +54,15 @@ export default function DetallePaciente() {
       .finally(() => {
         if (active) setLoading(false)
       })
-    return () => {
-      active = false
-    }
+    return () => { active = false }
+  }, [id])
+
+  useEffect(() => {
+    if (!id) return
+    getSesiones(id)
+      .then(setSesiones)
+      .catch(() => {})
+      .finally(() => setLoadingSesiones(false))
   }, [id])
 
   async function handleGuardar(input: PacienteInput) {
@@ -149,7 +165,7 @@ export default function DetallePaciente() {
             {editando ? 'Ver perfil' : 'Editar'}
           </button>
           <Link
-            to={`/juego?pacienteId=${paciente.id}`}
+            to={`/games?pacienteId=${paciente.id}`}
             className="inline-flex items-center gap-2 rounded-full bg-accent text-white text-sm font-bold px-5 py-2.5 hover:bg-[#C83890] transition-colors shadow-[0_12px_24px_-12px_rgba(224,64,160,0.6)]"
           >
             <span className="material-symbols-rounded text-[18px]">play_circle</span>
@@ -205,6 +221,55 @@ export default function DetallePaciente() {
           </div>
         </div>
       )}
+
+      {/* Historial de sesiones */}
+      <div className="mt-6 bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+          <h2 className="text-primary font-black text-lg">Historial de sesiones</h2>
+          <Link
+            to={`/games?pacienteId=${paciente.id}`}
+            className="inline-flex items-center gap-2 rounded-full bg-accent text-white text-xs font-bold px-4 py-2 hover:bg-[#C83890] transition-colors"
+          >
+            <span className="material-symbols-rounded text-[16px]">play_circle</span>
+            Nueva sesión
+          </Link>
+        </div>
+
+        {loadingSesiones ? (
+          <div className="p-6 space-y-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-14 rounded-[12px] bg-slate-100 animate-pulse" />
+            ))}
+          </div>
+        ) : sesiones.length === 0 ? (
+          <div className="p-10 text-center">
+            <span className="material-symbols-rounded text-[40px] text-text-placeholder">sports_gymnastics</span>
+            <p className="text-text-muted font-semibold mt-3 text-sm">
+              Todavía no hay sesiones registradas para este paciente.
+            </p>
+          </div>
+        ) : (
+          <ul className="divide-y divide-slate-50">
+            {sesiones.map((s) => (
+              <li key={s.id} className="flex items-center gap-4 px-6 py-4">
+                <span className="w-9 h-9 rounded-[10px] bg-violet-50 text-primary flex items-center justify-center flex-shrink-0">
+                  <span className="material-symbols-rounded text-[18px]">{JUEGO_ICON[s.juego] ?? 'sports_esports'}</span>
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-text-label font-bold text-sm">{JUEGO_LABEL[s.juego] ?? s.juego}</p>
+                  <p className="text-text-muted text-xs font-medium">{formatFecha(s.iniciada_en)}</p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <p className="text-primary font-black text-sm">{resultadoPrincipal(s)}</p>
+                  {s.duracion_segundos != null && (
+                    <p className="text-text-muted text-xs font-medium">{s.duracion_segundos}s</p>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   )
 }

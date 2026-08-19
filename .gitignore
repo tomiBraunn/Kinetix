@@ -1,11 +1,53 @@
-.secrets/
+# dependencies
 node_modules/
+.pnp
+.pnp.js
+
+# build output
+dist/
+dist-ssr/
+build/
+
+# env files
 .env
 .env.local
 .env.*.local
-# Keep the template under VCS
 !.env.example
 
+<<<<<<< HEAD
+# secrets
+.secrets/
+
+# editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# temp
+.tmp-figma/
+
+# misc
+*.err
+opencode.json
+skills-lock.json
+front/src/rundev.bat
+back/start-server.cmd
+
+=======
 # Ralph (agente autónomo) - solo local, no commitear
 .opencode/
 scripts/ralph/
@@ -20,3 +62,4 @@ archive/
 # Skills locales (no commitear)
 .agents/skills/
 .claude/skills/
+>>>>>>> 87790cfa9716c245a9597dd98adf07acb9277c19
