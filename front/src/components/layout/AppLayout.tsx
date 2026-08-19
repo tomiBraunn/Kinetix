@@ -22,7 +22,7 @@ const NAV_ITEMS: NavItem[] = [
     icon: <span className={iconClass}>group</span>,
   },
   {
-    to: '/juego',
+    to: '/games',
     label: 'Juegos',
     icon: <span className={iconClass}>sports_esports</span>,
   },

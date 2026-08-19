@@ -1,7 +1,0 @@
-Server is running on port 3000
-googleRedirectCallback error: {
-  code: '23505',
-  details: 'Key (email)=(tomasbraun2008@gmail.com) already exists.',
-  hint: null,
-  message: 'duplicate key value violates unique constraint "kinesiologos_email_key"'
-}
