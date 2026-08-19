@@ -85,17 +85,20 @@ export default function Register() {
                   Ir a iniciar sesión
                 </Link>
               </div>
+              <p className="text-center mt-4 text-text-muted text-sm">
+                <Link to="/" className="font-bold hover:underline hover:text-accent">← Volver</Link>
+              </p>
             </motion.div>
           ) : (
             <>
               <form onSubmit={handleSubmit} noValidate>
         <motion.div variants={item} className="mb-6 grid grid-cols-2 gap-5">
-          <Field label="Nombre" placeholder="Federico" value={form.nombre} onChange={set('nombre')} error={errors.nombre} />
-          <Field label="Apellido" placeholder="Holis" value={form.apellido} onChange={set('apellido')} error={errors.apellido} />
+          <Field label="Nombre" placeholder="Tu nombre" value={form.nombre} onChange={set('nombre')} error={errors.nombre} />
+          <Field label="Apellido" placeholder="Tu apellido" value={form.apellido} onChange={set('apellido')} error={errors.apellido} />
         </motion.div>
 
         <motion.div variants={item} className="mb-6">
-          <Field label="Email" type="email" placeholder="nombre@clinica.com" value={form.email} onChange={set('email')} error={errors.email} />
+          <Field label="Email" type="email" placeholder="kin@tix.com" value={form.email} onChange={set('email')} error={errors.email} />
         </motion.div>
 
         <motion.div variants={item} className="mb-6">
@@ -135,6 +138,10 @@ export default function Register() {
         <motion.p variants={item} className="text-center mt-6 text-text-label text-sm">
           ¿Ya tenés cuenta?{' '}
           <Link to="/login" className="text-accent font-bold hover:underline">Iniciar sesión</Link>
+        </motion.p>
+
+        <motion.p variants={item} className="text-center mt-4 text-text-muted text-sm">
+          <Link to="/" className="font-bold hover:underline hover:text-accent">← Volver</Link>
         </motion.p>
             </>
           )}

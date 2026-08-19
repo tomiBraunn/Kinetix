@@ -63,13 +63,13 @@ async function update(req, res) {
       nombre, apellido, fecha_nacimiento, tipo_lesion, observaciones, activo,
       dni, email_paciente, telefono, genero,
       contacto_emergencia_nombre, contacto_emergencia_telefono,
-      fecha_inicio_rehabilitacion
+      fecha_inicio_rehabilitacion, avatar_url
     } = req.body;
     const paciente = await pacienteModel.update(req.params.id, {
       nombre, apellido, fecha_nacimiento, tipo_lesion, observaciones, activo,
       dni, email_paciente, telefono, genero,
       contacto_emergencia_nombre, contacto_emergencia_telefono,
-      fecha_inicio_rehabilitacion
+      fecha_inicio_rehabilitacion, avatar_url
     });
     res.json(paciente);
   } catch (error) {

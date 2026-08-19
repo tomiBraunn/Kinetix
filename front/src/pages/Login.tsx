@@ -57,7 +57,7 @@ export default function Login() {
           <Field
             label="Email"
             type="email"
-            placeholder="kine@kinetics.com"
+            placeholder="kin@tix.com"
             value={email}
             onChange={(e) => {
               setEmail(e.target.value)
@@ -84,10 +84,10 @@ export default function Login() {
 
         <motion.div variants={item} className="mb-8 flex items-center justify-between">
           <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" className="h-5 w-5 rounded-md border-primary accent-primary" />
+            <input type="checkbox" className="h-5 w-5 rounded-md border-accent accent-accent" />
             <span className="text-text-label text-[15px] font-semibold">Recordarme</span>
           </label>
-          <Link to="/olvidaste-password" className="text-accent text-[15px] font-bold hover:underline">
+          <Link to="/olvidaste-contraseña" className="text-accent text-[15px] font-bold hover:underline">
             ¿Olvidaste tu contraseña?
           </Link>
         </motion.div>
@@ -121,6 +121,10 @@ export default function Login() {
       <motion.p variants={item} className="text-center mt-6 text-text-label text-sm">
         ¿No tenés cuenta?{' '}
         <Link to="/register" className="text-accent font-bold hover:underline">Registrarse</Link>
+      </motion.p>
+
+      <motion.p variants={item} className="text-center mt-4 text-text-muted text-sm">
+        <Link to="/" className="font-bold hover:underline hover:text-accent">← Volver</Link>
       </motion.p>
     </AuthCard>
       </div>

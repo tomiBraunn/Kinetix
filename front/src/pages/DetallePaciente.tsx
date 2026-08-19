@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import PacienteForm, { fromPaciente } from '../components/PacienteForm'
@@ -24,6 +24,97 @@ function Field({ label, value }: { label: string; value: string }) {
     <div>
       <p className="text-text-muted text-xs font-bold uppercase tracking-wider mb-1">{label}</p>
       <p className="text-text-label font-semibold">{value || '—'}</p>
+    </div>
+  )
+}
+
+const MAX_FOTO_BYTES = 5 * 1024 * 1024
+
+function FotoPacienteCard({
+  paciente,
+  onUploaded,
+}: {
+  paciente: Paciente
+  onUploaded: (avatar_url: string) => void
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [subiendo, setSubiendo] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleFile(file: File | undefined) {
+    if (!file) return
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+      setError('Solo se aceptan imágenes JPG o PNG.')
+      return
+    }
+    if (file.size > MAX_FOTO_BYTES) {
+      setError('La imagen no puede pesar más de 5MB.')
+      return
+    }
+
+    setError(null)
+    setSubiendo(true)
+    try {
+      const token = localStorage.getItem('kinetix_token')
+      const formData = new FormData()
+      formData.append('foto', file)
+      const { url } = await api.post<{ url: string }>('/upload/paciente-foto', formData, { token })
+      await api.put(`/pacientes/${paciente.id}`, { avatar_url: url }, { token })
+      onUploaded(url)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo subir la foto')
+    } finally {
+      setSubiendo(false)
+    }
+  }
+
+  return (
+    <div className="bg-[#ffe0f3] border border-accent/40 rounded-[24px] p-6 flex flex-col items-center text-center shadow-[0_8px_24px_-8px_rgba(224,64,160,0.25)]">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png"
+        className="hidden"
+        onChange={(e) => handleFile(e.target.files?.[0])}
+      />
+
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={subiendo}
+        className="w-40 h-40 rounded-full border-2 border-dashed border-accent flex items-center justify-center overflow-hidden bg-white/40 hover:bg-white/60 transition-colors disabled:opacity-60"
+      >
+        {paciente.avatar_url ? (
+          <img
+            src={paciente.avatar_url}
+            alt={nombreCompleto(paciente)}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <span className="material-symbols-rounded text-[48px] text-accent">
+            photo_camera
+          </span>
+        )}
+      </button>
+
+      <p className="text-primary font-bold mt-5">Subir foto del paciente</p>
+      <p className="text-text-muted text-sm mt-1">JPG o PNG, hasta 5MB</p>
+
+      {error && (
+        <p className="text-rose-600 text-xs font-semibold mt-3">{error}</p>
+      )}
+
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={subiendo}
+        className="inline-flex items-center gap-2 rounded-[12px] bg-accent text-white text-sm font-bold px-6 py-3 mt-6 hover:bg-[#C83890] transition-colors shadow-[0_6px_12px_-2px_rgba(255,59,146,0.3)] disabled:opacity-70"
+      >
+        <span className="material-symbols-rounded text-[18px]">
+          {subiendo ? 'progress_activity' : 'upload'}
+        </span>
+        {subiendo ? 'Subiendo…' : 'Seleccionar archivo'}
+      </button>
     </div>
   )
 }
@@ -144,16 +235,6 @@ export default function DetallePaciente() {
                 {paciente.tipo_lesion}
               </span>
             )}
-            <span
-              className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 py-1 ${
-                paciente.activo ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-text-muted'
-              }`}
-            >
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${paciente.activo ? 'bg-emerald-500' : 'bg-slate-400'}`}
-              />
-              {paciente.activo ? 'Activo' : 'Inactivo'}
-            </span>
           </div>
         </div>
         <div className="flex gap-3">
@@ -164,75 +245,72 @@ export default function DetallePaciente() {
             <span className="material-symbols-rounded text-[18px]">edit</span>
             {editando ? 'Ver perfil' : 'Editar'}
           </button>
-          <Link
-            to={`/games?pacienteId=${paciente.id}`}
-            className="inline-flex items-center gap-2 rounded-full bg-accent text-white text-sm font-bold px-5 py-2.5 hover:bg-[#C83890] transition-colors shadow-[0_12px_24px_-12px_rgba(224,64,160,0.6)]"
-          >
-            <span className="material-symbols-rounded text-[18px]">play_circle</span>
-            Iniciar juego
-          </Link>
         </div>
       </div>
 
-      {editando ? (
-        <PacienteForm
-          initial={fromPaciente(paciente)}
-          submitLabel="Guardar cambios"
-          onSubmit={handleGuardar}
-          loading={guardando}
-          error={saveError}
-        />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 space-y-4">
-            <h2 className="text-primary font-black text-lg">Información personal</h2>
-            <Field label="Nombre completo" value={nombreCompleto(paciente)} />
-            {edad !== null && <Field label="Edad" value={`${edad} años`} />}
-            <Field label="Fecha de nacimiento" value={formatearFecha(paciente.fecha_nacimiento)} />
-            <Field label="DNI" value={paciente.dni ?? ''} />
-            <Field label="Mail" value={paciente.email_paciente ?? ''} />
-            <Field label="Teléfono" value={paciente.telefono ?? ''} />
-            <Field label="Género" value={paciente.genero ?? ''} />
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          {editando ? (
+            <PacienteForm
+              initial={fromPaciente(paciente)}
+              submitLabel="Guardar cambios"
+              onSubmit={handleGuardar}
+              loading={guardando}
+              error={saveError}
+            />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 space-y-4 md:col-span-2">
+                <h2 className="text-primary font-black text-lg">Información personal</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Field label="Nombre completo" value={nombreCompleto(paciente)} />
+                  {edad !== null && <Field label="Edad" value={`${edad} años`} />}
+                  <Field label="Fecha de nacimiento" value={formatearFecha(paciente.fecha_nacimiento)} />
+                  <Field label="DNI" value={paciente.dni ?? ''} />
+                  <Field label="Mail" value={paciente.email_paciente ?? ''} />
+                  <Field label="Teléfono" value={paciente.telefono ?? ''} />
+                  <Field label="Género" value={paciente.genero ?? ''} />
+                </div>
+              </div>
 
-          <div className="space-y-6">
-            <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 space-y-4">
-              <h2 className="font-primary font-black text-lg">Contacto de emergencia</h2>
-              <Field label="Nombre y apellido" value={paciente.contacto_emergencia_nombre ?? ''} />
-              <Field label="Teléfono" value={paciente.contacto_emergencia_telefono ?? ''} />
-            </div>
+              <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 space-y-4">
+                <h2 className="text-primary font-black text-lg">Contacto de emergencia</h2>
+                <Field label="Nombre y apellido" value={paciente.contacto_emergencia_nombre ?? ''} />
+                <Field label="Teléfono" value={paciente.contacto_emergencia_telefono ?? ''} />
+              </div>
 
-            <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 space-y-4">
-              <h2 className="font-primary font-black text-lg">Rehabilitación</h2>
-              <Field label="Motivo (lesión)" value={paciente.tipo_lesion ?? ''} />
-              <Field
-                label="Inicio de la rehabilitación"
-                value={formatearFecha(paciente.fecha_inicio_rehabilitacion)}
-              />
-              <div>
-                <p className="text-text-muted text-xs font-bold uppercase tracking-wide mb-1">
-                  Observaciones médicas
-                </p>
-                <p className="text-text-label font-semibold whitespace-pre-line">
-                  {paciente.observaciones || '—'}
-                </p>
+              <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 space-y-4">
+                <h2 className="text-primary font-black text-lg">Rehabilitación</h2>
+                <Field label="Motivo (lesión)" value={paciente.tipo_lesion ?? ''} />
+                <Field
+                  label="Inicio de la rehabilitación"
+                  value={formatearFecha(paciente.fecha_inicio_rehabilitacion)}
+                />
+                <div>
+                  <p className="text-text-muted text-xs font-bold uppercase tracking-wide mb-1">
+                    Observaciones médicas
+                  </p>
+                  <p className="text-text-label font-semibold whitespace-pre-line">
+                    {paciente.observaciones || '—'}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
-      )}
+
+        <FotoPacienteCard
+          paciente={paciente}
+          onUploaded={(avatar_url) =>
+            setPaciente((prev) => (prev ? { ...prev, avatar_url } : prev))
+          }
+        />
+      </div>
 
       {/* Historial de sesiones */}
       <div className="mt-6 bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] overflow-hidden">
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
           <h2 className="text-primary font-black text-lg">Historial de sesiones</h2>
-          <Link
-            to={`/games?pacienteId=${paciente.id}`}
-            className="inline-flex items-center gap-2 rounded-full bg-accent text-white text-xs font-bold px-4 py-2 hover:bg-[#C83890] transition-colors"
-          >
-            <span className="material-symbols-rounded text-[16px]">play_circle</span>
-            Nueva sesión
-          </Link>
         </div>
 
         {loadingSesiones ? (
