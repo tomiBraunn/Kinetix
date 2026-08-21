@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Skeleton } from 'boneyard-js/react'
 import { api } from '../lib/api'
 import {
   calcularEdad,
@@ -92,11 +93,8 @@ export default function Pacientes() {
     return lista
   }, [pacientes, busqueda, orden])
 
-  if (loading) {
-    return <PacientesSkeleton />
-  }
-
   return (
+    <Skeleton name="pacientes-list" loading={loading} fallback={<PacientesSkeleton />}>
     <div className="max-w-6xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
@@ -240,5 +238,6 @@ export default function Pacientes() {
         </div>
       )}
     </div>
+    </Skeleton>
   )
 }

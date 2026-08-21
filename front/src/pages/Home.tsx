@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { Skeleton } from "boneyard-js/react";
 import logoMark from "../assets/logo-mark.png";
 import smiles from "../assets/smiles.svg";
 import { useAuth } from "../context/AuthContext";
@@ -131,11 +132,8 @@ export default function Home() {
 
   const ultimosPacientes = pacientes.slice(0, 5);
 
-  if (loading) {
-    return <HomeSkeleton />;
-  }
-
   return (
+    <Skeleton name="home-dashboard" loading={loading} fallback={<HomeSkeleton />}>
     <div className="max-w-6xl mx-auto">
       <div className="flex items-start sm:items-start sm:justify-between gap-4 mb-8 bg-primary rounded-4xl min-w-full h-80 p-8">
         <div className="flex flex-col justify-between min-h-full">
@@ -308,5 +306,6 @@ export default function Home() {
         </div>
       </div>
     </div>
+    </Skeleton>
   );
 }
