@@ -42,7 +42,9 @@ export default function AppLayout() {
       {/* Sidebar */}
       <aside className="w-[260px] flex-shrink-0 bg-[#F0F2FF] hidden md:flex flex-col sticky top-0 h-screen border-r border-primary/10">
         <div className="px-6 py-6">
-          <Logo />
+          <NavLink to="/home">
+            <Logo />
+          </NavLink>
         </div>
 
         <nav className="flex-1 px-4 space-y-1 mt-2">
