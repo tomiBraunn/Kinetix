@@ -3,10 +3,10 @@ import Phaser from 'phaser'
 import EscenaFlamenco from './EscenaFlamenco'
 import { openCamera, closeCamera } from '../../ia/CameraStream'
 
-export default function PhaserGameFlamenco() {
+export default function PhaserGameFlamenco({ headerHeight = 0 }) {
   const contenedorRef = useRef(null)
-  const videoRef = useRef(null)
-  const gameRef = useRef(null)
+  const videoRef      = useRef(null)
+  const gameRef       = useRef(null)
 
   useEffect(() => {
     if (gameRef.current) return
@@ -18,7 +18,7 @@ export default function PhaserGameFlamenco() {
     gameRef.current = new Phaser.Game({
       type: Phaser.AUTO,
       width: window.innerWidth,
-      height: window.innerHeight,
+      height: window.innerHeight - headerHeight,
       parent: contenedorRef.current,
       transparent: true,
       scene: [EscenaFlamenco],
@@ -32,7 +32,7 @@ export default function PhaserGameFlamenco() {
   }, [])
 
   return (
-    <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', background: '#000' }}>
+    <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: '#1a1a2e' }}>
       <video
         ref={videoRef}
         autoPlay playsInline muted

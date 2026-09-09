@@ -1,17 +1,18 @@
 import { PoseLandmarker, FilesetResolver } from '@mediapipe/tasks-vision'
 
-// Versión debe coincidir con el paquete instalado (npm list @mediapipe/tasks-vision)
-const WASM_URL = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm'
-const MODEL_URL =
-  'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task'
+const WASM_URL  = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm'
+const MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task'
 
-// Índices de landmarks (MediaPipe Pose Landmarker)
 // https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker
 const LM = {
-  MUÑECA_IZQ: 15,  // left wrist
-  MUÑECA_DER: 16,  // right wrist
-  TOBILLO_IZQ: 27, // left ankle
-  TOBILLO_DER: 28, // right ankle
+  MUÑECA_IZQ:  15,
+  MUÑECA_DER:  16,
+  CADERA_IZQ:  23,
+  CADERA_DER:  24,
+  RODILLA_IZQ: 25,
+  RODILLA_DER: 26,
+  TOBILLO_IZQ: 27,
+  TOBILLO_DER: 28,
 }
 
 // Evita disparar el mismo evento dos veces en el mismo objeto antes de que Phaser lo elimine
@@ -32,6 +33,7 @@ class KinetixAI {
     this._rafId = null
     this._lastTs = -1
     this._piernaLevantada = false
+    this._piernaCnt = 0   // frames consecutivos con pierna arriba/abajo
     this._canvasW = window.innerWidth
     this._canvasH = window.innerHeight
   }
@@ -71,6 +73,7 @@ class KinetixAI {
     this._canvasH = canvasH ?? window.innerHeight
     this.running = true
     this._piernaLevantada = false
+    this._piernaCnt = 0
     _cooldown.clear()
     console.log(`[KinetixAI] Detectando poses → juego: ${gameMode} canvas: ${this._canvasW}x${this._canvasH}`)
     this._loop()
@@ -137,21 +140,36 @@ class KinetixAI {
       }
 
       // ─── FLAMENCO ──────────────────────────────────────────────────────────
-      // Detecta si el tobillo derecho está levantado (Y menor = más arriba en pantalla).
-      // El umbral de 0.07 corresponde a ~7% de la altura del frame.
+      // Detecta si alguna rodilla está levantada respecto a la otra cadera.
+      // Usa rodilla (no tobillo) porque es más visible y se levanta más.
+      // Requiere 3 frames consecutivos para evitar falsos positivos.
       case 'flamenco': {
-        const tIzq = landmarks[LM.TOBILLO_IZQ]
-        const tDer = landmarks[LM.TOBILLO_DER]
-        // Y crece hacia abajo: tobillo derecho levantado tiene Y menor que izquierdo
-        const levantada = tDer.y < tIzq.y - 0.07
-        if (levantada !== this._piernaLevantada) {
-          this._piernaLevantada = levantada
-          if (levantada) {
-            console.log('[KinetixAI] Flamenco: pierna levantada')
-            window.kinetix?.onPiernaLevantada?.()
-          } else {
-            console.log('[KinetixAI] Flamenco: pierna bajada')
-            window.kinetix?.onPiernaBajada?.()
+        const rIzq = landmarks[LM.RODILLA_IZQ]
+        const rDer = landmarks[LM.RODILLA_DER]
+        const cIzq = landmarks[LM.CADERA_IZQ]
+        const cDer = landmarks[LM.CADERA_DER]
+
+        // Visibilidad mínima para considerar el landmark confiable
+        const visOk = (lm) => (lm.visibility ?? 1) > 0.4
+
+        const derechaLevantada = visOk(rDer) && visOk(cIzq) && rDer.y < cIzq.y - 0.04
+        const izquierdaLevantada = visOk(rIzq) && visOk(cDer) && rIzq.y < cDer.y - 0.04
+        const levantada = derechaLevantada || izquierdaLevantada
+
+        if (levantada === this._piernaLevantada) {
+          this._piernaCnt = 0
+        } else {
+          this._piernaCnt++
+          if (this._piernaCnt >= 3) {
+            this._piernaCnt = 0
+            this._piernaLevantada = levantada
+            if (levantada) {
+              console.log('[KinetixAI] Flamenco: pierna levantada')
+              window.kinetix?.onPiernaLevantada?.()
+            } else {
+              console.log('[KinetixAI] Flamenco: pierna bajada')
+              window.kinetix?.onPiernaBajada?.()
+            }
           }
         }
         break
