@@ -3,10 +3,10 @@ import Phaser from 'phaser'
 import EscenaEstrellas from './EscenaEstrellas'
 import { openCamera, closeCamera } from '../../ia/CameraStream'
 
-export default function PhaserGameEstrellas() {
+export default function PhaserGameEstrellas({ headerHeight = 0 }) {
   const contenedorRef = useRef(null)
-  const videoRef = useRef(null)
-  const gameRef = useRef(null)
+  const videoRef      = useRef(null)
+  const gameRef       = useRef(null)
 
   useEffect(() => {
     if (gameRef.current) return
@@ -17,8 +17,8 @@ export default function PhaserGameEstrellas() {
 
     gameRef.current = new Phaser.Game({
       type: Phaser.AUTO,
-      width: window.innerWidth,
-      height: window.innerHeight,
+      width:  window.innerWidth,
+      height: window.innerHeight - headerHeight,
       parent: contenedorRef.current,
       transparent: true,
       scene: [EscenaEstrellas],
@@ -32,7 +32,7 @@ export default function PhaserGameEstrellas() {
   }, [])
 
   return (
-    <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', background: '#000' }}>
+    <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: '#0a0a1a' }}>
       <video
         ref={videoRef}
         autoPlay playsInline muted

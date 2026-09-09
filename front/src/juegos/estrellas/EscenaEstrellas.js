@@ -1,7 +1,6 @@
 import Phaser from 'phaser'
 
-const NUM_ESTRELLAS = 3
-const RADIO_ESTRELLA = 40
+const NUM_ESTRELLAS  = 3
 const DURACION_JUEGO = 60
 
 export default class EscenaEstrellas extends Phaser.Scene {
@@ -14,13 +13,14 @@ export default class EscenaEstrellas extends Phaser.Scene {
   create() {
     const { width, height } = this.scale
 
-    this.estrellas = []
-    this.puntos = 0
+    // Radio más grande en portrait (pantalla angosta → objetos más grandes)
+    this.radio = width < 600 ? 58 : 42
+
+    this.estrellas      = []
+    this.puntos         = 0
     this.equilibrioRoto = 0
     this.tiempoRestante = DURACION_JUEGO
-    this.jugando = true
-
-    this._crearUI(width)
+    this.jugando        = true
 
     for (let i = 0; i < NUM_ESTRELLAS; i++) {
       this.spawnearEstrella()
@@ -33,104 +33,98 @@ export default class EscenaEstrellas extends Phaser.Scene {
       callbackScope: this,
     })
 
-    // Tecla S = simula que la IA detectó un toque de mano (para testing)
+    // Tecla S = simula toque de mano (testing sin cámara)
     this.input.keyboard.on('keydown-S', () => {
       if (this.estrellas.length > 0) this.tocarEstrella(this.estrellas[0])
     })
 
-    // Tecla M = simula que la IA detectó movimiento de pies (para testing)
-    this.input.keyboard.on('keydown-M', () => {
-      this._registrarMovimiento()
-    })
+    // Tecla M = simula movimiento de pies (testing)
+    this.input.keyboard.on('keydown-M', () => this._registrarMovimiento())
 
-    // Contrato con la IA
     window.kinetix = window.kinetix || {}
-    window.kinetix.onStickerTocado = (id) => {
-      const estrella = this.estrellas.find(e => e.id === id)
-      if (estrella) this.tocarEstrella(estrella)
+    window.kinetix.onStickerTocado  = (id) => {
+      const est = this.estrellas.find(e => e.id === id)
+      if (est) this.tocarEstrella(est)
     }
     window.kinetix.onEquilibrioRoto = () => this._registrarMovimiento()
+    window.kinetix.pausar           = () => { this.jugando = false }
+    window.kinetix.reanudar         = () => { this.jugando = true }
   }
 
-  _crearUI(width) {
-    const estilo = {
-      fontSize: '28px',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 4,
-    }
-    this.textoPuntos = this.add.text(20, 20, 'Estrellas: 0', estilo)
-    this.textoTiempo = this.add.text(width - 20, 20, '1:00', estilo).setOrigin(1, 0)
-    this.textoMovimiento = this.add
-      .text(width / 2, 20, 'Movimientos: 0', {
-        fontSize: '22px',
-        color: '#ff8844',
-        stroke: '#000000',
-        strokeThickness: 3,
-      })
-      .setOrigin(0.5, 0)
+  _dispatch() {
+    window.dispatchEvent(new CustomEvent('kinetix:estrellas', {
+      detail: {
+        puntos:         this.puntos,
+        tiempoRestante: this.tiempoRestante,
+        movimientos:    this.equilibrioRoto,
+      },
+    }))
   }
 
   spawnearEstrella() {
     const { width, height } = this.scale
-    const margen = 100
+    const isPortrait = height > width
+
+    // En portrait las estrellas van en la zona alcanzable con los brazos (parte alta/media)
+    const margen = isPortrait ? 72 : 100
+    const yMin   = isPortrait ? height * 0.13 : height * 0.15
+    const yMax   = isPortrait ? height * 0.72 : height * 0.82
+
     const x = Phaser.Math.Between(margen, width - margen)
-    const y = Phaser.Math.Between(height * 0.15, height * 0.82)
+    const y = Phaser.Math.Between(yMin, yMax)
 
     const gfx = this.add.graphics()
-    this._dibujarEstrella(gfx)
+    this._dibujarEstrella(gfx, this.radio)
     gfx.x = x
     gfx.y = y
 
     const estrella = {
-      id: `estrella_${Date.now()}_${Phaser.Math.Between(0, 99999)}`,
+      id: `est_${Date.now()}_${Phaser.Math.Between(0, 99999)}`,
       gfx,
       x,
       y,
-      radio: RADIO_ESTRELLA,
+      radio: this.radio,
     }
 
     gfx.setInteractive(
-      new Phaser.Geom.Circle(0, 0, RADIO_ESTRELLA),
+      new Phaser.Geom.Circle(0, 0, this.radio),
       Phaser.Geom.Circle.Contains,
     )
     gfx.on('pointerdown', () => this.tocarEstrella(estrella))
 
-    // Pulso suave
     this.tweens.add({
-      targets: gfx,
-      scaleX: 1.12,
-      scaleY: 1.12,
-      duration: 800 + Math.random() * 400,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
+      targets:  gfx,
+      scaleX:   1.14,
+      scaleY:   1.14,
+      duration: 750 + Math.random() * 450,
+      yoyo:     true,
+      repeat:   -1,
+      ease:     'Sine.easeInOut',
     })
 
     this.estrellas.push(estrella)
   }
 
-  _dibujarEstrella(gfx) {
-    const outerR = RADIO_ESTRELLA
-    const innerR = RADIO_ESTRELLA * 0.42
+  _dibujarEstrella(gfx, r) {
+    const innerR = r * 0.42
     const puntas = 5
 
     // Halo exterior
-    gfx.fillStyle(0xffdd44, 0.18)
-    gfx.fillCircle(0, 0, outerR + 14)
+    gfx.fillStyle(0xffdd44, 0.20)
+    gfx.fillCircle(0, 0, r + 18)
 
-    // Estrella
+    // Cuerpo estrella
     const pts = []
     for (let i = 0; i < puntas * 2; i++) {
-      const r = i % 2 === 0 ? outerR : innerR
+      const radio = i % 2 === 0 ? r : innerR
       const angle = (i * Math.PI) / puntas - Math.PI / 2
-      pts.push({ x: Math.cos(angle) * r, y: Math.sin(angle) * r })
+      pts.push({ x: Math.cos(angle) * radio, y: Math.sin(angle) * radio })
     }
     gfx.fillStyle(0xffdd44, 1)
     gfx.fillPoints(pts, true)
 
     // Centro blanco
-    gfx.fillStyle(0xffffff, 0.6)
+    gfx.fillStyle(0xffffff, 0.65)
     gfx.fillCircle(0, 0, innerR * 0.7)
   }
 
@@ -141,15 +135,17 @@ export default class EscenaEstrellas extends Phaser.Scene {
 
     this.estrellas.splice(idx, 1)
     this.puntos++
-    this.textoPuntos.setText(`Estrellas: ${this.puntos}`)
+
+    window.dispatchEvent(new CustomEvent('kinetix:estrellas:punto'))
+    this._dispatch()
 
     this.tweens.killTweensOf(estrella.gfx)
     this.tweens.add({
-      targets: estrella.gfx,
-      scaleX: 2,
-      scaleY: 2,
-      alpha: 0,
-      duration: 220,
+      targets:  estrella.gfx,
+      scaleX:   2.2,
+      scaleY:   2.2,
+      alpha:    0,
+      duration: 200,
       onComplete: () => {
         estrella.gfx.destroy()
         if (this.jugando) this.spawnearEstrella()
@@ -160,23 +156,13 @@ export default class EscenaEstrellas extends Phaser.Scene {
   _registrarMovimiento() {
     if (!this.jugando) return
     this.equilibrioRoto++
-    this.textoMovimiento.setText(`Movimientos: ${this.equilibrioRoto}`)
-
-    // Parpadeo de aviso
-    this.tweens.add({
-      targets: this.textoMovimiento,
-      alpha: 0,
-      duration: 150,
-      yoyo: true,
-      repeat: 2,
-    })
+    this._dispatch()
   }
 
   _descontarTiempo() {
+    if (!this.jugando) return
     this.tiempoRestante--
-    const min = Math.floor(this.tiempoRestante / 60)
-    const seg = this.tiempoRestante % 60
-    this.textoTiempo.setText(`${min}:${seg.toString().padStart(2, '0')}`)
+    this._dispatch()
     if (this.tiempoRestante <= 0) this._finJuego()
   }
 
@@ -185,50 +171,38 @@ export default class EscenaEstrellas extends Phaser.Scene {
     window.dispatchEvent(new CustomEvent('kinetix:estrellas:fin', {
       detail: {
         estrellas_alcanzadas: this.puntos,
-        movimientos_pies: this.equilibrioRoto,
-        duracion_segundos: 60,
+        movimientos_pies:     this.equilibrioRoto,
+        duracion_segundos:    DURACION_JUEGO,
       },
     }))
-    const { width, height } = this.scale
 
+    const { width, height } = this.scale
     const overlay = this.add.graphics()
-    overlay.fillStyle(0x000000, 0.62)
+    overlay.fillStyle(0x000000, 0.68)
     overlay.fillRect(0, 0, width, height)
 
-    this.add
-      .text(width / 2, height / 2 - 70, '¡Tiempo!', {
-        fontSize: '56px',
-        color: '#ffffff',
-        fontStyle: 'bold',
-        stroke: '#000000',
-        strokeThickness: 6,
-      })
-      .setOrigin(0.5)
+    this.add.text(width / 2, height / 2 - 80, '¡Tiempo!', {
+      fontSize: '56px', color: '#ffffff', fontStyle: 'bold',
+      stroke: '#000000', strokeThickness: 6,
+    }).setOrigin(0.5)
 
-    this.add
-      .text(width / 2, height / 2, `Estrellas alcanzadas: ${this.puntos}`, {
-        fontSize: '32px',
-        color: '#ffdd44',
-        stroke: '#000000',
-        strokeThickness: 4,
-      })
-      .setOrigin(0.5)
+    this.add.text(width / 2, height / 2, `⭐ ${this.puntos} estrellas`, {
+      fontSize: '38px', color: '#ffdd44',
+      stroke: '#000000', strokeThickness: 4,
+    }).setOrigin(0.5)
 
-    this.add
-      .text(width / 2, height / 2 + 56, `Movimientos de pies: ${this.equilibrioRoto}`, {
-        fontSize: '26px',
-        color: '#ff8844',
-        stroke: '#000000',
-        strokeThickness: 3,
-      })
-      .setOrigin(0.5)
+    this.add.text(width / 2, height / 2 + 62, `Movimientos: ${this.equilibrioRoto}`, {
+      fontSize: '26px', color: '#ff8844',
+      stroke: '#000000', strokeThickness: 3,
+    }).setOrigin(0.5)
   }
 
   update() {
+    // Expone posiciones para que KinetixAI pueda comparar con las muñecas
     window.kinetixEstrellas = this.estrellas.map(e => ({
-      id: e.id,
-      x: e.gfx.x,
-      y: e.gfx.y,
+      id:    e.id,
+      x:     e.gfx.x,
+      y:     e.gfx.y,
       radio: e.radio,
     }))
   }
