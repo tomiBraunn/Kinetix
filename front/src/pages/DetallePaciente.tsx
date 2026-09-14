@@ -329,20 +329,25 @@ export default function DetallePaciente() {
         ) : (
           <ul className="divide-y divide-slate-50">
             {sesiones.map((s) => (
-              <li key={s.id} className="flex items-center gap-4 px-6 py-4">
-                <span className="w-9 h-9 rounded-[10px] bg-violet-50 text-primary flex items-center justify-center flex-shrink-0">
-                  <span className="material-symbols-rounded text-[18px]">{JUEGO_ICON[s.juego] ?? 'sports_esports'}</span>
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-text-label font-bold text-sm">{JUEGO_LABEL[s.juego] ?? s.juego}</p>
-                  <p className="text-text-muted text-xs font-medium">{formatFecha(s.iniciada_en)}</p>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="text-primary font-black text-sm">{resultadoPrincipal(s)}</p>
-                  {s.duracion_segundos != null && (
-                    <p className="text-text-muted text-xs font-medium">{s.duracion_segundos}s</p>
-                  )}
-                </div>
+              <li key={s.id}>
+                <Link
+                  to={`/sesiones/${s.id}`}
+                  className="flex items-center gap-4 px-6 py-4 hover:bg-bg-header/60 transition-colors"
+                >
+                  <span className="w-9 h-9 rounded-[10px] bg-violet-50 text-primary flex items-center justify-center flex-shrink-0">
+                    <span className="material-symbols-rounded text-[18px]">{JUEGO_ICON[s.juego] ?? 'sports_esports'}</span>
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-text-label font-bold text-sm">{JUEGO_LABEL[s.juego] ?? s.juego}</p>
+                    <p className="text-text-muted text-xs font-medium">{formatFecha(s.iniciada_en)}</p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-primary font-black text-sm">{resultadoPrincipal(s)}</p>
+                    {s.duracion_segundos != null && (
+                      <p className="text-text-muted text-xs font-medium">{s.duracion_segundos}s</p>
+                    )}
+                  </div>
+                </Link>
               </li>
             ))}
           </ul>

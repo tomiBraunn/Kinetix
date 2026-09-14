@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   getSesiones,
   type SesionRow,
@@ -35,6 +35,7 @@ export default function Analisis() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filtro, setFiltro] = useState<Filtro>('todos')
+  const navigate = useNavigate()
 
   useEffect(() => {
     getSesiones()
@@ -137,11 +138,16 @@ export default function Analisis() {
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {sesionesVistas.map((s) => (
-                  <tr key={s.id} className="hover:bg-bg-header/40 transition-colors">
+                  <tr
+                    key={s.id}
+                    onClick={() => navigate(`/sesiones/${s.id}`)}
+                    className="hover:bg-bg-header/40 transition-colors cursor-pointer"
+                  >
                     <td className="px-6 py-4">
                       {s.pacientes ? (
                         <Link
                           to={`/pacientes/${s.pacientes.id}`}
+                          onClick={(e) => e.stopPropagation()}
                           className="text-text-label font-bold hover:text-accent transition-colors"
                         >
                           {s.pacientes.nombre} {s.pacientes.apellido}
