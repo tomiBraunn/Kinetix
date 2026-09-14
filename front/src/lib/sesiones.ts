@@ -48,6 +48,23 @@ export async function getSesiones(pacienteId?: string): Promise<SesionRow[]> {
   return api.get<SesionRow[]>(`/sesiones${qs}`, { token: token() })
 }
 
+export type SesionDetalle = SesionRow & {
+  notas: string | null
+  metricas_sesion: Array<{
+    repeticiones_correctas: number | null
+    repeticiones_totales: number | null
+    precision_porcentaje: number | null
+    rango_movimiento_max: number | null
+    rango_movimiento_avg: number | null
+    estabilidad_score: number | null
+    datos_ia_raw: Record<string, unknown> | null
+  }>
+}
+
+export async function getSesion(sesionId: string): Promise<SesionDetalle> {
+  return api.get<SesionDetalle>(`/sesiones/${sesionId}`, { token: token() })
+}
+
 // Helpers de presentación
 export const JUEGO_LABEL: Record<string, string> = {
   surf: 'Surf',
