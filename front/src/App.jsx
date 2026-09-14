@@ -19,6 +19,7 @@ import CrearPaciente from './pages/CrearPaciente.tsx'
 import DetallePaciente from './pages/DetallePaciente.tsx'
 import Games from './pages/SeleccionJuego.tsx'
 import Analisis from './pages/Analisis.tsx'
+import ResultadoSesion from './pages/ResultadoSesion.tsx'
 
 // Juegos full-screen (sin AppLayout)
 import SeleccionJuego from './pages/SeleccionJuego.jsx'
@@ -47,6 +48,7 @@ export default function App() {
           <Route path="/pacientes/:id" element={<DetallePaciente />} />
           <Route path="/games" element={<Games />} />
           <Route path="/analisis" element={<Analisis />} />
+          <Route path="/sesiones/:sesionId" element={<ResultadoSesion />} />
         </Route>
 
         {/* Selección de juego + juegos full-screen (públicos para pruebas de IA sin backend) */}
