@@ -250,17 +250,32 @@ Archivo Figma: `y8NlmFOJusZ1nl1jvvZdBo`, página "Proyecto final".
 
 ---
 
-## Estado actual del repo (julio 2026)
-- Últimos commits: `f6b3666` (chore: AGENTS.md + .gitignore), `b459b87` (fix test .env), `3b72332` (dashboard endpoint), `2a02a1e` (campos Figma pacientes), `48ad077` (schema.sql + .env.example).
-- **S1 + S2 completos.** Auth (email/pass + Google + GitHub), CRUD pacientes, upload imágenes, login/register UI, router, AuthContext.
-- **S3 backend completado** (commit `48ad077` → `3b72332`): schema.sql alineado con BD real, `.env.example`, CRUD pacientes con campos de Figma (dni, email_paciente, telefono, genero, contacto_emergencia_nombre/telefono, fecha_inicio_rehabilitacion), `GET /api/dashboard` (total_pacientes, pacientes_activos, sesiones_hoy). Migración `pacientes_campos_figma` aplicada.
-- **S3 webapp completado** (commit `b686e7f`): dashboard real (reemplaza Home mockup) con datos de `/api/dashboard` + últimos pacientes, layout con sidebar (Inicio, Pacientes, Sesiones, Estadísticas, Configuración) + header con avatar/nombre, lista de pacientes (`/pacientes`, búsqueda + orden + edad calculada), crear (`/pacientes/nuevo`, formulario con campos de Figma), detalle (`/pacientes/:id`, ver + editar + botón "Iniciar juego" → stub `/juego`), stub de selección de juego (S4). Verificado con E2E (playwright): registro→dashboard→crear→editar→detalle→logout sin errores de consola.
-- **Pendiente:** sesiones (S4), métricas (S4), integración IA, juegos, resultados, selección de juego funcional (S4).
-- `schema.sql` ya alineado con la BD real (campos con campos reales).
-- Tablas `sesiones` y `metricas` definidas en SQL pero sin código (se implementan en S4).
-- Hay código legacy en `src/` (landing + prototipo Phaser Surf) NO conectado al `front/src/` actual.
-- `Home.tsx` es mockup estático con números hardcodeados (se reemplaza en S3).
-- **RLS:** habilitado en todas las tablas (`kinesiologos`, `metricas` incluidos) — quedan sin políticas (info), ok porque todo el acceso va por backend con service_role key.
+## Estado actual del repo (septiembre 2026)
+> El plan de sprints de arriba (S3-S6) describía una arquitectura híbrida con app móvil separada
+> subiendo video + timeline de feedback. Eso **no es lo que se terminó construyendo** — quedó
+> documentado acá abajo para que no se siga esa sección como si fuera el estado real.
+
+- **S1-S4 completos.** Auth (email/pass + Google + GitHub + verificación por email), CRUD pacientes
+  completo, dashboard real, `/pacientes` (lista/crear/detalle con carga de foto a Supabase Storage),
+  landing page, sesiones (`sesionModel`/`sesionController`, `POST /api/sesiones`,
+  `PUT /api/sesiones/:id/finalizar`, `GET /api/sesiones`, `GET /api/sesiones/:id`).
+- **S5 muy avanzado — pero con arquitectura distinta a la planeada.** Los 3 juegos (Surf, Flamenco,
+  Alcanzá la estrella) corren **en el navegador de la webapp** con Phaser + MediaPipe vía webcam
+  (`front/src/juegos/`), no en una app móvil separada. Cada juego crea su sesión al arrancar y la
+  finaliza con un JSON de métricas propio guardado en `metricas_sesion.datos_ia_raw`. No hay upload
+  de video ni timeline de feedback — no se construyó esa parte del plan original.
+  - Apareció una carpeta `mobile/` (React Native, Expo) en el repo — no estaba contemplada acá.
+    No es parte de lo que hace Tomás; confirmar con el equipo qué es antes de tocarla.
+- **S6 cerrado (parte de Tomás):** `Analisis.tsx` (stats + filtro por juego + historial, calculado
+  client-side desde `GET /api/sesiones` — no hay endpoint `/api/estadisticas` separado, YAGNI dado
+  el volumen de datos), historial de sesiones en `DetallePaciente.tsx`, y pantalla de resultado
+  individual por sesión en `/sesiones/:sesionId` (`ResultadoSesion.tsx` + `GET /api/sesiones/:id`).
+- **Rutas de juego:** `/juego` (selector full-screen, fuera del `AppLayout`) lanza los juegos reales;
+  `/games` (dentro del panel, admite `?pacienteId=`) es la selección desde el flujo del kinesiólogo.
+- `schema.sql` alineado con la BD real. Tabla `metricas` (crudas por frame) definida pero sin
+  endpoint propio — el resumen por sesión alcanza para lo que se construyó.
+- **RLS:** habilitado en todas las tablas — sin políticas propias, ok porque todo el acceso va por
+  backend con service_role key.
 
 ## Funcionamiento general / flujo
 1. El kinesiólogo entra desde la webapp, crea o selecciona un paciente e inicia una sesión de juego.
