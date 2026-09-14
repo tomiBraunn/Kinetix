@@ -45,4 +45,16 @@ async function listar(req, res) {
   }
 }
 
-module.exports = { create, finalizar, listar }
+async function detalle(req, res) {
+  try {
+    const sesion = await sesionModel.findByIdConDetalle(req.params.id, req.userId)
+    if (!sesion) {
+      return res.status(404).json({ error: 'Sesión no encontrada' })
+    }
+    res.json(sesion)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+}
+
+module.exports = { create, finalizar, listar, detalle }

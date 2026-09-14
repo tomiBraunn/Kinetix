@@ -64,4 +64,20 @@ async function listar({ kinesiologo_id, paciente_id, limit = 50 }) {
   return data
 }
 
-module.exports = { create, finalizar, findById, listar }
+// Detalle de una sesión con paciente y métricas resumidas (para la pantalla de resultados)
+async function findByIdConDetalle(id, kinesiologo_id) {
+  const { data, error } = await supabase
+    .from('sesiones')
+    .select(`
+      id, juego, estado, iniciada_en, finalizada_en, duracion_segundos, notas,
+      pacientes ( id, nombre, apellido ),
+      metricas_sesion ( repeticiones_correctas, repeticiones_totales, precision_porcentaje, rango_movimiento_max, rango_movimiento_avg, estabilidad_score, datos_ia_raw )
+    `)
+    .eq('id', id)
+    .eq('kinesiologo_id', kinesiologo_id)
+    .single()
+  if (error && error.code !== 'PGRST116') throw error
+  return data
+}
+
+module.exports = { create, finalizar, findById, findByIdConDetalle, listar }
