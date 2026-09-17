@@ -218,7 +218,7 @@ export default function DetallePaciente() {
     return (
       <div className="max-w-4xl mx-auto text-center py-16">
         <span className="material-symbols-rounded text-[48px] text-rose-400">error</span>
-        <h1 className="text-xl font-black text-primary mt-4">Paciente no encontrado</h1>
+        <h2 className="text-xl font-black text-primary mt-4">Paciente no encontrado</h2>
         <p className="text-text-muted font-medium mt-1">{error ?? 'Ese paciente no existe o no te pertenece.'}</p>
         <Link
           to="/pacientes"
