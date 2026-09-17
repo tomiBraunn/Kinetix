@@ -119,7 +119,17 @@ function FotoPacienteCard({
   )
 }
 
-function PerfilPacienteCard({ paciente, edad }: { paciente: Paciente; edad: number | null }) {
+function PerfilPacienteCard({
+  paciente,
+  edad,
+  sesiones,
+}: {
+  paciente: Paciente
+  edad: number | null
+  sesiones: SesionRow[]
+}) {
+  const ultimaSesion = sesiones[0]
+
   return (
     <div className="bg-white rounded-[24px] shadow-[0_8px_24px_-8px_rgba(43,49,156,0.15)] p-6">
       <h1 className="text-xl font-black text-primary leading-tight truncate mb-4">{nombreCompleto(paciente)}</h1>
@@ -147,6 +157,19 @@ function PerfilPacienteCard({ paciente, edad }: { paciente: Paciente; edad: numb
             {paciente.tipo_lesion}
           </span>
         )}
+      </div>
+
+      <div className="mt-6 pt-4 border-t border-slate-100 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-text-muted text-xs font-bold uppercase tracking-wider">Sesiones totales</span>
+          <span className="text-primary font-black text-lg">{sesiones.length}</span>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-text-muted text-xs font-bold uppercase tracking-wider">Última sesión</span>
+          <span className="text-text-label font-semibold text-sm text-right">
+            {ultimaSesion ? formatFecha(ultimaSesion.iniciada_en) : '—'}
+          </span>
+        </div>
       </div>
     </div>
   )
@@ -263,7 +286,7 @@ export default function DetallePaciente() {
               }
             />
           ) : (
-            <PerfilPacienteCard paciente={paciente} edad={edad} />
+            <PerfilPacienteCard paciente={paciente} edad={edad} sesiones={sesiones} />
           )}
         </div>
 
