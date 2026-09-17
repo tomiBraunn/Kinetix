@@ -119,6 +119,37 @@ function FotoPacienteCard({
   )
 }
 
+function PerfilPacienteCard({ paciente, edad }: { paciente: Paciente; edad: number | null }) {
+  return (
+    <div className="bg-white rounded-[24px] shadow-[0_8px_24px_-8px_rgba(43,49,156,0.15)] p-8 flex flex-col items-center text-center">
+      {paciente.avatar_url ? (
+        <img
+          src={paciente.avatar_url}
+          alt={nombreCompleto(paciente)}
+          className="w-40 h-40 rounded-full object-cover border-4 border-accent/20"
+        />
+      ) : (
+        <div className="w-40 h-40 rounded-full bg-primary text-white text-4xl font-black flex items-center justify-center">
+          {iniciales(paciente)}
+        </div>
+      )}
+      <h1 className="text-2xl font-black text-primary mt-5">{nombreCompleto(paciente)}</h1>
+      <div className="flex flex-wrap justify-center gap-2 mt-3">
+        {edad !== null && (
+          <span className="inline-flex rounded-full bg-bg-input text-primary text-xs font-bold px-3 py-1">
+            {edad} años
+          </span>
+        )}
+        {paciente.tipo_lesion && (
+          <span className="inline-flex rounded-full bg-violet-50 text-primary text-xs font-bold px-3 py-1">
+            {paciente.tipo_lesion}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function DetallePaciente() {
   const { id } = useParams<{ id: string }>()
   const [paciente, setPaciente] = useState<Paciente | null>(null)
@@ -210,42 +241,14 @@ export default function DetallePaciente() {
         Volver a pacientes
       </Link>
 
-      <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 lg:p-8 mb-6 flex flex-col sm:flex-row sm:items-center gap-5">
-        {paciente.avatar_url ? (
-          <img
-            src={paciente.avatar_url}
-            alt={nombreCompleto(paciente)}
-            className="w-16 h-16 rounded-full object-cover border-2 border-accent/30"
-          />
-        ) : (
-          <div className="w-16 h-16 rounded-full bg-primary text-white text-xl font-black flex items-center justify-center">
-            {iniciales(paciente)}
-          </div>
-        )}
-        <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-black text-primary truncate">{nombreCompleto(paciente)}</h1>
-          <div className="flex flex-wrap gap-2 mt-2">
-            {edad !== null && (
-              <span className="inline-flex rounded-full bg-bg-input text-primary text-xs font-bold px-3 py-1">
-                {edad} años
-              </span>
-            )}
-            {paciente.tipo_lesion && (
-              <span className="inline-flex rounded-full bg-violet-50 text-primary text-xs font-bold px-3 py-1">
-                {paciente.tipo_lesion}
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => setEditando((v) => !v)}
-            className="inline-flex items-center gap-2 rounded-full border border-accent/40 text-accent text-sm font-bold px-5 py-2.5 hover:bg-accent hover:text-white transition-colors"
-          >
-            <span className="material-symbols-rounded text-[18px]">edit</span>
-            {editando ? 'Ver perfil' : 'Editar'}
-          </button>
-        </div>
+      <div className="flex items-center justify-end mb-6">
+        <button
+          onClick={() => setEditando((v) => !v)}
+          className="inline-flex items-center gap-2 rounded-full border border-accent/40 text-accent text-sm font-bold px-5 py-2.5 hover:bg-accent hover:text-white transition-colors bg-white shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)]"
+        >
+          <span className="material-symbols-rounded text-[18px]">edit</span>
+          {editando ? 'Ver perfil' : 'Editar'}
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -299,12 +302,16 @@ export default function DetallePaciente() {
           )}
         </div>
 
-        <FotoPacienteCard
-          paciente={paciente}
-          onUploaded={(avatar_url) =>
-            setPaciente((prev) => (prev ? { ...prev, avatar_url } : prev))
-          }
-        />
+        {editando ? (
+          <FotoPacienteCard
+            paciente={paciente}
+            onUploaded={(avatar_url) =>
+              setPaciente((prev) => (prev ? { ...prev, avatar_url } : prev))
+            }
+          />
+        ) : (
+          <PerfilPacienteCard paciente={paciente} edad={edad} />
+        )}
       </div>
 
       {/* Historial de sesiones */}
