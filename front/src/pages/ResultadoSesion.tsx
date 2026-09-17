@@ -141,7 +141,7 @@ export default function ResultadoSesion() {
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        <div className="space-y-4">
+        <div className="space-y-4 lg:order-2">
           {/* Detección de IA (esqueleto/landmarks) — front/public/videos/deteccion-ia.mp4 */}
           <video
             src="/videos/deteccion-ia.mp4"
