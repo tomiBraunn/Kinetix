@@ -276,37 +276,34 @@ export default function DetallePaciente() {
         </button>
       </div>
 
+      {editando ? (
+        <div className="space-y-6">
+          <FotoPacienteCard
+            paciente={paciente}
+            onUploaded={(avatar_url) =>
+              setPaciente((prev) => (prev ? { ...prev, avatar_url } : prev))
+            }
+          />
+          <PacienteForm
+            initial={fromPaciente(paciente)}
+            submitLabel="Guardar cambios"
+            onSubmit={handleGuardar}
+            loading={guardando}
+            error={saveError}
+          />
+        </div>
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="self-start lg:order-1 space-y-6">
-          {editando ? (
-            <FotoPacienteCard
-              paciente={paciente}
-              onUploaded={(avatar_url) =>
-                setPaciente((prev) => (prev ? { ...prev, avatar_url } : prev))
-              }
-            />
-          ) : (
-            <>
-              <PerfilPacienteCard paciente={paciente} edad={edad} sesiones={sesiones} />
-              <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 space-y-4">
-                <h2 className="text-primary font-black text-lg">Contacto de emergencia</h2>
-                <Field label="Nombre y apellido" value={paciente.contacto_emergencia_nombre ?? ''} />
-                <Field label="Teléfono" value={paciente.contacto_emergencia_telefono ?? ''} />
-              </div>
-            </>
-          )}
+          <PerfilPacienteCard paciente={paciente} edad={edad} sesiones={sesiones} />
+          <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 space-y-4">
+            <h2 className="text-primary font-black text-lg">Contacto de emergencia</h2>
+            <Field label="Nombre y apellido" value={paciente.contacto_emergencia_nombre ?? ''} />
+            <Field label="Teléfono" value={paciente.contacto_emergencia_telefono ?? ''} />
+          </div>
         </div>
 
         <div className="lg:col-span-2 lg:order-2">
-          {editando ? (
-            <PacienteForm
-              initial={fromPaciente(paciente)}
-              submitLabel="Guardar cambios"
-              onSubmit={handleGuardar}
-              loading={guardando}
-              error={saveError}
-            />
-          ) : (
             <div className="flex flex-col gap-6 h-full">
               <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 space-y-4">
                 <h2 className="text-primary font-black text-lg">Información personal</h2>
@@ -338,9 +335,9 @@ export default function DetallePaciente() {
                 </div>
               </div>
             </div>
-          )}
         </div>
       </div>
+      )}
 
       {/* Historial de sesiones */}
       <div className="mt-6 bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] overflow-hidden">
