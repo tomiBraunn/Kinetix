@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Skeleton } from 'boneyard-js/react'
 import { api } from '../lib/api'
 import {
@@ -56,6 +56,7 @@ export default function Pacientes() {
   const [error, setError] = useState<string | null>(null)
   const [busqueda, setBusqueda] = useState('')
   const [orden, setOrden] = useState<Orden>('nombre')
+  const navigate = useNavigate()
 
   useEffect(() => {
     let active = true
@@ -128,16 +129,21 @@ export default function Pacientes() {
           <label className="text-text-muted text-sm font-semibold" htmlFor="orden">
             Ordenar por
           </label>
-          <select
-            id="orden"
-            value={orden}
-            onChange={(e) => setOrden(e.target.value as Orden)}
-            className="h-[46px] bg-white rounded-full px-4 text-sm font-semibold text-text-label outline-none focus:ring-2 focus:ring-accent/40"
-          >
-            <option value="nombre">Nombre</option>
-            <option value="apellido">Apellido</option>
-            <option value="fecha_nacimiento">Edad</option>
-          </select>
+          <div className="relative">
+            <select
+              id="orden"
+              value={orden}
+              onChange={(e) => setOrden(e.target.value as Orden)}
+              className="h-[46px] bg-white rounded-full pl-4 pr-9 text-sm font-semibold text-text-label outline-none focus:ring-2 focus:ring-accent/40 appearance-none cursor-pointer"
+            >
+              <option value="nombre">Nombre</option>
+              <option value="apellido">Apellido</option>
+              <option value="fecha_nacimiento">Edad</option>
+            </select>
+            <span className="material-symbols-rounded text-[18px] text-text-muted absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+              expand_more
+            </span>
+          </div>
         </div>
       </div>
 
@@ -182,7 +188,11 @@ export default function Pacientes() {
                 {filtrados.map((p) => {
                   const edad = calcularEdad(p.fecha_nacimiento)
                   return (
-                    <tr key={p.id} className="hover:bg-bg-header/50 transition-colors">
+                    <tr
+                      key={p.id}
+                      onClick={() => navigate(`/pacientes/${p.id}`)}
+                      className="hover:bg-bg-header/50 transition-colors cursor-pointer"
+                    >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           {p.avatar_url ? (
@@ -218,13 +228,12 @@ export default function Pacientes() {
                         {formatearFecha(p.fecha_inicio_rehabilitacion)}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <Link
-                          to={`/pacientes/${p.id}`}
-                          className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-bg-input text-primary hover:bg-accent hover:text-white transition-colors"
-                          aria-label={`Ver detalle de ${nombreCompleto(p)}`}
+                        <span
+                          aria-hidden="true"
+                          className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-bg-input text-primary"
                         >
                           <span className="material-symbols-rounded text-[20px]">arrow_forward</span>
-                        </Link>
+                        </span>
                       </td>
                     </tr>
                   )
