@@ -56,6 +56,42 @@ function metricasIA(s: SesionDetalle): { label: string; value: string }[] {
   return out
 }
 
+// Comentario en texto generado a partir de las métricas — reglas simples
+// sobre los umbrales, no una llamada a un modelo generativo. Se arma acá
+// (no en el backend) porque solo depende de datos que ya llegaron al cliente.
+function comentarioIA(s: SesionDetalle): string | null {
+  const m = s.metricas_sesion
+  if (!m) return null
+
+  const partes: string[] = []
+  if (m.estabilidad_score != null) {
+    if (m.estabilidad_score >= 80) partes.push('una estabilidad postural muy buena')
+    else if (m.estabilidad_score >= 60) partes.push('una estabilidad postural aceptable, con margen de mejora')
+    else partes.push('dificultad para sostener la estabilidad postural')
+  }
+  if (m.precision_porcentaje != null) {
+    if (m.precision_porcentaje >= 85) partes.push('una precisión de movimiento muy alta')
+    else if (m.precision_porcentaje >= 65) partes.push('una precisión de movimiento dentro de lo esperado')
+    else partes.push('una precisión de movimiento por debajo del objetivo')
+  }
+  if (partes.length === 0) return null
+
+  const juego = JUEGO_LABEL[s.juego] ?? s.juego
+  let texto = `Durante la sesión de ${juego}, el paciente mostró ${partes.join(' y ')}`
+  if (m.rango_movimiento_avg != null) {
+    texto += `, con un rango de movimiento promedio de ${m.rango_movimiento_avg}°`
+  }
+  texto += '.'
+
+  if (m.estabilidad_score != null && m.precision_porcentaje != null) {
+    texto += m.estabilidad_score >= 75 && m.precision_porcentaje >= 75
+      ? ' El patrón de movimiento sugiere una buena evolución del control motor y el equilibrio.'
+      : ' Se recomienda reforzar ejercicios de equilibrio y control postural en las próximas sesiones.'
+  }
+
+  return texto
+}
+
 export default function ResultadoSesion() {
   const { sesionId } = useParams<{ sesionId: string }>()
   const [sesion, setSesion] = useState<SesionDetalle | null>(null)
@@ -139,6 +175,12 @@ export default function ResultadoSesion() {
               </div>
             ))}
           </div>
+
+          {comentarioIA(sesion) && (
+            <p className="text-white/90 text-sm leading-relaxed mt-5 pt-5 border-t border-white/15">
+              {comentarioIA(sesion)}
+            </p>
+          )}
         </div>
       )}
     </div>
