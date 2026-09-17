@@ -370,6 +370,16 @@ async function oauthCallback(req, res) {
   }
 }
 
+async function updateMe(req, res) {
+  try {
+    const { nombre, apellido, avatar_url } = req.body;
+    const kinesiologo = await kinesiologoModel.update(req.userId, { nombre, apellido, avatar_url });
+    res.json(toUserPayload(kinesiologo));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
 async function me(req, res) {
   try {
     const kinesiologo = await kinesiologoModel.findById(req.userId);
@@ -416,6 +426,7 @@ module.exports = {
   oauthCallback,
   googleCallback,
   me,
+  updateMe,
   refresh,
   frontendUrl,
 };
