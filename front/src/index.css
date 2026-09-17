@@ -1,5 +1,7 @@
-/* Fuentes (DM Sans + Material Symbols) cargadas desde index.html, no via
-   @import acá — ver el comentario en index.html. */
+/* DM Sans se carga desde index.html (Google Fonts). Material Symbols se
+   sirve local via npm (@fontsource) en vez de Google Fonts — el CDN de
+   íconos fallaba de forma recurrente para cargar. */
+@import "@fontsource/material-symbols-rounded/500.css";
 @import "tailwindcss";
 
 @theme {
