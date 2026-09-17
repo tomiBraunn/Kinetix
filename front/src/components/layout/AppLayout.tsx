@@ -36,9 +36,10 @@ const NAV_ITEMS: NavItem[] = [
 ]
 
 export default function AppLayout() {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const initials = `${user?.nombre?.[0] ?? ''}${user?.apellido?.[0] ?? ''}`.toUpperCase() || '?'
   const [configAbierta, setConfigAbierta] = useState(false)
+  const [menuAbierto, setMenuAbierto] = useState(false)
 
   return (
     <div className="min-h-screen bg-bg-home flex">
@@ -68,10 +69,39 @@ export default function AppLayout() {
           ))}
         </nav>
 
-        <div className="p-4">
+        <div className="p-4 relative">
+          {menuAbierto && (
+            <>
+              <button
+                className="fixed inset-0 z-40 cursor-default"
+                aria-label="Cerrar menú"
+                onClick={() => setMenuAbierto(false)}
+              />
+              <div className="absolute bottom-full left-4 right-4 mb-2 z-50 bg-white border border-slate-200 rounded-[12px] shadow-[0px_6px_18px_0px_rgba(20,20,46,0.14)] p-2.5 flex flex-col gap-1">
+                <button
+                  onClick={() => {
+                    setConfigAbierta(true)
+                    setMenuAbierto(false)
+                  }}
+                  className="flex items-center gap-2.5 h-11 px-2.5 rounded-lg text-[#2e2e3d] text-[15px] font-medium hover:bg-bg-input transition-colors"
+                >
+                  <span className="material-symbols-rounded text-[20px]">settings</span>
+                  Settings
+                </button>
+                <button
+                  onClick={logout}
+                  className="flex items-center gap-2.5 h-11 px-2.5 rounded-lg text-accent text-[15px] font-semibold hover:bg-bg-input transition-colors"
+                >
+                  <span className="material-symbols-rounded text-[20px]">logout</span>
+                  Log Out
+                </button>
+              </div>
+            </>
+          )}
+
           <button
-            onClick={() => setConfigAbierta(true)}
-            className="w-full flex items-center gap-3 bg-accent-light/70 hover:bg-accent-light rounded-full pl-2 pr-4 py-2 transition-colors text-left"
+            onClick={() => setMenuAbierto((v) => !v)}
+            className="w-full flex items-center gap-3 bg-accent-light/70 hover:bg-accent-light rounded-full pl-2 pr-4 py-2 transition-colors text-left relative z-50"
           >
             {user?.avatar_url ? (
               <img

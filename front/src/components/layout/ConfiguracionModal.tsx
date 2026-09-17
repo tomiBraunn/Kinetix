@@ -13,6 +13,8 @@ export default function ConfiguracionModal({ onClose }: { onClose: () => void })
   const [subiendoFoto, setSubiendoFoto] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [enviandoReset, setEnviandoReset] = useState(false)
+  const [resetEnviado, setResetEnviado] = useState(false)
 
   async function handleFoto(file: File | undefined) {
     if (!file) return
@@ -50,6 +52,20 @@ export default function ConfiguracionModal({ onClose }: { onClose: () => void })
       setError(err instanceof Error ? err.message : 'No se pudieron guardar los cambios')
     } finally {
       setGuardando(false)
+    }
+  }
+
+  async function handleCambiarContraseña() {
+    if (!user?.email) return
+    setError(null)
+    setEnviandoReset(true)
+    try {
+      await api.post('/auth/forgot-password', { email: user.email })
+      setResetEnviado(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo enviar el link')
+    } finally {
+      setEnviandoReset(false)
     }
   }
 
@@ -115,6 +131,24 @@ export default function ConfiguracionModal({ onClose }: { onClose: () => void })
               className="h-[46px] bg-bg-input rounded-[14px] px-4 text-sm font-medium text-text-label outline-none focus:ring-2 focus:ring-accent/40"
             />
           </label>
+        </div>
+
+        <div className="mt-6 pt-4 border-t border-slate-100">
+          <p className="text-text-label text-sm font-bold mb-2">Contraseña</p>
+          {resetEnviado ? (
+            <p className="text-text-muted text-xs font-medium bg-violet-50 rounded-[12px] px-3 py-2.5">
+              Te enviamos un link a {user?.email} para cambiarla. Revisá tu bandeja de entrada.
+            </p>
+          ) : (
+            <button
+              onClick={handleCambiarContraseña}
+              disabled={enviandoReset}
+              className="w-full flex items-center justify-center gap-2 rounded-full border border-accent/40 text-accent text-sm font-bold h-[44px] hover:bg-accent hover:text-white transition-colors disabled:opacity-70"
+            >
+              <span className="material-symbols-rounded text-[18px]">key</span>
+              {enviandoReset ? 'Enviando…' : 'Cambiar contraseña'}
+            </button>
+          )}
         </div>
 
         {error && (
