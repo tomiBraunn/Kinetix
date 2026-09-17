@@ -24,6 +24,13 @@ function sinCooldown(id, ms = 700) {
   return true
 }
 
+// Pares de landmarks a unir para dibujar un esqueleto simple (hombros,
+// brazos, torso y piernas) — subset legible, no los ~35 pares oficiales.
+const HUESOS = [
+  [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
+  [11, 23], [12, 24], [23, 24], [23, 25], [25, 27], [24, 26], [26, 28],
+]
+
 class KinetixAI {
   constructor() {
     this.landmarker = null
@@ -64,13 +71,15 @@ class KinetixAI {
     throw new Error('[KinetixAI] No se pudo inicializar MediaPipe')
   }
 
-  async start(gameMode, video, canvasW, canvasH) {
+  async start(gameMode, video, canvasW, canvasH, overlayCanvas) {
     this.stop()
     await this.init()
     this.gameMode = gameMode
     this.video = video
     this._canvasW = canvasW ?? window.innerWidth
     this._canvasH = canvasH ?? window.innerHeight
+    this.overlayCanvas = overlayCanvas ?? null
+    this.overlayCtx = overlayCanvas?.getContext('2d') ?? null
     this.running = true
     this._piernaLevantada = false
     this._piernaCnt = 0
@@ -92,12 +101,47 @@ class KinetixAI {
       this._lastTs = now
       try {
         const result = this.landmarker.detectForVideo(this.video, now)
-        if (result.landmarks.length > 0) {
-          this._interpret(result.landmarks[0])
-        }
+        const landmarks = result.landmarks[0] ?? null
+        if (landmarks) this._interpret(landmarks)
+        if (this.overlayCtx) this._drawOverlay(landmarks)
       } catch { /* ignora errores de frame */ }
     }
     this._rafId = requestAnimationFrame(() => this._loop())
+  }
+
+  // Dibuja el video de la cámara (en espejo) + los landmarks detectados sobre
+  // el canvas de overlay — para que la detección sea visible en pantalla/video.
+  _drawOverlay(landmarks) {
+    const ctx = this.overlayCtx
+    const w = this.overlayCanvas.width
+    const h = this.overlayCanvas.height
+
+    ctx.save()
+    ctx.translate(w, 0)
+    ctx.scale(-1, 1)
+    ctx.drawImage(this.video, 0, 0, w, h)
+
+    if (landmarks) {
+      ctx.strokeStyle = '#34D399'
+      ctx.lineWidth = 2
+      for (const [a, b] of HUESOS) {
+        const p1 = landmarks[a]
+        const p2 = landmarks[b]
+        if (!p1 || !p2) continue
+        ctx.beginPath()
+        ctx.moveTo(p1.x * w, p1.y * h)
+        ctx.lineTo(p2.x * w, p2.y * h)
+        ctx.stroke()
+      }
+      ctx.fillStyle = '#F472B6'
+      for (const lm of landmarks) {
+        if ((lm.visibility ?? 1) < 0.3) continue
+        ctx.beginPath()
+        ctx.arc(lm.x * w, lm.y * h, 3, 0, Math.PI * 2)
+        ctx.fill()
+      }
+    }
+    ctx.restore()
   }
 
   // Convierte posición Phaser (píxeles) → normalizado [0,1] en espacio del video.
