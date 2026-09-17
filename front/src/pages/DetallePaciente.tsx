@@ -300,8 +300,8 @@ export default function DetallePaciente() {
               error={saveError}
             />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 space-y-4 md:col-span-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 space-y-4 md:col-span-3">
                 <h2 className="text-primary font-black text-lg">Información personal</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Field label="Nombre completo" value={nombreCompleto(paciente)} />
@@ -314,13 +314,7 @@ export default function DetallePaciente() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 space-y-4">
-                <h2 className="text-primary font-black text-lg">Contacto de emergencia</h2>
-                <Field label="Nombre y apellido" value={paciente.contacto_emergencia_nombre ?? ''} />
-                <Field label="Teléfono" value={paciente.contacto_emergencia_telefono ?? ''} />
-              </div>
-
-              <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 space-y-4">
+              <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 space-y-4 md:col-span-2">
                 <h2 className="text-primary font-black text-lg">Rehabilitación</h2>
                 <Field label="Motivo (lesión)" value={paciente.tipo_lesion ?? ''} />
                 <Field
@@ -335,6 +329,12 @@ export default function DetallePaciente() {
                     {paciente.observaciones || '—'}
                   </p>
                 </div>
+              </div>
+
+              <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 space-y-4">
+                <h2 className="text-primary font-black text-lg">Contacto de emergencia</h2>
+                <Field label="Nombre y apellido" value={paciente.contacto_emergencia_nombre ?? ''} />
+                <Field label="Teléfono" value={paciente.contacto_emergencia_telefono ?? ''} />
               </div>
             </div>
           )}
