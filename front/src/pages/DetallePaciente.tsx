@@ -121,32 +121,32 @@ function FotoPacienteCard({
 
 function PerfilPacienteCard({ paciente, edad }: { paciente: Paciente; edad: number | null }) {
   return (
-    <div className="bg-white rounded-[24px] shadow-[0_8px_24px_-8px_rgba(43,49,156,0.15)] p-6 flex items-start gap-4">
+    <div className="bg-white rounded-[24px] shadow-[0_8px_24px_-8px_rgba(43,49,156,0.15)] p-6">
+      <h1 className="text-xl font-black text-primary leading-tight truncate mb-4">{nombreCompleto(paciente)}</h1>
+
       {paciente.avatar_url ? (
         <img
           src={paciente.avatar_url}
           alt={nombreCompleto(paciente)}
-          className="w-20 h-20 rounded-2xl object-cover border-2 border-accent/20 flex-shrink-0"
+          className="w-full aspect-square rounded-2xl object-cover border-2 border-accent/20"
         />
       ) : (
-        <div className="w-20 h-20 rounded-2xl bg-primary text-white text-2xl font-black flex items-center justify-center flex-shrink-0">
+        <div className="w-full aspect-square rounded-2xl bg-primary text-white text-5xl font-black flex items-center justify-center">
           {iniciales(paciente)}
         </div>
       )}
-      <div className="min-w-0">
-        <h1 className="text-xl font-black text-primary leading-tight truncate">{nombreCompleto(paciente)}</h1>
-        <div className="flex flex-wrap gap-2 mt-2">
-          {edad !== null && (
-            <span className="inline-flex rounded-full bg-bg-input text-primary text-xs font-bold px-3 py-1">
-              {edad} años
-            </span>
-          )}
-          {paciente.tipo_lesion && (
-            <span className="inline-flex rounded-full bg-violet-50 text-primary text-xs font-bold px-3 py-1">
-              {paciente.tipo_lesion}
-            </span>
-          )}
-        </div>
+
+      <div className="flex flex-wrap gap-2 mt-4">
+        {edad !== null && (
+          <span className="inline-flex rounded-full bg-bg-input text-primary text-xs font-bold px-3 py-1">
+            {edad} años
+          </span>
+        )}
+        {paciente.tipo_lesion && (
+          <span className="inline-flex rounded-full bg-violet-50 text-primary text-xs font-bold px-3 py-1">
+            {paciente.tipo_lesion}
+          </span>
+        )}
       </div>
     </div>
   )
