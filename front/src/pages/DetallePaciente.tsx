@@ -254,7 +254,20 @@ export default function DetallePaciente() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+        <div className="self-start lg:order-1">
+          {editando ? (
+            <FotoPacienteCard
+              paciente={paciente}
+              onUploaded={(avatar_url) =>
+                setPaciente((prev) => (prev ? { ...prev, avatar_url } : prev))
+              }
+            />
+          ) : (
+            <PerfilPacienteCard paciente={paciente} edad={edad} />
+          )}
+        </div>
+
+        <div className="lg:col-span-2 lg:order-2">
           {editando ? (
             <PacienteForm
               initial={fromPaciente(paciente)}
@@ -301,19 +314,6 @@ export default function DetallePaciente() {
                 </div>
               </div>
             </div>
-          )}
-        </div>
-
-        <div className="self-start">
-          {editando ? (
-            <FotoPacienteCard
-              paciente={paciente}
-              onUploaded={(avatar_url) =>
-                setPaciente((prev) => (prev ? { ...prev, avatar_url } : prev))
-              }
-            />
-          ) : (
-            <PerfilPacienteCard paciente={paciente} edad={edad} />
           )}
         </div>
       </div>
