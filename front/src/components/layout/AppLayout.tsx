@@ -99,7 +99,11 @@ export default function AppLayout() {
             <Logo />
           </NavLink>
 
-          <div className="flex items-center gap-3 ml-auto">
+          <button
+            onClick={() => setConfigAbierta(true)}
+            className="ml-auto"
+            aria-label="Configuración"
+          >
             {user?.avatar_url ? (
               <img
                 src={user.avatar_url}
@@ -111,11 +115,7 @@ export default function AppLayout() {
                 {initials}
               </div>
             )}
-            <div className="hidden sm:block leading-tight">
-              <p className="text-text-label text-sm font-bold">{user?.nombre} {user?.apellido}</p>
-              <p className="text-text-muted text-xs font-medium">Kinesiólogo</p>
-            </div>
-          </div>
+          </button>
         </header>
 
         <main className="flex-1 p-6 lg:p-8">
