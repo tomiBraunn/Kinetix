@@ -71,7 +71,7 @@ export default function ResultadoSesion() {
     return (
       <div className="max-w-3xl mx-auto text-center py-16">
         <span className="material-symbols-rounded text-[48px] text-rose-400">error</span>
-        <h1 className="text-xl font-black text-primary mt-4">Sesión no encontrada</h1>
+        <h2 className="text-xl font-black text-primary mt-4">Sesión no encontrada</h2>
         <p className="text-text-muted font-medium mt-1">{error ?? 'Esa sesión no existe o no te pertenece.'}</p>
         <Link to="/analisis" className="inline-flex items-center gap-2 rounded-full bg-accent text-white text-sm font-bold px-6 py-3 mt-6 hover:bg-[#C83890]">
           <span className="material-symbols-rounded text-[18px]">arrow_back</span>
