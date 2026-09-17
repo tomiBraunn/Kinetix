@@ -134,55 +134,70 @@ export default function ResultadoSesion() {
   const volverA = sesion.pacientes ? `/pacientes/${sesion.pacientes.id}` : '/analisis'
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-5xl mx-auto">
       <Link to={volverA} className="inline-flex items-center gap-1 text-text-muted text-sm font-bold hover:text-accent mb-6">
         <span className="material-symbols-rounded text-[18px]">arrow_back</span>
         Volver
       </Link>
 
-      <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 lg:p-8 mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <span className="w-10 h-10 rounded-[12px] bg-violet-50 text-primary flex items-center justify-center">
-            <span className="material-symbols-rounded text-[20px]">{JUEGO_ICON[sesion.juego] ?? 'sports_esports'}</span>
-          </span>
-          <h1 className="text-2xl font-black text-primary">{JUEGO_LABEL[sesion.juego] ?? sesion.juego}</h1>
-        </div>
-        <p className="text-text-muted font-medium">
-          {sesion.pacientes ? `${sesion.pacientes.nombre} ${sesion.pacientes.apellido} — ` : ''}
-          {formatFecha(sesion.iniciada_en)}
-        </p>
-      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* Grabación de la detección de IA — poner el archivo en front/public/videos/deteccion-ia.mp4 */}
+        <video
+          src="/videos/deteccion-ia.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          controls
+          className="w-full rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] bg-black aspect-video"
+        />
 
-      <div className="grid grid-cols-2 gap-4">
-        {statsPorJuego(sesion).map((s) => (
-          <Stat key={s.label} label={s.label} value={s.value} />
-        ))}
-        <Stat label="Duración total" value={sesion.duracion_segundos != null ? `${sesion.duracion_segundos}s` : '—'} />
-        <Stat label="Estado" value={sesion.estado === 'finalizada' ? 'Finalizada' : sesion.estado} />
-      </div>
-
-      {metricasIA(sesion).length > 0 && (
-        <div className="mt-6 bg-primary rounded-[18px] p-6 text-white">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="material-symbols-rounded text-[20px] text-accent-light">neurology</span>
-            <p className="text-xs font-bold uppercase tracking-wider text-white/80">Análisis de IA — MediaPipe</p>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            {metricasIA(sesion).map((m) => (
-              <div key={m.label}>
-                <p className="text-2xl font-black">{m.value}</p>
-                <p className="text-white/70 text-xs font-semibold mt-0.5">{m.label}</p>
-              </div>
-            ))}
-          </div>
-
-          {comentarioIA(sesion) && (
-            <p className="text-white/90 text-sm leading-relaxed mt-5 pt-5 border-t border-white/15">
-              {comentarioIA(sesion)}
+        <div>
+          <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 lg:p-8 mb-6">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="w-10 h-10 rounded-[12px] bg-violet-50 text-primary flex items-center justify-center">
+                <span className="material-symbols-rounded text-[20px]">{JUEGO_ICON[sesion.juego] ?? 'sports_esports'}</span>
+              </span>
+              <h1 className="text-2xl font-black text-primary">{JUEGO_LABEL[sesion.juego] ?? sesion.juego}</h1>
+            </div>
+            <p className="text-text-muted font-medium">
+              {sesion.pacientes ? `${sesion.pacientes.nombre} ${sesion.pacientes.apellido} — ` : ''}
+              {formatFecha(sesion.iniciada_en)}
             </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {statsPorJuego(sesion).map((s) => (
+              <Stat key={s.label} label={s.label} value={s.value} />
+            ))}
+            <Stat label="Duración total" value={sesion.duracion_segundos != null ? `${sesion.duracion_segundos}s` : '—'} />
+            <Stat label="Estado" value={sesion.estado === 'finalizada' ? 'Finalizada' : sesion.estado} />
+          </div>
+
+          {metricasIA(sesion).length > 0 && (
+            <div className="mt-6 bg-primary rounded-[18px] p-6 text-white">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="material-symbols-rounded text-[20px] text-accent-light">auto_awesome</span>
+                <p className="text-xs font-bold uppercase tracking-wider text-white/80">Análisis de IA — MediaPipe</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                {metricasIA(sesion).map((m) => (
+                  <div key={m.label}>
+                    <p className="text-2xl font-black">{m.value}</p>
+                    <p className="text-white/70 text-xs font-semibold mt-0.5">{m.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {comentarioIA(sesion) && (
+                <p className="text-white/90 text-sm leading-relaxed mt-5 pt-5 border-t border-white/15">
+                  {comentarioIA(sesion)}
+                </p>
+              )}
+            </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   )
 }
