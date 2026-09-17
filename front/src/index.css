@@ -1,5 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,900;1,9..40,400;1,9..40,500;1,9..40,900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
+/* Fuentes (DM Sans + Material Symbols) cargadas desde index.html, no via
+   @import acá — ver el comentario en index.html. */
 @import "tailwindcss";
 
 @theme {
