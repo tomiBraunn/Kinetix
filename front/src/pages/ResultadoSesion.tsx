@@ -141,16 +141,28 @@ export default function ResultadoSesion() {
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        {/* Grabación de la detección de IA — poner el archivo en front/public/videos/deteccion-ia.mp4 */}
-        <video
-          src="/videos/deteccion-ia.mp4"
-          autoPlay
-          muted
-          loop
-          playsInline
-          controls
-          className="w-full rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] bg-black aspect-video"
-        />
+        <div className="space-y-4">
+          {/* Detección de IA (esqueleto/landmarks) — front/public/videos/deteccion-ia.mp4 */}
+          <video
+            src="/videos/deteccion-ia.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            controls
+            className="w-full rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] bg-black aspect-video"
+          />
+          {/* Video real (sin overlay) — front/public/videos/video-real.mp4 */}
+          <video
+            src="/videos/video-real.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            controls
+            className="w-full rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] bg-black aspect-video"
+          />
+        </div>
 
         <div>
           <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 lg:p-8 mb-6">
