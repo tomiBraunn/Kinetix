@@ -307,7 +307,7 @@ export default function DetallePaciente() {
               error={saveError}
             />
           ) : (
-            <div className="space-y-6">
+            <div className="flex flex-col gap-6 h-full">
               <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 space-y-4">
                 <h2 className="text-primary font-black text-lg">Información personal</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -321,7 +321,7 @@ export default function DetallePaciente() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 space-y-4">
+              <div className="flex-1 bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 space-y-4">
                 <h2 className="text-primary font-black text-lg">Rehabilitación</h2>
                 <Field label="Motivo (lesión)" value={paciente.tipo_lesion ?? ''} />
                 <Field
