@@ -42,6 +42,20 @@ function statsPorJuego(s: SesionDetalle): { label: string; value: string | numbe
   return []
 }
 
+// Métricas que calcula MediaPipe a partir del tracking del cuerpo — distintas
+// del puntaje del juego. No todas las sesiones las tienen (juegos viejos,
+// jugados con las teclas de testing, no las generan).
+function metricasIA(s: SesionDetalle): { label: string; value: string }[] {
+  const m = s.metricas_sesion?.[0]
+  if (!m) return []
+  const out: { label: string; value: string }[] = []
+  if (m.estabilidad_score != null) out.push({ label: 'Estabilidad', value: `${m.estabilidad_score}%` })
+  if (m.precision_porcentaje != null) out.push({ label: 'Precisión de movimiento', value: `${m.precision_porcentaje}%` })
+  if (m.rango_movimiento_avg != null) out.push({ label: 'Rango de movimiento (prom.)', value: `${m.rango_movimiento_avg}°` })
+  if (m.rango_movimiento_max != null) out.push({ label: 'Rango de movimiento (máx.)', value: `${m.rango_movimiento_max}°` })
+  return out
+}
+
 export default function ResultadoSesion() {
   const { sesionId } = useParams<{ sesionId: string }>()
   const [sesion, setSesion] = useState<SesionDetalle | null>(null)
@@ -110,6 +124,23 @@ export default function ResultadoSesion() {
         <Stat label="Duración total" value={sesion.duracion_segundos != null ? `${sesion.duracion_segundos}s` : '—'} />
         <Stat label="Estado" value={sesion.estado === 'finalizada' ? 'Finalizada' : sesion.estado} />
       </div>
+
+      {metricasIA(sesion).length > 0 && (
+        <div className="mt-6 bg-primary rounded-[18px] p-6 text-white">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="material-symbols-rounded text-[20px] text-accent-light">neurology</span>
+            <p className="text-xs font-bold uppercase tracking-wider text-white/80">Análisis de IA — MediaPipe</p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {metricasIA(sesion).map((m) => (
+              <div key={m.label}>
+                <p className="text-2xl font-black">{m.value}</p>
+                <p className="text-white/70 text-xs font-semibold mt-0.5">{m.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
