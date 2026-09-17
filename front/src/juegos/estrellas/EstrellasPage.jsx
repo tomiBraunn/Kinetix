@@ -41,7 +41,7 @@ export default function EstrellasPage() {
   const [feedbackKey,     setFeedbackKey]     = useState(0)
   const [mostrarFeedback, setMostrarFeedback] = useState(false)
 
-  usePoseAI('estrellas', !pausado, HEADER_H)
+  const camaraCanvasRef = usePoseAI('estrellas', !pausado, HEADER_H)
 
   // Sesión (solo si viene con paciente)
   useEffect(() => {
@@ -186,6 +186,18 @@ export default function EstrellasPage() {
         )}
 
         <PhaserGameEstrellas headerHeight={HEADER_H} />
+
+        {/* Vista de la cámara + esqueleto detectado por MediaPipe, en vivo */}
+        <canvas
+          ref={camaraCanvasRef}
+          width={180}
+          height={135}
+          style={{
+            position: 'absolute', bottom: 14, right: 14, zIndex: 20,
+            borderRadius: 12, border: '2px solid rgba(255,255,255,0.85)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
+          }}
+        />
       </div>
 
       <style>{`
