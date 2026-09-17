@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import Logo from '../Logo'
+import ConfiguracionModal from './ConfiguracionModal'
 
 type NavItem = {
   to: string
@@ -34,8 +36,9 @@ const NAV_ITEMS: NavItem[] = [
 ]
 
 export default function AppLayout() {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const initials = `${user?.nombre?.[0] ?? ''}${user?.apellido?.[0] ?? ''}`.toUpperCase() || '?'
+  const [configAbierta, setConfigAbierta] = useState(false)
 
   return (
     <div className="min-h-screen bg-bg-home flex">
@@ -67,11 +70,24 @@ export default function AppLayout() {
 
         <div className="p-4">
           <button
-            onClick={logout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-[14px] text-sm font-semibold text-text-label hover:bg-primary/8 hover:text-primary transition-colors"
+            onClick={() => setConfigAbierta(true)}
+            className="w-full flex items-center gap-3 bg-accent-light/70 hover:bg-accent-light rounded-full pl-2 pr-4 py-2 transition-colors text-left"
           >
-            <span className={iconClass}>logout</span>
-            Cerrar sesión
+            {user?.avatar_url ? (
+              <img
+                src={user.avatar_url}
+                alt={user.nombre}
+                className="w-9 h-9 rounded-full object-cover flex-shrink-0"
+              />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-white text-accent text-sm font-bold flex items-center justify-center flex-shrink-0">
+                {initials}
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="text-text-label text-sm font-bold truncate">{user?.nombre} {user?.apellido}</p>
+              <p className="text-text-label/70 text-xs font-medium">Kinesiólogo</p>
+            </div>
           </button>
         </div>
       </aside>
@@ -106,6 +122,8 @@ export default function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      {configAbierta && <ConfiguracionModal onClose={() => setConfigAbierta(false)} />}
     </div>
   )
 }
