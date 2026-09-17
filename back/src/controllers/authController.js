@@ -210,7 +210,7 @@ async function forgotPassword(req, res) {
         const link = await supabase.auth.admin.generateLink({ type: 'recovery', email });
         resetToken = link?.data?.properties?.hashed_token || null;
       } else {
-        await supabase.auth.admin.resetPasswordForEmail(email, {
+        await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${frontendUrl()}/restablecer-password`,
         });
       }
