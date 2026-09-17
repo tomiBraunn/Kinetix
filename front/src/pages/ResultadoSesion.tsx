@@ -20,7 +20,7 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 // Cada juego guarda su propio JSON en datos_ia_raw — mapeamos los campos
 // relevantes por tipo de juego en vez de intentar generalizar una sola forma.
 function statsPorJuego(s: SesionDetalle): { label: string; value: string | number }[] {
-  const raw = (s.metricas_sesion?.[0]?.datos_ia_raw ?? {}) as Record<string, unknown>
+  const raw = (s.metricas_sesion?.datos_ia_raw ?? {}) as Record<string, unknown>
   if (s.juego === 'surf') {
     return [
       { label: 'Peces atrapados', value: (raw.puntos as number) ?? '—' },
@@ -46,7 +46,7 @@ function statsPorJuego(s: SesionDetalle): { label: string; value: string | numbe
 // del puntaje del juego. No todas las sesiones las tienen (juegos viejos,
 // jugados con las teclas de testing, no las generan).
 function metricasIA(s: SesionDetalle): { label: string; value: string }[] {
-  const m = s.metricas_sesion?.[0]
+  const m = s.metricas_sesion
   if (!m) return []
   const out: { label: string; value: string }[] = []
   if (m.estabilidad_score != null) out.push({ label: 'Estabilidad', value: `${m.estabilidad_score}%` })
