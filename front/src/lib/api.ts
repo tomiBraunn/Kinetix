@@ -1,7 +1,8 @@
 // Thin fetch wrapper around the Kinetix backend.
 // In dev, Vite proxies /api -> http://localhost:3000 (see vite.config.js).
-// In prod, /api hits the same origin via your reverse proxy.
-
+// In prod, front y back se deployan juntos como un monorepo en un solo
+// proyecto de Vercel (ver /vercel.json en la raíz), así que /api ya cae
+// en el mismo origen.
 import { clearSession } from './auth'
 
 const BASE_URL = '/api'

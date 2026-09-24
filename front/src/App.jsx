@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import AuthRoute from './components/auth/AuthRoute'
 import PublicRoute from './components/auth/PublicRoute'
 import AppLayout from './components/layout/AppLayout'
@@ -27,12 +27,21 @@ import GamePage from './juegos/surf/GamePage'
 import FlamencoPage from './juegos/flamenco/FlamencoPage'
 import EstrellasPage from './juegos/estrellas/EstrellasPage'
 
+// Todos los dominios de Vercel (kinetix-webapp, kinetix-ai, etc.) sirven el
+// mismo build — la landing vive solo en kinetix-ai.vercel.app, el resto de
+// la app (login/dashboard) en los demás dominios.
+const LANDING_HOST = 'kinetix-ai.vercel.app'
+const isLandingHost = typeof window !== 'undefined' && window.location.hostname === LANDING_HOST
+
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         {/* Rutas públicas */}
-        <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
+        <Route
+          path="/"
+          element={isLandingHost ? <Landing /> : <Navigate to="/login" replace />}
+        />
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
         <Route path="/verificar-email" element={<PublicRoute><VerifyEmail /></PublicRoute>} />
@@ -57,8 +66,11 @@ export default function App() {
         <Route path="/juego/flamenco" element={<FlamencoPage />} />
         <Route path="/juego/estrellas" element={<EstrellasPage />} />
 
-        {/* Catch-all */}
-        <Route path="*" element={<PublicRoute><Login /></PublicRoute>} />
+        {/* Catch-all: en kinetix-ai (solo landing) todo lo demás vuelve a "/" */}
+        <Route
+          path="*"
+          element={isLandingHost ? <Navigate to="/" replace /> : <PublicRoute><Login /></PublicRoute>}
+        />
       </Routes>
     </BrowserRouter>
   )
