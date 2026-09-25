@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /home
+Disallow: /pacientes
+Disallow: /analisis
+Disallow: /games
+Disallow: /sesiones
+Disallow: /juego
+
+Sitemap: https://kinetix-ai.vercel.app/sitemap.xml
