@@ -1,0 +1,15 @@
+Tomás, el deploy de Vercel tiene las rutas de /api/auth/* rotas en producción (kinetix-ai.vercel.app). Probé varios endpoints:
+
+GET /api/pacientes → funciona, responde {"error":"No token provided"} (JSON real de Express)
+POST /api/auth/login → 404, pero es el 404 propio de Vercel ("NOT_FOUND"), no de Express
+POST /api/auth/register → mismo 404 de Vercel
+GET /api/auth/google/redirect → mismo 404 de Vercel
+GET /health → en vez del {"status":"ok"} de Express, devuelve el HTML de la landing (o sea ni siquiera pega en el back/server.js)
+O sea: algunas rutas de /api/* sí llegan a Express (pacientes), pero /api/auth/* y /health ni siquiera entran — Vercel las corta antes de que lleguen al backend. Login normal con email/contraseña está caído en producción, no solo Google.
+
+El código de las rutas en el repo está bien (back/src/app.js monta /api/auth correctamente, back/src/routes/auth.js tiene /login, /register, /google/redirect, todo ahí). Así que no es un bug de código — es la configuración del proyecto en el dashboard de Vercel la que está desincronizada. Los sospechosos más probables:
+
+Root Directory del proyecto en Vercel todavía apuntando a front/ en vez de la raíz del repo (leftover de antes del monorepo)
+Funciones serverless viejas de una config anterior al vercel.json del monorepo que quedaron pisando las rutas nuevas
+El build no se re-disparó después del commit 963082f (Deploy en un solo proyecto Vercel monorepo) y sigue sirviendo un build viejo
+Se resuelve desde el dashboard de Vercel (Project Settings → Build & Output / Root Directory) y forzando un redeploy limpio. No es algo que se arregle tocando código.
