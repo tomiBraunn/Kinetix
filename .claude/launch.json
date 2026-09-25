@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "kinetix-back",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "back", "run", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "kinetix-front",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "front", "run", "dev"],
+      "port": 5173
+    }
+  ]
+}
