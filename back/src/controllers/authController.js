@@ -161,6 +161,11 @@ async function register(req, res) {
     if (isTest) {
       const link = await supabase.auth.admin.generateLink({ type: 'signup', email });
       verificationToken = link?.data?.properties?.hashed_token || null;
+    } else {
+      // admin.createUser NO dispara el mail de confirmación (es la Admin API,
+      // no el flujo público de signUp) — hay que pedirlo aparte con resend().
+      const { error: resendError } = await supabase.auth.resend({ type: 'signup', email });
+      if (resendError) console.error('[register] no se pudo enviar el mail de verificación:', resendError.message);
     }
 
     res.status(201).json({
