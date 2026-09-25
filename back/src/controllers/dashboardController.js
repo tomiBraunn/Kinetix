@@ -1,4 +1,5 @@
 const supabase = require('../utils/supabase');
+const sesionModel = require('../models/sesion');
 
 async function resumen(req, res) {
   try {
@@ -20,4 +21,13 @@ async function resumen(req, res) {
   }
 }
 
-module.exports = { resumen };
+async function estadisticas(req, res) {
+  try {
+    const stats = await sesionModel.estadisticasGlobales(req.userId);
+    res.json(stats);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
+module.exports = { resumen, estadisticas };

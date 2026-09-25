@@ -50,6 +50,12 @@ export async function getSesiones(pacienteId?: string): Promise<SesionRow[]> {
   return api.get<SesionRow[]>(`/sesiones${qs}`, { token: token() })
 }
 
+export type VideosSesion = {
+  url_crudo: string | null
+  url_landmarks: string | null
+  url_gameplay: string | null
+}
+
 export type SesionDetalle = Omit<SesionRow, 'metricas_sesion'> & {
   notas: string | null
   metricas_sesion: {
@@ -61,10 +67,22 @@ export type SesionDetalle = Omit<SesionRow, 'metricas_sesion'> & {
     estabilidad_score: number | null
     datos_ia_raw: Record<string, unknown> | null
   } | null
+  // null si nunca se subió ningún video para esta sesión (embed 1:1 de Supabase)
+  videos_sesion: VideosSesion | null
 }
 
 export async function getSesion(sesionId: string): Promise<SesionDetalle> {
   return api.get<SesionDetalle>(`/sesiones/${sesionId}`, { token: token() })
+}
+
+export type EstadisticasGlobales = {
+  sesiones_totales: number
+  precision_promedio: number | null
+  rango_promedio: number | null
+}
+
+export async function getEstadisticas(): Promise<EstadisticasGlobales> {
+  return api.get<EstadisticasGlobales>('/estadisticas', { token: token() })
 }
 
 // Helpers de presentación

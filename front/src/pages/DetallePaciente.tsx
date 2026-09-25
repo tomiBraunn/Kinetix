@@ -19,6 +19,36 @@ import {
   formatFecha,
 } from '../lib/sesiones'
 
+// Línea de evolución simple (sin librería) — usa repeticiones_correctas porque es
+// el único número que hoy se guarda siempre, sea cual sea el juego.
+function EvolucionChart({ valores }: { valores: number[] }) {
+  const w = 320, h = 70, pad = 8
+  const max = Math.max(...valores, 1)
+  const min = Math.min(...valores, 0)
+  const rango = max - min || 1
+  const puntos = valores.map((v, i) => {
+    const x = valores.length > 1 ? pad + (i / (valores.length - 1)) * (w - pad * 2) : w / 2
+    const y = h - pad - ((v - min) / rango) * (h - pad * 2)
+    return [x, y] as const
+  })
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-20">
+      <polyline
+        points={puntos.map(([x, y]) => `${x},${y}`).join(' ')}
+        fill="none"
+        stroke="#7C3AED"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {puntos.map(([x, y], i) => (
+        <circle key={i} cx={x} cy={y} r="3" fill="#7C3AED" />
+      ))}
+    </svg>
+  )
+}
+
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -256,6 +286,18 @@ export default function DetallePaciente() {
 
   const edad = calcularEdad(paciente.fecha_nacimiento)
 
+  // Evolución: se agrupa por juego (mezclar peces/intentos/estrellas en una sola
+  // línea no tendría sentido) y se grafica el más jugado, en orden cronológico.
+  const sesionesPorJuego = sesiones.reduce<Record<string, SesionRow[]>>((acc, s) => {
+    ;(acc[s.juego] ??= []).push(s)
+    return acc
+  }, {})
+  const [juegoDominante, sesionesDominante] =
+    Object.entries(sesionesPorJuego).sort((a, b) => b[1].length - a[1].length)[0] ?? [null, []]
+  const evolucion = sesionesDominante.length >= 2
+    ? [...sesionesDominante].reverse().map((s) => s.metricas_sesion?.repeticiones_correctas ?? 0)
+    : null
+
   return (
     <div className="max-w-4xl mx-auto">
       <Link
@@ -337,6 +379,17 @@ export default function DetallePaciente() {
             </div>
         </div>
       </div>
+      )}
+
+      {/* Evolución del paciente */}
+      {evolucion && (
+        <div className="mt-6 bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6">
+          <h2 className="text-primary font-black text-lg mb-1">Evolución</h2>
+          <p className="text-text-muted text-xs font-semibold mb-3">
+            {JUEGO_LABEL[juegoDominante ?? ''] ?? juegoDominante} — últimas {evolucion.length} sesiones
+          </p>
+          <EvolucionChart valores={evolucion} />
+        </div>
       )}
 
       {/* Historial de sesiones */}

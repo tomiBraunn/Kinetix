@@ -17,6 +17,28 @@ function Stat({ label, value }: { label: string; value: string | number }) {
   )
 }
 
+function VideoOVacio({ url, label }: { url: string | null; label: string }) {
+  if (!url) {
+    return (
+      <div className="w-full aspect-video rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] bg-slate-100 flex flex-col items-center justify-center gap-2">
+        <span className="material-symbols-rounded text-[32px] text-text-placeholder">videocam_off</span>
+        <p className="text-text-muted text-xs font-semibold">{label} no disponible</p>
+      </div>
+    )
+  }
+  return (
+    <video
+      src={url}
+      autoPlay
+      muted
+      loop
+      playsInline
+      controls
+      className="w-full rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] bg-black aspect-video"
+    />
+  )
+}
+
 // Cada juego guarda su propio JSON en datos_ia_raw — mapeamos los campos
 // relevantes por tipo de juego en vez de intentar generalizar una sola forma.
 function statsPorJuego(s: SesionDetalle): { label: string; value: string | number }[] {
@@ -142,26 +164,8 @@ export default function ResultadoSesion() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <div className="space-y-4 lg:order-2">
-          {/* Detección de IA (esqueleto/landmarks) — front/public/videos/deteccion-ia.mp4 */}
-          <video
-            src="/videos/deteccion-ia.mp4"
-            autoPlay
-            muted
-            loop
-            playsInline
-            controls
-            className="w-full rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] bg-black aspect-video"
-          />
-          {/* Video real (sin overlay) — front/public/videos/video-real.mp4 */}
-          <video
-            src="/videos/video-real.mp4"
-            autoPlay
-            muted
-            loop
-            playsInline
-            controls
-            className="w-full rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] bg-black aspect-video"
-          />
+          <VideoOVacio url={sesion.videos_sesion?.url_landmarks ?? null} label="Video con detección de IA" />
+          <VideoOVacio url={sesion.videos_sesion?.url_crudo ?? null} label="Video real" />
         </div>
 
         <div>
