@@ -1,5 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,900;1,9..40,400;1,9..40,500;1,9..40,900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
+/* DM Sans se carga desde index.html (Google Fonts). Material Symbols se
+   sirve local via npm (@fontsource) en vez de Google Fonts — el CDN de
+   íconos fallaba de forma recurrente para cargar. */
+@import "@fontsource/material-symbols-rounded/500.css";
 @import "tailwindcss";
 
 @theme {

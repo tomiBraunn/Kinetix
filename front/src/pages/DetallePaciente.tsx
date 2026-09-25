@@ -19,6 +19,36 @@ import {
   formatFecha,
 } from '../lib/sesiones'
 
+// Línea de evolución simple (sin librería) — usa repeticiones_correctas porque es
+// el único número que hoy se guarda siempre, sea cual sea el juego.
+function EvolucionChart({ valores }: { valores: number[] }) {
+  const w = 320, h = 70, pad = 8
+  const max = Math.max(...valores, 1)
+  const min = Math.min(...valores, 0)
+  const rango = max - min || 1
+  const puntos = valores.map((v, i) => {
+    const x = valores.length > 1 ? pad + (i / (valores.length - 1)) * (w - pad * 2) : w / 2
+    const y = h - pad - ((v - min) / rango) * (h - pad * 2)
+    return [x, y] as const
+  })
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-20">
+      <polyline
+        points={puntos.map(([x, y]) => `${x},${y}`).join(' ')}
+        fill="none"
+        stroke="#7C3AED"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {puntos.map(([x, y], i) => (
+        <circle key={i} cx={x} cy={y} r="3" fill="#7C3AED" />
+      ))}
+    </svg>
+  )
+}
+
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -119,6 +149,62 @@ function FotoPacienteCard({
   )
 }
 
+function PerfilPacienteCard({
+  paciente,
+  edad,
+  sesiones,
+}: {
+  paciente: Paciente
+  edad: number | null
+  sesiones: SesionRow[]
+}) {
+  const ultimaSesion = sesiones[0]
+
+  return (
+    <div className="bg-white rounded-[24px] shadow-[0_8px_24px_-8px_rgba(43,49,156,0.15)] p-6">
+      <h1 className="text-xl font-black text-primary leading-tight truncate mb-4">{nombreCompleto(paciente)}</h1>
+
+      {paciente.avatar_url ? (
+        <img
+          src={paciente.avatar_url}
+          alt={nombreCompleto(paciente)}
+          className="w-full aspect-square rounded-2xl object-cover border-2 border-accent/20"
+        />
+      ) : (
+        <div className="w-full aspect-square rounded-2xl bg-primary text-white text-5xl font-black flex items-center justify-center">
+          {iniciales(paciente)}
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-2 mt-4">
+        {edad !== null && (
+          <span className="inline-flex rounded-full bg-bg-input text-primary text-xs font-bold px-3 py-1">
+            {edad} años
+          </span>
+        )}
+        {paciente.tipo_lesion && (
+          <span className="inline-flex rounded-full bg-violet-50 text-primary text-xs font-bold px-3 py-1">
+            {paciente.tipo_lesion}
+          </span>
+        )}
+      </div>
+
+      <div className="mt-6 pt-4 border-t border-slate-100 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-text-muted text-xs font-bold uppercase tracking-wider">Sesiones totales</span>
+          <span className="text-primary font-black text-lg">{sesiones.length}</span>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-text-muted text-xs font-bold uppercase tracking-wider">Última sesión</span>
+          <span className="text-text-label font-semibold text-sm text-right">
+            {ultimaSesion ? formatFecha(ultimaSesion.iniciada_en) : '—'}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function DetallePaciente() {
   const { id } = useParams<{ id: string }>()
   const [paciente, setPaciente] = useState<Paciente | null>(null)
@@ -185,7 +271,7 @@ export default function DetallePaciente() {
     return (
       <div className="max-w-4xl mx-auto text-center py-16">
         <span className="material-symbols-rounded text-[48px] text-rose-400">error</span>
-        <h1 className="text-xl font-black text-primary mt-4">Paciente no encontrado</h1>
+        <h2 className="text-xl font-black text-primary mt-4">Paciente no encontrado</h2>
         <p className="text-text-muted font-medium mt-1">{error ?? 'Ese paciente no existe o no te pertenece.'}</p>
         <Link
           to="/pacientes"
@@ -200,6 +286,18 @@ export default function DetallePaciente() {
 
   const edad = calcularEdad(paciente.fecha_nacimiento)
 
+  // Evolución: se agrupa por juego (mezclar peces/intentos/estrellas en una sola
+  // línea no tendría sentido) y se grafica el más jugado, en orden cronológico.
+  const sesionesPorJuego = sesiones.reduce<Record<string, SesionRow[]>>((acc, s) => {
+    ;(acc[s.juego] ??= []).push(s)
+    return acc
+  }, {})
+  const [juegoDominante, sesionesDominante] =
+    Object.entries(sesionesPorJuego).sort((a, b) => b[1].length - a[1].length)[0] ?? [null, []]
+  const evolucion = sesionesDominante.length >= 2
+    ? [...sesionesDominante].reverse().map((s) => s.metricas_sesion?.repeticiones_correctas ?? 0)
+    : null
+
   return (
     <div className="max-w-4xl mx-auto">
       <Link
@@ -210,57 +308,46 @@ export default function DetallePaciente() {
         Volver a pacientes
       </Link>
 
-      <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 lg:p-8 mb-6 flex flex-col sm:flex-row sm:items-center gap-5">
-        {paciente.avatar_url ? (
-          <img
-            src={paciente.avatar_url}
-            alt={nombreCompleto(paciente)}
-            className="w-16 h-16 rounded-full object-cover border-2 border-accent/30"
-          />
-        ) : (
-          <div className="w-16 h-16 rounded-full bg-primary text-white text-xl font-black flex items-center justify-center">
-            {iniciales(paciente)}
-          </div>
-        )}
-        <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-black text-primary truncate">{nombreCompleto(paciente)}</h1>
-          <div className="flex flex-wrap gap-2 mt-2">
-            {edad !== null && (
-              <span className="inline-flex rounded-full bg-bg-input text-primary text-xs font-bold px-3 py-1">
-                {edad} años
-              </span>
-            )}
-            {paciente.tipo_lesion && (
-              <span className="inline-flex rounded-full bg-violet-50 text-primary text-xs font-bold px-3 py-1">
-                {paciente.tipo_lesion}
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => setEditando((v) => !v)}
-            className="inline-flex items-center gap-2 rounded-full border border-accent/40 text-accent text-sm font-bold px-5 py-2.5 hover:bg-accent hover:text-white transition-colors"
-          >
-            <span className="material-symbols-rounded text-[18px]">edit</span>
-            {editando ? 'Ver perfil' : 'Editar'}
-          </button>
-        </div>
+      <div className="flex items-center justify-end mb-6">
+        <button
+          onClick={() => setEditando((v) => !v)}
+          className="inline-flex items-center gap-2 rounded-full border border-accent/40 text-accent text-sm font-bold px-5 py-2.5 hover:bg-accent hover:text-white transition-colors bg-white shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)]"
+        >
+          <span className="material-symbols-rounded text-[18px]">edit</span>
+          {editando ? 'Ver perfil' : 'Editar'}
+        </button>
       </div>
 
+      {editando ? (
+        <div className="space-y-6">
+          <FotoPacienteCard
+            paciente={paciente}
+            onUploaded={(avatar_url) =>
+              setPaciente((prev) => (prev ? { ...prev, avatar_url } : prev))
+            }
+          />
+          <PacienteForm
+            initial={fromPaciente(paciente)}
+            submitLabel="Guardar cambios"
+            onSubmit={handleGuardar}
+            loading={guardando}
+            error={saveError}
+          />
+        </div>
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          {editando ? (
-            <PacienteForm
-              initial={fromPaciente(paciente)}
-              submitLabel="Guardar cambios"
-              onSubmit={handleGuardar}
-              loading={guardando}
-              error={saveError}
-            />
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 space-y-4 md:col-span-2">
+        <div className="self-start lg:order-1 space-y-6">
+          <PerfilPacienteCard paciente={paciente} edad={edad} sesiones={sesiones} />
+          <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 space-y-4">
+            <h2 className="text-primary font-black text-lg">Contacto de emergencia</h2>
+            <Field label="Nombre y apellido" value={paciente.contacto_emergencia_nombre ?? ''} />
+            <Field label="Teléfono" value={paciente.contacto_emergencia_telefono ?? ''} />
+          </div>
+        </div>
+
+        <div className="lg:col-span-2 lg:order-2">
+            <div className="flex flex-col gap-6 h-full">
+              <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 space-y-4">
                 <h2 className="text-primary font-black text-lg">Información personal</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Field label="Nombre completo" value={nombreCompleto(paciente)} />
@@ -273,13 +360,7 @@ export default function DetallePaciente() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 space-y-4">
-                <h2 className="text-primary font-black text-lg">Contacto de emergencia</h2>
-                <Field label="Nombre y apellido" value={paciente.contacto_emergencia_nombre ?? ''} />
-                <Field label="Teléfono" value={paciente.contacto_emergencia_telefono ?? ''} />
-              </div>
-
-              <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 space-y-4">
+              <div className="flex-1 bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 space-y-4">
                 <h2 className="text-primary font-black text-lg">Rehabilitación</h2>
                 <Field label="Motivo (lesión)" value={paciente.tipo_lesion ?? ''} />
                 <Field
@@ -296,16 +377,20 @@ export default function DetallePaciente() {
                 </div>
               </div>
             </div>
-          )}
         </div>
-
-        <FotoPacienteCard
-          paciente={paciente}
-          onUploaded={(avatar_url) =>
-            setPaciente((prev) => (prev ? { ...prev, avatar_url } : prev))
-          }
-        />
       </div>
+      )}
+
+      {/* Evolución del paciente */}
+      {evolucion && (
+        <div className="mt-6 bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6">
+          <h2 className="text-primary font-black text-lg mb-1">Evolución</h2>
+          <p className="text-text-muted text-xs font-semibold mb-3">
+            {JUEGO_LABEL[juegoDominante ?? ''] ?? juegoDominante} — últimas {evolucion.length} sesiones
+          </p>
+          <EvolucionChart valores={evolucion} />
+        </div>
+      )}
 
       {/* Historial de sesiones */}
       <div className="mt-6 bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] overflow-hidden">

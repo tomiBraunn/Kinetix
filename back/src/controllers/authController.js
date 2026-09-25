@@ -161,6 +161,11 @@ async function register(req, res) {
     if (isTest) {
       const link = await supabase.auth.admin.generateLink({ type: 'signup', email });
       verificationToken = link?.data?.properties?.hashed_token || null;
+    } else {
+      // admin.createUser NO dispara el mail de confirmación (es la Admin API,
+      // no el flujo público de signUp) — hay que pedirlo aparte con resend().
+      const { error: resendError } = await supabase.auth.resend({ type: 'signup', email });
+      if (resendError) console.error('[register] no se pudo enviar el mail de verificación:', resendError.message);
     }
 
     res.status(201).json({
@@ -210,7 +215,7 @@ async function forgotPassword(req, res) {
         const link = await supabase.auth.admin.generateLink({ type: 'recovery', email });
         resetToken = link?.data?.properties?.hashed_token || null;
       } else {
-        await supabase.auth.admin.resetPasswordForEmail(email, {
+        await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${frontendUrl()}/restablecer-password`,
         });
       }
@@ -370,6 +375,16 @@ async function oauthCallback(req, res) {
   }
 }
 
+async function updateMe(req, res) {
+  try {
+    const { nombre, apellido, avatar_url } = req.body;
+    const kinesiologo = await kinesiologoModel.update(req.userId, { nombre, apellido, avatar_url });
+    res.json(toUserPayload(kinesiologo));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
 async function me(req, res) {
   try {
     const kinesiologo = await kinesiologoModel.findById(req.userId);
@@ -416,6 +431,7 @@ module.exports = {
   oauthCallback,
   googleCallback,
   me,
+  updateMe,
   refresh,
   frontendUrl,
 };

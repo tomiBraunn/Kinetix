@@ -259,23 +259,56 @@ Archivo Figma: `y8NlmFOJusZ1nl1jvvZdBo`, página "Proyecto final".
   completo, dashboard real, `/pacientes` (lista/crear/detalle con carga de foto a Supabase Storage),
   landing page, sesiones (`sesionModel`/`sesionController`, `POST /api/sesiones`,
   `PUT /api/sesiones/:id/finalizar`, `GET /api/sesiones`, `GET /api/sesiones/:id`).
-- **S5 muy avanzado — pero con arquitectura distinta a la planeada.** Los 3 juegos (Surf, Flamenco,
-  Alcanzá la estrella) corren **en el navegador de la webapp** con Phaser + MediaPipe vía webcam
-  (`front/src/juegos/`), no en una app móvil separada. Cada juego crea su sesión al arrancar y la
-  finaliza con un JSON de métricas propio guardado en `metricas_sesion.datos_ia_raw`. No hay upload
-  de video ni timeline de feedback — no se construyó esa parte del plan original.
-  - Apareció una carpeta `mobile/` (React Native, Expo) en el repo — no estaba contemplada acá.
-    No es parte de lo que hace Tomás; confirmar con el equipo qué es antes de tocarla.
-- **S6 cerrado (parte de Tomás):** `Analisis.tsx` (stats + filtro por juego + historial, calculado
-  client-side desde `GET /api/sesiones` — no hay endpoint `/api/estadisticas` separado, YAGNI dado
-  el volumen de datos), historial de sesiones en `DetallePaciente.tsx`, y pantalla de resultado
-  individual por sesión en `/sesiones/:sesionId` (`ResultadoSesion.tsx` + `GET /api/sesiones/:id`).
+- Los 3 juegos (Surf, Flamenco, Alcanzá la estrella) corren **en el navegador de la webapp** con
+  Phaser + MediaPipe vía webcam (`front/src/juegos/`), no en una app móvil separada como decía el
+  plan original. Apareció una carpeta `mobile/` (React Native, Expo) en el repo — no estaba
+  contemplada acá, no es parte de lo que hace Tomás; confirmar con el equipo qué es antes de
+  tocarla.
+- **S5 backend: cerrado.** `POST /api/sesiones/:id/eventos` (timeline de feedback/eventos de
+  juego → tabla `eventos_sesion`), `POST /api/sesiones/:id/metricas` (batch de métricas crudas →
+  tabla `metricas`, ya existía sin usar) y `POST /api/sesiones/:id/videos` (multipart, hasta 3
+  videos por sesión → bucket `sesion-videos`, tabla `videos_sesion`). Falta correr el SQL de
+  `back/schema.sql` (tablas + bucket) a mano en el proyecto Supabase real — no se ejecutó porque
+  el MCP conectado en ese momento apuntaba a otro proyecto (`oaseiargrfsqkbiilrpm`, no
+  `ihnvurzeuenwymqqyejz`). Ver `back/docs/SPRINT5-INTEGRACION.md`.
+- **S5 frontend: NO hecho.** Ninguno de los 3 juegos llama todavía a los 3 endpoints de arriba.
+  No se graba video (ni crudo, ni con landmarks, ni con overlay del juego) — es la parte más
+  laboriosa, requiere `MediaRecorder` + `canvas.captureStream()` y componer el canvas de Phaser
+  con el de cámara/esqueleto (hoy están superpuestos con CSS, no en un mismo canvas). El
+  documento de integración de arriba explica dónde engancharlo en cada juego.
+- **S6: cerrado.**
+  - **Backend:** `GET /api/sesiones/:id/metricas` (crudas de `metricas`, para gráficos
+    detallados — hoy devuelve `[]` porque nada escribe en `metricas` hasta que se conecte el S5
+    del frontend), `GET /api/sesiones/:id/videos` y `GET /api/estadisticas` (sesiones totales,
+    precisión/rango promedio del kinesiólogo). `findByIdConDetalle` ahora también trae
+    `videos_sesion` embebido, para no pedir un segundo request desde `ResultadoSesion.tsx`.
+  - **Webapp:** `ResultadoSesion.tsx` reproduce los videos reales de `videos_sesion` (con estado
+    vacío "no disponible" si todavía no se subió ninguno). `Analisis.tsx` suma 2 stat cards de
+    precisión/rango promedio desde `/estadisticas`. `DetallePaciente.tsx` suma un mini gráfico
+    de evolución (SVG propio, sin librería) usando `repeticiones_correctas` del juego más jugado
+    del paciente — es el único número que hoy se guarda siempre pase lo que pase con el juego.
+  - **Dato importante:** `metricas_sesion.precision_porcentaje`, `rango_movimiento_avg` y
+    `estabilidad_score` están siempre en `NULL` — `finalizarSesion()` en
+    `front/src/lib/sesiones.ts` nunca los manda, solo `repeticiones_correctas` y `datos_ia_raw`.
+    Los promedios de `/estadisticas` y las stat cards de `Analisis.tsx` van a mostrar "—" hasta
+    que eso se llene (necesitaría que los juegos calculen y manden esos campos en
+    `finalizarSesion`, fuera del alcance de S5/S6 tal como quedaron definidos).
 - **Rutas de juego:** `/juego` (selector full-screen, fuera del `AppLayout`) lanza los juegos reales;
   `/games` (dentro del panel, admite `?pacienteId=`) es la selección desde el flujo del kinesiólogo.
 - `schema.sql` alineado con la BD real. Tabla `metricas` (crudas por frame) definida pero sin
   endpoint propio — el resumen por sesión alcanza para lo que se construyó.
 - **RLS:** habilitado en todas las tablas — sin políticas propias, ok porque todo el acceso va por
   backend con service_role key.
+- **Analytics + SEO (septiembre 2026):** Google Analytics 4 (propiedad "Kinetix", Measurement ID
+  `G-4128XC7Q0B`, creada en la cuenta de Google del usuario) cableado en `front/index.html` +
+  `AnalyticsPageView` en `App.jsx` (manda `page_view` en cada cambio de ruta, ya que es una SPA).
+  `index.html` también suma `lang="es"` (estaba mal en "en"), meta description, Open Graph y
+  Twitter Card, apuntando a `kinetix-ai.vercel.app` (el dominio real de la landing, confirmado por
+  `LANDING_HOST` en `App.jsx` — no `kinetix.app`, que fue lo que puse por error al crear el data
+  stream en GA y quedó así, es solo un label cosmético, no afecta el tracking).
+  `front/public/robots.txt` + `sitemap.xml` nuevos, con `robots.txt` bloqueando las rutas privadas
+  del panel (`/home`, `/pacientes`, `/analisis`, etc.) ya que ese mismo build se sirve en todos los
+  dominios de Vercel, no solo en el de la landing.
 
 ## Funcionamiento general / flujo
 1. El kinesiólogo entra desde la webapp, crea o selecciona un paciente e inicia una sesión de juego.

@@ -9,10 +9,12 @@ export type SesionRow = {
   finalizada_en: string | null
   duracion_segundos: number | null
   pacientes: { id: string; nombre: string; apellido: string } | null
-  metricas_sesion: Array<{
+  // sesion_id en metricas_sesion es UNIQUE -> Supabase la embebe como objeto
+  // 1:1, no como array, aunque el nombre de la tabla sea plural.
+  metricas_sesion: {
     repeticiones_correctas: number | null
     datos_ia_raw: Record<string, unknown> | null
-  }>
+  } | null
 }
 
 type MetricasSurf = { juego: 'surf'; puntos: number; duracion_segundos: number }
@@ -48,9 +50,15 @@ export async function getSesiones(pacienteId?: string): Promise<SesionRow[]> {
   return api.get<SesionRow[]>(`/sesiones${qs}`, { token: token() })
 }
 
-export type SesionDetalle = SesionRow & {
+export type VideosSesion = {
+  url_crudo: string | null
+  url_landmarks: string | null
+  url_gameplay: string | null
+}
+
+export type SesionDetalle = Omit<SesionRow, 'metricas_sesion'> & {
   notas: string | null
-  metricas_sesion: Array<{
+  metricas_sesion: {
     repeticiones_correctas: number | null
     repeticiones_totales: number | null
     precision_porcentaje: number | null
@@ -58,11 +66,23 @@ export type SesionDetalle = SesionRow & {
     rango_movimiento_avg: number | null
     estabilidad_score: number | null
     datos_ia_raw: Record<string, unknown> | null
-  }>
+  } | null
+  // null si nunca se subió ningún video para esta sesión (embed 1:1 de Supabase)
+  videos_sesion: VideosSesion | null
 }
 
 export async function getSesion(sesionId: string): Promise<SesionDetalle> {
   return api.get<SesionDetalle>(`/sesiones/${sesionId}`, { token: token() })
+}
+
+export type EstadisticasGlobales = {
+  sesiones_totales: number
+  precision_promedio: number | null
+  rango_promedio: number | null
+}
+
+export async function getEstadisticas(): Promise<EstadisticasGlobales> {
+  return api.get<EstadisticasGlobales>('/estadisticas', { token: token() })
 }
 
 // Helpers de presentación
@@ -79,7 +99,7 @@ export const JUEGO_ICON: Record<string, string> = {
 }
 
 export function resultadoPrincipal(s: SesionRow): string {
-  const raw = s.metricas_sesion?.[0]?.datos_ia_raw as Record<string, unknown> | null
+  const raw = s.metricas_sesion?.datos_ia_raw as Record<string, unknown> | null
   if (!raw) return '—'
   if (s.juego === 'surf') return `${raw.puntos ?? '?'} peces`
   if (s.juego === 'flamenco') return `${raw.mejor_tiempo_segundos ?? '?'}s`

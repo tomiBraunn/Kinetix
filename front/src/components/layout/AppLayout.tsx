@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import Logo from '../Logo'
+import ConfiguracionModal from './ConfiguracionModal'
 
 type NavItem = {
   to: string
@@ -36,6 +38,8 @@ const NAV_ITEMS: NavItem[] = [
 export default function AppLayout() {
   const { user, logout } = useAuth()
   const initials = `${user?.nombre?.[0] ?? ''}${user?.apellido?.[0] ?? ''}`.toUpperCase() || '?'
+  const [configAbierta, setConfigAbierta] = useState(false)
+  const [menuAbierto, setMenuAbierto] = useState(false)
 
   return (
     <div className="min-h-screen bg-bg-home flex">
@@ -65,13 +69,55 @@ export default function AppLayout() {
           ))}
         </nav>
 
-        <div className="p-4">
+        <div className="p-4 relative">
+          {menuAbierto && (
+            <>
+              <button
+                className="fixed inset-0 z-40 cursor-default"
+                aria-label="Cerrar menú"
+                onClick={() => setMenuAbierto(false)}
+              />
+              <div className="absolute bottom-full left-4 right-4 mb-2 z-50 bg-white border border-slate-200 rounded-[12px] shadow-[0px_6px_18px_0px_rgba(20,20,46,0.14)] p-2.5 flex flex-col gap-1">
+                <button
+                  onClick={() => {
+                    setConfigAbierta(true)
+                    setMenuAbierto(false)
+                  }}
+                  className="flex items-center gap-2.5 h-11 px-2.5 rounded-lg text-[#2e2e3d] text-[15px] font-medium hover:bg-bg-input transition-colors"
+                >
+                  <span className="material-symbols-rounded text-[20px]">settings</span>
+                  Settings
+                </button>
+                <button
+                  onClick={logout}
+                  className="flex items-center gap-2.5 h-11 px-2.5 rounded-lg text-accent text-[15px] font-semibold hover:bg-bg-input transition-colors"
+                >
+                  <span className="material-symbols-rounded text-[20px]">logout</span>
+                  Log Out
+                </button>
+              </div>
+            </>
+          )}
+
           <button
-            onClick={logout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-[14px] text-sm font-semibold text-text-label hover:bg-primary/8 hover:text-primary transition-colors"
+            onClick={() => setMenuAbierto((v) => !v)}
+            className="w-full flex items-center gap-3 bg-accent-light/70 hover:bg-accent-light rounded-full pl-2 pr-4 py-2 transition-colors text-left relative z-50"
           >
-            <span className={iconClass}>logout</span>
-            Cerrar sesión
+            {user?.avatar_url ? (
+              <img
+                src={user.avatar_url}
+                alt={user.nombre}
+                className="w-9 h-9 rounded-full object-cover flex-shrink-0"
+              />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-white text-accent text-sm font-bold flex items-center justify-center flex-shrink-0">
+                {initials}
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="text-text-label text-sm font-bold truncate">{user?.nombre} {user?.apellido}</p>
+              <p className="text-text-label/70 text-xs font-medium">Kinesiólogo</p>
+            </div>
           </button>
         </div>
       </aside>
@@ -83,7 +129,11 @@ export default function AppLayout() {
             <Logo />
           </NavLink>
 
-          <div className="flex items-center gap-3 ml-auto">
+          <button
+            onClick={() => setConfigAbierta(true)}
+            className="ml-auto"
+            aria-label="Configuración"
+          >
             {user?.avatar_url ? (
               <img
                 src={user.avatar_url}
@@ -95,17 +145,15 @@ export default function AppLayout() {
                 {initials}
               </div>
             )}
-            <div className="hidden sm:block leading-tight">
-              <p className="text-text-label text-sm font-bold">{user?.nombre} {user?.apellido}</p>
-              <p className="text-text-muted text-xs font-medium">Kinesiólogo</p>
-            </div>
-          </div>
+          </button>
         </header>
 
         <main className="flex-1 p-6 lg:p-8">
           <Outlet />
         </main>
       </div>
+
+      {configAbierta && <ConfiguracionModal onClose={() => setConfigAbierta(false)} />}
     </div>
   )
 }

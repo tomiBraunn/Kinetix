@@ -18,6 +18,7 @@ type AuthContextValue = {
   register: (data: { nombre: string; apellido: string; email: string; password: string }) => Promise<boolean>
   loginWithGoogle: (idToken: string) => Promise<StoredKinesiologo>
   applySession: (token: string, user: StoredKinesiologo) => void
+  updateUser: (data: Partial<Pick<StoredKinesiologo, 'nombre' | 'apellido' | 'avatar_url'>>) => Promise<void>
   logout: () => void
   clearError: () => void
 }
@@ -129,6 +130,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null)
   }, [])
 
+  const updateUser = useCallback(
+    async (data: Partial<Pick<StoredKinesiologo, 'nombre' | 'apellido' | 'avatar_url'>>) => {
+      const updated = await api.put<StoredKinesiologo>('/auth/me', data, { token })
+      setUser(updated)
+      if (token) saveSession(token, updated)
+    },
+    [token],
+  )
+
   const logout = useCallback(() => {
     clearSession()
     setToken(null)
@@ -160,6 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     register,
     loginWithGoogle,
     applySession,
+    updateUser,
     logout,
     clearError,
   }

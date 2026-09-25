@@ -11,6 +11,7 @@ router.post('/forgot-password', authController.forgotPassword);
 router.post('/reset-password', authController.resetPassword);
 router.post('/oauth-callback', authController.oauthCallback);
 router.get('/me', authMiddleware, authController.me);
+router.put('/me', authMiddleware, authController.updateMe);
 router.post('/refresh', authController.refresh);
 
 // Login con Google vía redirect (passport), sin usar supabase.auth.signInWithOAuth

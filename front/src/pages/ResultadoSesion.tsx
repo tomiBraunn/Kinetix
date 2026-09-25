@@ -17,10 +17,32 @@ function Stat({ label, value }: { label: string; value: string | number }) {
   )
 }
 
+function VideoOVacio({ url, label }: { url: string | null; label: string }) {
+  if (!url) {
+    return (
+      <div className="w-full aspect-video rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] bg-slate-100 flex flex-col items-center justify-center gap-2">
+        <span className="material-symbols-rounded text-[32px] text-text-placeholder">videocam_off</span>
+        <p className="text-text-muted text-xs font-semibold">{label} no disponible</p>
+      </div>
+    )
+  }
+  return (
+    <video
+      src={url}
+      autoPlay
+      muted
+      loop
+      playsInline
+      controls
+      className="w-full rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] bg-black aspect-video"
+    />
+  )
+}
+
 // Cada juego guarda su propio JSON en datos_ia_raw — mapeamos los campos
 // relevantes por tipo de juego en vez de intentar generalizar una sola forma.
 function statsPorJuego(s: SesionDetalle): { label: string; value: string | number }[] {
-  const raw = (s.metricas_sesion?.[0]?.datos_ia_raw ?? {}) as Record<string, unknown>
+  const raw = (s.metricas_sesion?.datos_ia_raw ?? {}) as Record<string, unknown>
   if (s.juego === 'surf') {
     return [
       { label: 'Peces atrapados', value: (raw.puntos as number) ?? '—' },
@@ -40,6 +62,56 @@ function statsPorJuego(s: SesionDetalle): { label: string; value: string | numbe
     ]
   }
   return []
+}
+
+// Métricas que calcula MediaPipe a partir del tracking del cuerpo — distintas
+// del puntaje del juego. No todas las sesiones las tienen (juegos viejos,
+// jugados con las teclas de testing, no las generan).
+function metricasIA(s: SesionDetalle): { label: string; value: string }[] {
+  const m = s.metricas_sesion
+  if (!m) return []
+  const out: { label: string; value: string }[] = []
+  if (m.estabilidad_score != null) out.push({ label: 'Estabilidad', value: `${m.estabilidad_score}%` })
+  if (m.precision_porcentaje != null) out.push({ label: 'Precisión de movimiento', value: `${m.precision_porcentaje}%` })
+  if (m.rango_movimiento_avg != null) out.push({ label: 'Rango de movimiento (prom.)', value: `${m.rango_movimiento_avg}°` })
+  if (m.rango_movimiento_max != null) out.push({ label: 'Rango de movimiento (máx.)', value: `${m.rango_movimiento_max}°` })
+  return out
+}
+
+// Comentario en texto generado a partir de las métricas — reglas simples
+// sobre los umbrales, no una llamada a un modelo generativo. Se arma acá
+// (no en el backend) porque solo depende de datos que ya llegaron al cliente.
+function comentarioIA(s: SesionDetalle): string | null {
+  const m = s.metricas_sesion
+  if (!m) return null
+
+  const partes: string[] = []
+  if (m.estabilidad_score != null) {
+    if (m.estabilidad_score >= 80) partes.push('una estabilidad postural muy buena')
+    else if (m.estabilidad_score >= 60) partes.push('una estabilidad postural aceptable, con margen de mejora')
+    else partes.push('dificultad para sostener la estabilidad postural')
+  }
+  if (m.precision_porcentaje != null) {
+    if (m.precision_porcentaje >= 85) partes.push('una precisión de movimiento muy alta')
+    else if (m.precision_porcentaje >= 65) partes.push('una precisión de movimiento dentro de lo esperado')
+    else partes.push('una precisión de movimiento por debajo del objetivo')
+  }
+  if (partes.length === 0) return null
+
+  const juego = JUEGO_LABEL[s.juego] ?? s.juego
+  let texto = `Durante la sesión de ${juego}, el paciente mostró ${partes.join(' y ')}`
+  if (m.rango_movimiento_avg != null) {
+    texto += `, con un rango de movimiento promedio de ${m.rango_movimiento_avg}°`
+  }
+  texto += '.'
+
+  if (m.estabilidad_score != null && m.precision_porcentaje != null) {
+    texto += m.estabilidad_score >= 75 && m.precision_porcentaje >= 75
+      ? ' El patrón de movimiento sugiere una buena evolución del control motor y el equilibrio.'
+      : ' Se recomienda reforzar ejercicios de equilibrio y control postural en las próximas sesiones.'
+  }
+
+  return texto
 }
 
 export default function ResultadoSesion() {
@@ -71,7 +143,7 @@ export default function ResultadoSesion() {
     return (
       <div className="max-w-3xl mx-auto text-center py-16">
         <span className="material-symbols-rounded text-[48px] text-rose-400">error</span>
-        <h1 className="text-xl font-black text-primary mt-4">Sesión no encontrada</h1>
+        <h2 className="text-xl font-black text-primary mt-4">Sesión no encontrada</h2>
         <p className="text-text-muted font-medium mt-1">{error ?? 'Esa sesión no existe o no te pertenece.'}</p>
         <Link to="/analisis" className="inline-flex items-center gap-2 rounded-full bg-accent text-white text-sm font-bold px-6 py-3 mt-6 hover:bg-[#C83890]">
           <span className="material-symbols-rounded text-[18px]">arrow_back</span>
@@ -84,31 +156,63 @@ export default function ResultadoSesion() {
   const volverA = sesion.pacientes ? `/pacientes/${sesion.pacientes.id}` : '/analisis'
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-5xl mx-auto">
       <Link to={volverA} className="inline-flex items-center gap-1 text-text-muted text-sm font-bold hover:text-accent mb-6">
         <span className="material-symbols-rounded text-[18px]">arrow_back</span>
         Volver
       </Link>
 
-      <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 lg:p-8 mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <span className="w-10 h-10 rounded-[12px] bg-violet-50 text-primary flex items-center justify-center">
-            <span className="material-symbols-rounded text-[20px]">{JUEGO_ICON[sesion.juego] ?? 'sports_esports'}</span>
-          </span>
-          <h1 className="text-2xl font-black text-primary">{JUEGO_LABEL[sesion.juego] ?? sesion.juego}</h1>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        <div className="space-y-4 lg:order-2">
+          <VideoOVacio url={sesion.videos_sesion?.url_landmarks ?? null} label="Video con detección de IA" />
+          <VideoOVacio url={sesion.videos_sesion?.url_crudo ?? null} label="Video real" />
         </div>
-        <p className="text-text-muted font-medium">
-          {sesion.pacientes ? `${sesion.pacientes.nombre} ${sesion.pacientes.apellido} — ` : ''}
-          {formatFecha(sesion.iniciada_en)}
-        </p>
-      </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        {statsPorJuego(sesion).map((s) => (
-          <Stat key={s.label} label={s.label} value={s.value} />
-        ))}
-        <Stat label="Duración total" value={sesion.duracion_segundos != null ? `${sesion.duracion_segundos}s` : '—'} />
-        <Stat label="Estado" value={sesion.estado === 'finalizada' ? 'Finalizada' : sesion.estado} />
+        <div>
+          <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 lg:p-8 mb-6">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="w-10 h-10 rounded-[12px] bg-violet-50 text-primary flex items-center justify-center">
+                <span className="material-symbols-rounded text-[20px]">{JUEGO_ICON[sesion.juego] ?? 'sports_esports'}</span>
+              </span>
+              <h1 className="text-2xl font-black text-primary">{JUEGO_LABEL[sesion.juego] ?? sesion.juego}</h1>
+            </div>
+            <p className="text-text-muted font-medium">
+              {sesion.pacientes ? `${sesion.pacientes.nombre} ${sesion.pacientes.apellido} — ` : ''}
+              {formatFecha(sesion.iniciada_en)}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {statsPorJuego(sesion).map((s) => (
+              <Stat key={s.label} label={s.label} value={s.value} />
+            ))}
+            <Stat label="Duración total" value={sesion.duracion_segundos != null ? `${sesion.duracion_segundos}s` : '—'} />
+            <Stat label="Estado" value={sesion.estado === 'finalizada' ? 'Finalizada' : sesion.estado} />
+          </div>
+
+          {metricasIA(sesion).length > 0 && (
+            <div className="mt-6 bg-primary rounded-[18px] p-6 text-white">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="material-symbols-rounded text-[20px] text-accent-light">auto_awesome</span>
+                <p className="text-xs font-bold uppercase tracking-wider text-white/80">Análisis de IA — MediaPipe</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                {metricasIA(sesion).map((m) => (
+                  <div key={m.label}>
+                    <p className="text-2xl font-black">{m.value}</p>
+                    <p className="text-white/70 text-xs font-semibold mt-0.5">{m.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {comentarioIA(sesion) && (
+                <p className="text-white/90 text-sm leading-relaxed mt-5 pt-5 border-t border-white/15">
+                  {comentarioIA(sesion)}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
