@@ -71,7 +71,8 @@ async function findByIdConDetalle(id, kinesiologo_id) {
     .select(`
       id, juego, estado, iniciada_en, finalizada_en, duracion_segundos, notas,
       pacientes ( id, nombre, apellido ),
-      metricas_sesion ( repeticiones_correctas, repeticiones_totales, precision_porcentaje, rango_movimiento_max, rango_movimiento_avg, estabilidad_score, datos_ia_raw )
+      metricas_sesion ( repeticiones_correctas, repeticiones_totales, precision_porcentaje, rango_movimiento_max, rango_movimiento_avg, estabilidad_score, datos_ia_raw ),
+      videos_sesion ( url_crudo, url_landmarks, url_gameplay )
     `)
     .eq('id', id)
     .eq('kinesiologo_id', kinesiologo_id)
@@ -80,4 +81,85 @@ async function findByIdConDetalle(id, kinesiologo_id) {
   return data
 }
 
-module.exports = { create, finalizar, findById, findByIdConDetalle, listar }
+// Timeline de eventos/feedback de una sesión (S5)
+async function crearEventos(sesion_id, eventos) {
+  const rows = eventos.map(e => ({
+    sesion_id,
+    tipo: e.tipo,
+    mensaje: e.mensaje ?? null,
+    datos: e.datos ?? null,
+  }))
+  const { error } = await supabase.from('eventos_sesion').insert(rows)
+  if (error) throw error
+}
+
+// Métricas crudas en batch (S5) — mismo insert sirve para 1 o varias filas por lote
+async function crearMetricas(sesion_id, metricas) {
+  const rows = metricas.map(m => ({
+    sesion_id,
+    tipo: m.tipo,
+    valor: m.valor,
+    unidad: m.unidad ?? null,
+  }))
+  const { error } = await supabase.from('metricas').insert(rows)
+  if (error) throw error
+}
+
+// Guarda 1-3 URLs de video de la sesión; upsert para que puedan llegar en momentos distintos
+async function guardarVideos(sesion_id, urls) {
+  const { error } = await supabase
+    .from('videos_sesion')
+    .upsert({ sesion_id, ...urls }, { onConflict: 'sesion_id' })
+  if (error) throw error
+}
+
+// Métricas crudas de una sesión, ordenadas en el tiempo (S6, para gráficos detallados)
+async function metricasCrudas(sesion_id) {
+  const { data, error } = await supabase
+    .from('metricas')
+    .select('tipo, valor, unidad, timestamp')
+    .eq('sesion_id', sesion_id)
+    .order('timestamp', { ascending: true })
+  if (error) throw error
+  return data
+}
+
+// URLs de video de una sesión (S6)
+async function findVideos(sesion_id) {
+  const { data, error } = await supabase
+    .from('videos_sesion')
+    .select('url_crudo, url_landmarks, url_gameplay')
+    .eq('sesion_id', sesion_id)
+    .maybeSingle()
+  if (error) throw error
+  return data ?? { url_crudo: null, url_landmarks: null, url_gameplay: null }
+}
+
+// Promedios globales del kinesiólogo sobre sus sesiones finalizadas (S6)
+async function estadisticasGlobales(kinesiologo_id) {
+  const { data, error } = await supabase
+    .from('sesiones')
+    .select('metricas_sesion ( precision_porcentaje, rango_movimiento_avg )')
+    .eq('kinesiologo_id', kinesiologo_id)
+    .eq('estado', 'finalizada')
+  if (error) throw error
+
+  const promedio = (valores) => valores.length
+    ? valores.reduce((a, b) => a + b, 0) / valores.length
+    : null
+
+  const precisiones = data.map(s => s.metricas_sesion?.precision_porcentaje).filter(v => v != null)
+  const rangos = data.map(s => s.metricas_sesion?.rango_movimiento_avg).filter(v => v != null)
+
+  return {
+    sesiones_totales: data.length,
+    precision_promedio: promedio(precisiones),
+    rango_promedio: promedio(rangos),
+  }
+}
+
+module.exports = {
+  create, finalizar, findById, findByIdConDetalle, listar,
+  crearEventos, crearMetricas, guardarVideos,
+  metricasCrudas, findVideos, estadisticasGlobales,
+}

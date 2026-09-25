@@ -92,3 +92,34 @@ CREATE TABLE IF NOT EXISTS metricas_sesion (
   datos_ia_raw jsonb,
   created_at timestamp DEFAULT now()
 );
+
+-- ============================================================
+-- eventos_sesion (timeline de feedback/eventos de juego — S5)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS eventos_sesion (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  sesion_id uuid NOT NULL REFERENCES sesiones(id) ON DELETE CASCADE,
+  tipo text NOT NULL CHECK (tipo IN ('acierto', 'repeticion', 'fin_juego', 'mensaje')),
+  mensaje text,
+  datos jsonb,
+  creado_en timestamptz DEFAULT now()
+);
+
+-- ============================================================
+-- videos_sesion (3 versiones del video por sesión — S5)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS videos_sesion (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  sesion_id uuid NOT NULL UNIQUE REFERENCES sesiones(id) ON DELETE CASCADE,
+  url_crudo text,
+  url_landmarks text,
+  url_gameplay text,
+  created_at timestamptz DEFAULT now()
+);
+
+-- Bucket de Storage para los videos de sesión (ejecutar una sola vez, en el
+-- proyecto Kinetix real — project_ref ihnvurzeuenwymqqyejz, NO en el que
+-- tenga conectado el MCP de Supabase en este momento):
+-- insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+-- values ('sesion-videos', 'sesion-videos', true, 20971520, array['video/webm', 'video/mp4'])
+-- on conflict (id) do nothing;
