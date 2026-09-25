@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import AuthRoute from './components/auth/AuthRoute'
 import PublicRoute from './components/auth/PublicRoute'
 import AppLayout from './components/layout/AppLayout'
@@ -33,9 +34,23 @@ import EstrellasPage from './juegos/estrellas/EstrellasPage'
 const LANDING_HOST = 'kinetix-ai.vercel.app'
 const isLandingHost = typeof window !== 'undefined' && window.location.hostname === LANDING_HOST
 
+// gtag('config', ...) en index.html solo manda el page_view de la carga inicial.
+// En una SPA hay que mandar el resto a mano en cada cambio de ruta.
+function AnalyticsPageView() {
+  const location = useLocation()
+  useEffect(() => {
+    window.gtag?.('event', 'page_view', {
+      page_path: location.pathname + location.search,
+      page_location: window.location.href,
+    })
+  }, [location])
+  return null
+}
+
 export default function App() {
   return (
     <BrowserRouter>
+      <AnalyticsPageView />
       <Routes>
         {/* Rutas públicas */}
         <Route

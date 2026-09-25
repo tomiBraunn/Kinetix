@@ -1,10 +1,35 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Kinetix</title>
+    <title>Kinetix — Rehabilitación gamificada con IA</title>
+    <meta name="description" content="Kinetix convierte los ejercicios de kinesiología en juegos con seguimiento por IA en tiempo real. Rehabilitación divertida para adultos mayores, con métricas y evolución para el kinesiólogo." />
+    <link rel="canonical" href="https://kinetix-ai.vercel.app/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Kinetix" />
+    <meta property="og:title" content="Kinetix — Rehabilitación gamificada con IA" />
+    <meta property="og:description" content="Ejercicios de kinesiología convertidos en juegos, con análisis de equilibrio y movimiento por IA en tiempo real." />
+    <meta property="og:url" content="https://kinetix-ai.vercel.app/" />
+    <meta property="og:image" content="https://kinetix-ai.vercel.app/og-image.png" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Kinetix — Rehabilitación gamificada con IA" />
+    <meta name="twitter:description" content="Ejercicios de kinesiología convertidos en juegos, con análisis de equilibrio y movimiento por IA en tiempo real." />
+    <meta name="twitter:image" content="https://kinetix-ai.vercel.app/og-image.png" />
+
+    <!-- Google Analytics (GA4) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-4128XC7Q0B"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      // send_page_view: false — es una SPA, el page_view de cada ruta lo manda
+      // AnalyticsPageView en App.jsx (si no, la carga inicial se contaría dos veces).
+      gtag('config', 'G-4128XC7Q0B', { send_page_view: false });
+    </script>
     <!-- Preconnect + <link> en vez de @import en el CSS: @import se descubre
          recién cuando el navegador ya parseó index.css, así que la fuente
          arrancaba a pedirse tarde. Esto la pide en paralelo desde el arranque.
