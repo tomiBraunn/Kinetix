@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   getSesiones,
+  getEstadisticas,
   type SesionRow,
+  type EstadisticasGlobales,
   JUEGO_LABEL,
   JUEGO_ICON,
   resultadoPrincipal,
@@ -35,6 +37,7 @@ export default function Analisis() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filtro, setFiltro] = useState<Filtro>('todos')
+  const [stats, setStats] = useState<EstadisticasGlobales | null>(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -43,6 +46,13 @@ export default function Analisis() {
       .catch((err) => setError(err instanceof Error ? err.message : 'Error al cargar sesiones'))
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    getEstadisticas().then(setStats).catch(() => {})
+  }, [])
+
+  const formatPorcentaje = (v: number | null) => (v == null ? '—' : `${v.toFixed(1)}%`)
+  const formatNumero = (v: number | null) => (v == null ? '—' : v.toFixed(1))
 
   const sesionesVistas = filtro === 'todos' ? sesiones : sesiones.filter((s) => s.juego === filtro)
 
@@ -73,13 +83,19 @@ export default function Analisis() {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
           <StatCard icon="sports_gymnastics" label="Total sesiones" value={sesiones.length} tint="bg-violet-100 text-primary" />
           <StatCard icon="today" label="Sesiones hoy" value={sesionesHoy} tint="bg-pink-100 text-accent" />
           <StatCard icon="surfing" label="Partidas de Surf" value={conteoJuego('surf')} tint="bg-sky-100 text-sky-600" />
           <StatCard icon="star" label="Partidas de Estrellas" value={conteoJuego('estrellas')} tint="bg-amber-100 text-amber-600" />
         </div>
       )}
+
+      {/* Promedios globales — vienen en null hasta que los juegos manden precisión/rango */}
+      <div className="grid grid-cols-2 gap-4 mb-8">
+        <StatCard icon="target" label="Precisión promedio" value={formatPorcentaje(stats?.precision_promedio ?? null)} tint="bg-emerald-100 text-emerald-600" />
+        <StatCard icon="straighten" label="Rango de movimiento promedio" value={formatNumero(stats?.rango_promedio ?? null)} tint="bg-indigo-100 text-indigo-600" />
+      </div>
 
       {/* Filtros */}
       <div className="flex gap-2 mb-4 flex-wrap">
