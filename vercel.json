@@ -1,19 +1,8 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "front/package.json",
-      "use": "@vercel/static-build",
-      "config": { "distDir": "dist" }
-    },
-    {
-      "src": "back/server.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "back/server.js" },
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "front/dist/index.html" }
+  "buildCommand": "npm run build --prefix front",
+  "installCommand": "npm install --prefix front && npm install --prefix back",
+  "outputDirectory": "front/dist",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
