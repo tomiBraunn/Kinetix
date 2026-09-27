@@ -3,6 +3,7 @@
   "installCommand": "npm install --prefix front && npm install --prefix back",
   "outputDirectory": "front/dist",
   "rewrites": [
+    { "source": "/api/:match*", "destination": "/api" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
