@@ -38,7 +38,7 @@ export default function GamePage() {
   const recorder = useSessionRecorder()
 
   const [puntos, setPuntos] = useState(0)
-  const [tiempo, setTiempo] = useState(60)
+  const [tiempo, setTiempo] = useState(30)
   const [pausado, setPausado] = useState(false)
   const [instruccion, setInstruccion] = useState(0)
   const [feedbackKey, setFeedbackKey] = useState(0)

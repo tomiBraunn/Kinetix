@@ -38,7 +38,7 @@ export default function FlamencoPage() {
   const intentosPrevRef = useRef(0)
   const recorder = useSessionRecorder()
 
-  const [tiempoRestante, setTiempoRestante] = useState(60)
+  const [tiempoRestante, setTiempoRestante] = useState(30)
   const [timerActual,    setTimerActual]    = useState(0)
   const [mejorTiempo,    setMejorTiempo]    = useState(0)
   const [intentos,       setIntentos]       = useState(0)

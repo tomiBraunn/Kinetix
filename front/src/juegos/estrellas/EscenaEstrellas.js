@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 
 const NUM_ESTRELLAS  = 3
-const DURACION_JUEGO = 60
+const DURACION_JUEGO = 30
 
 export default class EscenaEstrellas extends Phaser.Scene {
   constructor() {
@@ -14,7 +14,7 @@ export default class EscenaEstrellas extends Phaser.Scene {
     const { width, height } = this.scale
 
     // Radio más grande en portrait (pantalla angosta → objetos más grandes)
-    this.radio = width < 600 ? 58 : 42
+    this.radio = width < 600 ? 40 : 28
 
     this.estrellas      = []
     this.puntos         = 0

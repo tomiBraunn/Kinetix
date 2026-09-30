@@ -39,7 +39,7 @@ export default function EstrellasPage() {
   const recorder = useSessionRecorder()
 
   const [puntos,          setPuntos]          = useState(0)
-  const [tiempoRestante,  setTiempoRestante]  = useState(60)
+  const [tiempoRestante,  setTiempoRestante]  = useState(30)
   const [movimientos,     setMovimientos]     = useState(0)
   const [pausado,         setPausado]         = useState(false)
   const [instruccion,     setInstruccion]     = useState(0)

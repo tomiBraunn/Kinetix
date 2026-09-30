@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 
 const NUM_PECES = 4
-const DURACION_JUEGO = 60
+const DURACION_JUEGO = 30
 
 const FONDO_URL = 'https://www.figma.com/api/mcp/asset/548027f9-9c0e-4e7d-ac2b-022b57cbd07f'
 

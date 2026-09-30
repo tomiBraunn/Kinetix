@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 
-const DURACION_JUEGO = 60
+const DURACION_JUEGO = 30
 
 export default class EscenaFlamenco extends Phaser.Scene {
   constructor() {
