@@ -191,6 +191,7 @@ export default function ResultadoSesion() {
         <div className="space-y-4 lg:order-2">
           <VideoOVacio url={sesion.videos_sesion?.url_landmarks ?? null} label="Video con detección de IA" />
           <VideoOVacio url={sesion.videos_sesion?.url_crudo ?? null} label="Video real" />
+          <VideoOVacio url={sesion.videos_sesion?.url_gameplay ?? null} label="Video del juego" />
         </div>
 
         <div>
