@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import PhaserGameEstrellas from './PhaserGameEstrellas'
 import { usePoseAI } from '../../ia/usePoseAI'
+import { kinetixAI } from '../../ia/KinetixAI'
 import { useSessionRecorder } from '../../ia/useSessionRecorder'
 import { crearSesion, finalizarSesion, subirVideosSesion, mandarEventosSesion } from '../../lib/sesiones.ts'
 
@@ -67,7 +68,7 @@ export default function EstrellasPage() {
     const handler = async (e) => {
       if (!sesionIdRef.current) return
       const sesionId = sesionIdRef.current
-      finalizarSesion(sesionId, { juego: 'estrellas', ...e.detail }).catch(console.warn)
+      finalizarSesion(sesionId, { juego: 'estrellas', ...e.detail }, kinetixAI.getMetricasResumen()).catch(console.warn)
 
       eventosRef.current.push({ tipo: 'fin_juego', datos: e.detail })
       const videos = await recorder.stop()

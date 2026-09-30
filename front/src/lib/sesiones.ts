@@ -22,13 +22,23 @@ type MetricasFlamenco = { juego: 'flamenco'; mejor_tiempo_segundos: number; inte
 type MetricasEstrellas = { juego: 'estrellas'; estrellas_alcanzadas: number; movimientos_pies: number; duracion_segundos: number }
 type Metricas = MetricasSurf | MetricasFlamenco | MetricasEstrellas
 
+// Salida de kinetixAI.getMetricasResumen() (ver front/src/ia/KinetixAI.js) —
+// calculadas de verdad a partir del tracking de MediaPipe (varianza del
+// centro de cadera para estabilidad, ángulos de rodilla/codo para rango de
+// movimiento), no inventadas. null cuando no hubo suficientes muestras.
+export type MetricasEquilibrio = {
+  estabilidad_score: number | null
+  rango_movimiento_avg: number | null
+  rango_movimiento_max: number | null
+}
+
 function token() { return getToken() ?? undefined }
 
 export async function crearSesion(paciente_id: string, juego: string) {
   return api.post<{ id: string }>('/sesiones', { paciente_id, juego }, { token: token() })
 }
 
-export async function finalizarSesion(sesionId: string, metricas: Metricas) {
+export async function finalizarSesion(sesionId: string, metricas: Metricas, metricasEquilibrio?: MetricasEquilibrio) {
   await api.put(
     `/sesiones/${sesionId}/finalizar`,
     {
@@ -38,6 +48,7 @@ export async function finalizarSesion(sesionId: string, metricas: Metricas) {
           metricas.juego === 'surf' ? metricas.puntos
           : metricas.juego === 'flamenco' ? metricas.intentos
           : metricas.estrellas_alcanzadas,
+        ...metricasEquilibrio,
         datos_ia_raw: metricas,
       },
     },

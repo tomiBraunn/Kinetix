@@ -5,6 +5,10 @@ const MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/pose_landmark
 
 // https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker
 const LM = {
+  HOMBRO_IZQ:  11,
+  HOMBRO_DER:  12,
+  CODO_IZQ:    13,
+  CODO_DER:    14,
   MUÑECA_IZQ:  15,
   MUÑECA_DER:  16,
   CADERA_IZQ:  23,
@@ -43,6 +47,10 @@ class KinetixAI {
     this._piernaCnt = 0   // frames consecutivos con pierna arriba/abajo
     this._canvasW = window.innerWidth
     this._canvasH = window.innerHeight
+    // Acumuladores para las métricas de "equilibrio" que se mandan al
+    // backend al terminar la sesión — ver getMetricasResumen().
+    this._muestrasCadera = []   // {x,y} del centro de cadera, cada frame (estabilidad)
+    this._muestrasAngulo = []   // ángulo de rodilla o codo, cada frame (rango de movimiento)
   }
 
   async init() {
@@ -83,6 +91,8 @@ class KinetixAI {
     this.running = true
     this._piernaLevantada = false
     this._piernaCnt = 0
+    this._muestrasCadera = []
+    this._muestrasAngulo = []
     _cooldown.clear()
     console.log(`[KinetixAI] Detectando poses → juego: ${gameMode} canvas: ${this._canvasW}x${this._canvasH}`)
     this._loop()
@@ -157,7 +167,92 @@ class KinetixAI {
     return Math.hypot(a.x - b.x, a.y - b.y)
   }
 
+  // Ángulo (en grados) que forman los 3 puntos, con el vértice en `b` —
+  // ej. ángulo de rodilla: a=cadera, b=rodilla, c=tobillo. 180° = pierna
+  // recta, menos que eso = más flexionada.
+  _angulo(a, b, c) {
+    const v1 = { x: a.x - b.x, y: a.y - b.y }
+    const v2 = { x: c.x - b.x, y: c.y - b.y }
+    const mag1 = Math.hypot(v1.x, v1.y)
+    const mag2 = Math.hypot(v2.x, v2.y)
+    if (mag1 === 0 || mag2 === 0) return null
+    const cos = Math.min(1, Math.max(-1, (v1.x * v2.x + v1.y * v2.y) / (mag1 * mag2)))
+    return (Math.acos(cos) * 180) / Math.PI
+  }
+
+  // Corre en cada frame para los 3 juegos, antes de la lógica específica de
+  // cada uno — junta las muestras para las métricas de equilibrio que se
+  // mandan al backend al terminar (ver getMetricasResumen()).
+  _muestrear(landmarks) {
+    const visOk = (lm) => (lm?.visibility ?? 1) > 0.3
+    const cIzq = landmarks[LM.CADERA_IZQ]
+    const cDer = landmarks[LM.CADERA_DER]
+
+    // Estabilidad: centro de cadera. Cuanto menos se mueve en toda la
+    // sesión, más estable estuvo el paciente parado.
+    if (visOk(cIzq) && visOk(cDer)) {
+      this._muestrasCadera.push({ x: (cIzq.x + cDer.x) / 2, y: (cIzq.y + cDer.y) / 2 })
+    }
+
+    // Rango de movimiento: ángulo de rodilla en Flamenco (la pierna que se
+    // levanta), ángulo de codo en Surf/Estrellas (el brazo que se estira).
+    if (this.gameMode === 'flamenco') {
+      const rIzq = landmarks[LM.RODILLA_IZQ], rDer = landmarks[LM.RODILLA_DER]
+      const tIzq = landmarks[LM.TOBILLO_IZQ], tDer = landmarks[LM.TOBILLO_DER]
+      if (visOk(rIzq) && visOk(tIzq)) {
+        const ang = this._angulo(cIzq, rIzq, tIzq)
+        if (ang != null) this._muestrasAngulo.push(ang)
+      }
+      if (visOk(rDer) && visOk(tDer)) {
+        const ang = this._angulo(cDer, rDer, tDer)
+        if (ang != null) this._muestrasAngulo.push(ang)
+      }
+    } else {
+      const hIzq = landmarks[LM.HOMBRO_IZQ], hDer = landmarks[LM.HOMBRO_DER]
+      const koIzq = landmarks[LM.CODO_IZQ], koDer = landmarks[LM.CODO_DER]
+      const mIzq = landmarks[LM.MUÑECA_IZQ], mDer = landmarks[LM.MUÑECA_DER]
+      if (visOk(hIzq) && visOk(koIzq) && visOk(mIzq)) {
+        const ang = this._angulo(hIzq, koIzq, mIzq)
+        if (ang != null) this._muestrasAngulo.push(ang)
+      }
+      if (visOk(hDer) && visOk(koDer) && visOk(mDer)) {
+        const ang = this._angulo(hDer, koDer, mDer)
+        if (ang != null) this._muestrasAngulo.push(ang)
+      }
+    }
+  }
+
+  // Resumen para mandar a /api/sesiones/:id/finalizar al terminar el juego.
+  // Devuelve null en cada campo si no hubo suficientes muestras confiables
+  // (mejor no mandar un número que mandar uno inventado).
+  getMetricasResumen() {
+    let estabilidad_score = null
+    if (this._muestrasCadera.length >= 10) {
+      const xs = this._muestrasCadera.map((m) => m.x)
+      const ys = this._muestrasCadera.map((m) => m.y)
+      const media = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length
+      const varianza = (arr) => { const m = media(arr); return media(arr.map((v) => (v - m) ** 2)) }
+      const varTotal = varianza(xs) + varianza(ys)
+      // Escala empírica: parado firme ronda 0.00005–0.0003 de varianza
+      // (coords normalizadas 0–1); moviéndose bastante supera 0.01.
+      estabilidad_score = Math.round(Math.max(0, Math.min(100, 100 - varTotal * 8000)))
+    }
+
+    let rango_movimiento_avg = null
+    let rango_movimiento_max = null
+    if (this._muestrasAngulo.length >= 5) {
+      const base = this._muestrasAngulo[0] // ángulo de referencia: postura inicial
+      const desvios = this._muestrasAngulo.map((a) => Math.abs(a - base))
+      rango_movimiento_avg = Math.round(desvios.reduce((a, b) => a + b, 0) / desvios.length)
+      rango_movimiento_max = Math.round(Math.max(...this._muestrasAngulo) - Math.min(...this._muestrasAngulo))
+    }
+
+    return { estabilidad_score, rango_movimiento_avg, rango_movimiento_max }
+  }
+
   _interpret(landmarks) {
+    this._muestrear(landmarks)
+
     const manoIzq = landmarks[LM.MUÑECA_IZQ]
     const manoDer = landmarks[LM.MUÑECA_DER]
 

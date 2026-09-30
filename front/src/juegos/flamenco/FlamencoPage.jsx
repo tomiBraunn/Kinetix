@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import PhaserGameFlamenco from './PhaserGameFlamenco'
 import { usePoseAI } from '../../ia/usePoseAI'
+import { kinetixAI } from '../../ia/KinetixAI'
 import { useSessionRecorder } from '../../ia/useSessionRecorder'
 import { crearSesion, finalizarSesion, subirVideosSesion, mandarEventosSesion } from '../../lib/sesiones.ts'
 
@@ -69,7 +70,7 @@ export default function FlamencoPage() {
     const handler = async (e) => {
       if (!sesionIdRef.current) return
       const sesionId = sesionIdRef.current
-      finalizarSesion(sesionId, { juego: 'flamenco', ...e.detail }).catch(console.warn)
+      finalizarSesion(sesionId, { juego: 'flamenco', ...e.detail }, kinetixAI.getMetricasResumen()).catch(console.warn)
 
       eventosRef.current.push({ tipo: 'fin_juego', datos: e.detail })
       const videos = await recorder.stop()
