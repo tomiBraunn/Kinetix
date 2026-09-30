@@ -3,7 +3,7 @@
 // (front/) y la app mobile simplemente lo muestra. Cualquier cambio que se
 // haga en la web se refleja acá solo, sin tocar este proyecto.
 import { useRef, useState, useCallback, useEffect } from 'react'
-import { View, StyleSheet, BackHandler, ActivityIndicator, Text, TouchableOpacity, Platform } from 'react-native'
+import { View, StyleSheet, BackHandler, ActivityIndicator, Text, TouchableOpacity, Platform, PermissionsAndroid } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { WebView, type WebViewNavigation } from 'react-native-webview'
 import type { WebViewErrorEvent, WebViewHttpErrorEvent } from 'react-native-webview/lib/WebViewTypes'
@@ -28,6 +28,13 @@ export default function WebAppScreen() {
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(false)
   const [avisoGoogle, setAvisoGoogle] = useState(false)
+
+  // En Android el WebView no puede usar la cámara si la app no tiene el permiso
+  // del sistema concedido: hay que pedirlo desde el lado nativo.
+  useEffect(() => {
+    if (Platform.OS !== 'android') return
+    PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA).catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (Platform.OS !== 'android') return
