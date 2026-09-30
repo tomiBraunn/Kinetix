@@ -118,7 +118,6 @@ export async function subirVideosSesion(sesionId: string, videos: VideosASubir) 
   // (quedan huérfanas: el archivo está en el bucket pero nunca se guarda su
   // URL en videos_sesion). Con allSettled confirmamos lo que se pudo subir
   // y solo logueamos lo que falló.
-  // allSettled: si un video falla, igual se confirman los que sí se subieron.
   const subidos: Record<string, string> = {}
   const resultados = await Promise.allSettled(presentes.map(async (tipo) => {
     const blob = videos[tipo]!
