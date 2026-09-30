@@ -3,33 +3,18 @@ import Phaser from 'phaser'
 const NUM_PECES = 4
 const DURACION_JUEGO = 30
 
-const FONDO_URL = 'https://www.figma.com/api/mcp/asset/548027f9-9c0e-4e7d-ac2b-022b57cbd07f'
+// Paleta de peces — variedad de colores en vez de un solo pez repetido
+const COLORES_PEZ = [0xff8a3d, 0xffc93d, 0x3ddbb8, 0xa78bfa, 0xf472b6]
 
-const PECES = [
-  { key: 'pez_naranja_a', url: 'https://www.figma.com/api/mcp/asset/1e7ef848-2887-4608-80d8-2a1ac677d64b' },
-  { key: 'pez_naranja_b', url: 'https://www.figma.com/api/mcp/asset/585ea7c5-6005-473e-8c40-be438a845530' },
-  { key: 'pez_naranja_c', url: 'https://www.figma.com/api/mcp/asset/d7b216fa-668e-4acc-89ba-3e587e6ee9c9' },
-  { key: 'pez_amarillo_a', url: 'https://www.figma.com/api/mcp/asset/28122d2c-d056-4174-9b84-485b615c3c50' },
-  { key: 'pez_amarillo_b', url: 'https://www.figma.com/api/mcp/asset/7847b9f0-32f1-45ce-8e58-a501fbe33620' },
-  { key: 'pez_verde_a', url: 'https://www.figma.com/api/mcp/asset/98932ba1-61ed-4685-b6d8-e39eb80eaf24' },
-  { key: 'pez_verde_b', url: 'https://www.figma.com/api/mcp/asset/8ccddf20-b85a-497d-8373-06ecb7216082' },
-  { key: 'pez_violeta_a', url: 'https://www.figma.com/api/mcp/asset/6983cd16-a2c5-4a85-8aa8-310c43d9e721' },
-  { key: 'pez_violeta_b', url: 'https://www.figma.com/api/mcp/asset/cba3b645-2b16-4ad5-a184-94da77229871' },
-  { key: 'pez_violeta_c', url: 'https://www.figma.com/api/mcp/asset/aef3a872-c56f-4452-9fc7-1e34caa404cd' },
-]
-
-const PEZ_W = 90
-const PEZ_H = 75
+const PEZ_W = 78
+const PEZ_H = 46
 
 export default class EscenaPrincipal extends Phaser.Scene {
   constructor() {
     super({ key: 'EscenaPrincipal' })
   }
 
-  preload() {
-    this.load.image('fondo_surf', FONDO_URL)
-    PECES.forEach(p => this.load.image({ key: p.key, url: p.url }))
-  }
+  preload() {}
 
   create() {
     const { width, height } = this.scale
@@ -40,10 +25,9 @@ export default class EscenaPrincipal extends Phaser.Scene {
     this.instruccion = 0
     this.jugando = false
 
-    // Fondo ilustrado cubre todo el canvas
-    this.add.image(width / 2, height / 2, 'fondo_surf')
-      .setDisplaySize(width, height)
-      .setDepth(0)
+    // Fondo de mar dibujado a mano (degradé + burbujas) — sin depender de
+    // ninguna imagen externa, así nunca queda en blanco.
+    this._dibujarFondo(width, height)
 
     // Tabla de surf encima del fondo
     this._dibujarTabla(width, height)
@@ -64,6 +48,50 @@ export default class EscenaPrincipal extends Phaser.Scene {
       this.scene.resume()
       this.jugando = true
     }
+  }
+
+  _dibujarFondo(width, height) {
+    const gfx = this.add.graphics().setDepth(0)
+
+    // Degradé vertical simulando el mar (claro arriba, más profundo abajo)
+    const franjas = 24
+    for (let i = 0; i < franjas; i++) {
+      const t = i / (franjas - 1)
+      const color = Phaser.Display.Color.Interpolate.ColorWithColor(
+        Phaser.Display.Color.ValueToColor(0x7fd8e8),
+        Phaser.Display.Color.ValueToColor(0x2b6fb0),
+        franjas - 1,
+        i,
+      )
+      gfx.fillStyle(Phaser.Display.Color.GetColor(color.r, color.g, color.b), 1)
+      gfx.fillRect(0, (height / franjas) * i, width, height / franjas + 1)
+    }
+
+    // Burbujas decorativas
+    for (let i = 0; i < 14; i++) {
+      const x = Phaser.Math.Between(0, width)
+      const y = Phaser.Math.Between(0, height * 0.85)
+      const r = Phaser.Math.Between(3, 9)
+      gfx.fillStyle(0xffffff, 0.18)
+      gfx.fillCircle(x, y, r)
+    }
+  }
+
+  _dibujarPez(gfx, w, h, color) {
+    const r = h / 2
+    // Cuerpo
+    gfx.fillStyle(color, 1)
+    gfx.fillEllipse(0, 0, w - r, h)
+    // Cola
+    gfx.fillTriangle(w / 2 - r * 0.6, 0, w / 2 + r * 0.7, -h * 0.55, w / 2 + r * 0.7, h * 0.55)
+    // Panza clara
+    gfx.fillStyle(0xffffff, 0.35)
+    gfx.fillEllipse(-r * 0.3, h * 0.12, w * 0.55, h * 0.4)
+    // Ojo
+    gfx.fillStyle(0xffffff, 1)
+    gfx.fillCircle(-w * 0.22, -h * 0.08, r * 0.22)
+    gfx.fillStyle(0x1a1a2e, 1)
+    gfx.fillCircle(-w * 0.2, -h * 0.08, r * 0.11)
   }
 
   _dibujarTabla(width, height) {
@@ -150,11 +178,12 @@ export default class EscenaPrincipal extends Phaser.Scene {
     const x = Phaser.Math.Between(margen, width - margen)
     const y = Phaser.Math.Between(height * 0.1, height * 0.68)
 
-    const config = Phaser.Utils.Array.GetRandom(PECES)
-    const img = this.add.image(x, y, config.key)
-    img.setDisplaySize(PEZ_W, PEZ_H)
-    img.setDepth(2)
-    if (Math.random() > 0.5) img.setFlipX(true)
+    const color = Phaser.Utils.Array.GetRandom(COLORES_PEZ)
+    const img = this.add.graphics().setDepth(2)
+    this._dibujarPez(img, PEZ_W, PEZ_H, color)
+    img.x = x
+    img.y = y
+    if (Math.random() > 0.5) img.scaleX = -1
 
     // Hitbox explícito en coordenadas locales (origen al centro)
     img.setInteractive(
@@ -231,7 +260,7 @@ export default class EscenaPrincipal extends Phaser.Scene {
   _finJuego() {
     this.jugando = false
     window.dispatchEvent(new CustomEvent('kinetix:surf:fin', {
-      detail: { puntos: this.puntos, duracion_segundos: 60 },
+      detail: { puntos: this.puntos, duracion_segundos: DURACION_JUEGO },
     }))
     const { width, height } = this.scale
 
