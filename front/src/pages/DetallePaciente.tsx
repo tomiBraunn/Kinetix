@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
+import { esAppMovil } from '../lib/appMovil'
 import PacienteForm, { fromPaciente } from '../components/PacienteForm'
 import {
   calcularEdad,
@@ -309,7 +310,7 @@ export default function DetallePaciente() {
       </Link>
 
       <div className="flex items-center justify-end gap-3 mb-6">
-        {!editando && (
+        {!editando && esAppMovil && (
           <Link
             to={`/games?pacienteId=${paciente.id}`}
             className="inline-flex items-center gap-2 rounded-full bg-accent text-white text-sm font-bold px-5 py-2.5 hover:bg-[#C83890] transition-colors shadow-[0_6px_24px_-12px_rgba(224,64,160,0.35)]"

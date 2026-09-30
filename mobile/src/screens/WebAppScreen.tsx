@@ -76,6 +76,7 @@ export default function WebAppScreen() {
         ref={webviewRef}
         source={{ uri: GAME_SERVER_URL }}
         style={s.webview}
+        applicationNameForUserAgent="KinetixApp"
         allowsInlineMediaPlayback
         mediaPlaybackRequiresUserAction={false}
         mediaCapturePermissionGrantType="grant"

@@ -187,6 +187,7 @@ export default function ResultadoSesion() {
               {sesion.pacientes ? `${sesion.pacientes.nombre} ${sesion.pacientes.apellido} — ` : ''}
               {formatFecha(sesion.iniciada_en)}
             </p>
+            <p className="text-text-muted/70 text-xs font-mono mt-1 select-all">ID de sesión: {sesion.id}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

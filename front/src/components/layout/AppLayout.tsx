@@ -3,6 +3,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import Logo from '../Logo'
 import ConfiguracionModal from './ConfiguracionModal'
+import { esAppMovil } from '../../lib/appMovil'
 
 type NavItem = {
   to: string
@@ -52,7 +53,7 @@ export default function AppLayout() {
         </div>
 
         <nav className="flex-1 px-4 space-y-1 mt-2">
-          {NAV_ITEMS.map((item) => (
+          {NAV_ITEMS.filter((item) => esAppMovil || item.to !== '/games').map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { esAppMovil } from './lib/appMovil'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import AuthRoute from './components/auth/AuthRoute'
 import PublicRoute from './components/auth/PublicRoute'
@@ -47,6 +48,18 @@ function AnalyticsPageView() {
   return null
 }
 
+function SoloApp({ children }) {
+  if (esAppMovil) return children
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center', fontFamily: 'sans-serif' }}>
+      <div>
+        <h1 style={{ fontSize: 22, fontWeight: 800, color: '#1a237e' }}>Los juegos solo están disponibles en la app de Kinetix</h1>
+        <p style={{ color: '#64748b', marginTop: 8 }}>Abrí la app en el dispositivo del paciente para iniciar una sesión.</p>
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -70,16 +83,16 @@ export default function App() {
           <Route path="/pacientes" element={<Pacientes />} />
           <Route path="/pacientes/nuevo" element={<CrearPaciente />} />
           <Route path="/pacientes/:id" element={<DetallePaciente />} />
-          <Route path="/games" element={<Games />} />
+          <Route path="/games" element={<SoloApp><Games /></SoloApp>} />
           <Route path="/analisis" element={<Analisis />} />
           <Route path="/sesiones/:sesionId" element={<ResultadoSesion />} />
         </Route>
 
         {/* Selección de juego + juegos full-screen (públicos para pruebas de IA sin backend) */}
-        <Route path="/juego" element={<SeleccionJuego />} />
-        <Route path="/juego/surf" element={<GamePage />} />
-        <Route path="/juego/flamenco" element={<FlamencoPage />} />
-        <Route path="/juego/estrellas" element={<EstrellasPage />} />
+        <Route path="/juego" element={<SoloApp><SeleccionJuego /></SoloApp>} />
+        <Route path="/juego/surf" element={<SoloApp><GamePage /></SoloApp>} />
+        <Route path="/juego/flamenco" element={<SoloApp><FlamencoPage /></SoloApp>} />
+        <Route path="/juego/estrellas" element={<SoloApp><EstrellasPage /></SoloApp>} />
 
         {/* Catch-all: en kinetix-ai (solo landing) todo lo demás vuelve a "/" */}
         <Route
