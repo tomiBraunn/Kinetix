@@ -84,7 +84,7 @@ async function generarAnalisis(sesion) {
         model: MODEL,
         messages: [{ role: 'user', content: armarPrompt(sesion) }],
         temperature: 0.5,
-        max_tokens: 300,
+        max_tokens: 1500,
       }),
     });
 
@@ -94,7 +94,12 @@ async function generarAnalisis(sesion) {
     }
 
     const data = await res.json();
-    return data?.choices?.[0]?.message?.content?.trim() || null;
+    const texto = data?.choices?.[0]?.message?.content?.trim();
+    if (!texto) {
+      console.error('[nvidiaAI] respuesta sin contenido:', JSON.stringify(data).slice(0, 500));
+      return null;
+    }
+    return texto;
   } catch (err) {
     console.error('[nvidiaAI] fallo llamando al modelo:', err.message);
     return null;
