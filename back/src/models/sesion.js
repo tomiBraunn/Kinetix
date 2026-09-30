@@ -70,8 +70,8 @@ async function findByIdConDetalle(id, kinesiologo_id) {
     .from('sesiones')
     .select(`
       id, juego, estado, iniciada_en, finalizada_en, duracion_segundos, notas,
-      pacientes ( id, nombre, apellido ),
-      metricas_sesion ( repeticiones_correctas, repeticiones_totales, precision_porcentaje, rango_movimiento_max, rango_movimiento_avg, estabilidad_score, datos_ia_raw ),
+      pacientes ( id, nombre, apellido, fecha_nacimiento, tipo_lesion ),
+      metricas_sesion ( repeticiones_correctas, repeticiones_totales, precision_porcentaje, rango_movimiento_max, rango_movimiento_avg, estabilidad_score, datos_ia_raw, analisis_ia ),
       videos_sesion ( url_crudo, url_landmarks, url_gameplay )
     `)
     .eq('id', id)
@@ -79,6 +79,16 @@ async function findByIdConDetalle(id, kinesiologo_id) {
     .single()
   if (error && error.code !== 'PGRST116') throw error
   return data
+}
+
+// Cachea el análisis de IA generativa para no volver a llamar al modelo
+// cada vez que se abre la pantalla de resultado (las métricas ya no cambian).
+async function guardarAnalisisIA(sesion_id, texto) {
+  const { error } = await supabase
+    .from('metricas_sesion')
+    .update({ analisis_ia: texto })
+    .eq('sesion_id', sesion_id)
+  if (error) throw error
 }
 
 // Timeline de eventos/feedback de una sesión (S5)
@@ -160,6 +170,6 @@ async function estadisticasGlobales(kinesiologo_id) {
 
 module.exports = {
   create, finalizar, findById, findByIdConDetalle, listar,
-  crearEventos, crearMetricas, guardarVideos,
+  crearEventos, crearMetricas, guardarVideos, guardarAnalisisIA,
   metricasCrudas, findVideos, estadisticasGlobales,
 }
