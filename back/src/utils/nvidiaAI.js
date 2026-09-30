@@ -5,7 +5,7 @@
 const NVIDIA_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
 // ponytail: modelo fijo con salida configurable si hace falta cambiarlo
 // sin tocar código (catálogo de modelos de NVIDIA NIM puede variar).
-const MODEL = process.env.NVIDIA_MODEL || 'moonshotai/kimi-k2.6';
+const MODEL = process.env.NVIDIA_MODEL || 'google/gemma-4-31b-it';
 
 const JUEGO_LABEL = {
   surf: 'Surf',
