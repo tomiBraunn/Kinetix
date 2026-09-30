@@ -46,7 +46,7 @@ export default function FlamencoPage() {
   const [pausado,        setPausado]        = useState(false)
   const [instruccion,    setInstruccion]    = useState(0)
 
-  const camaraCanvasRef = usePoseAI('flamenco', !pausado, HEADER_H)
+  const { canvasRef: camaraCanvasRef, siluetaRef } = usePoseAI('flamenco', !pausado, HEADER_H)
 
   // Sesión (solo si viene con paciente) + arranca la grabación de los 3 videos
   useEffect(() => {
@@ -227,6 +227,14 @@ export default function FlamencoPage() {
         )}
 
         <PhaserGameFlamenco ref={phaserRef} headerHeight={HEADER_H} />
+
+        {/* Cuerpo del paciente recortado por segmentación, superpuesto sobre el juego */}
+        <canvas
+          ref={siluetaRef}
+          width={window.innerWidth}
+          height={window.innerHeight - HEADER_H}
+          style={{ position: 'absolute', inset: 0, zIndex: 15, pointerEvents: 'none' }}
+        />
 
         {/* Vista de la cámara + esqueleto detectado por MediaPipe, en vivo */}
         <canvas

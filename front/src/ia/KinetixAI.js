@@ -69,6 +69,7 @@ class KinetixAI {
           minPoseDetectionConfidence: 0.5,
           minPosePresenceConfidence: 0.5,
           minTrackingConfidence: 0.5,
+          outputSegmentationMasks: true,
         })
         console.log(`[KinetixAI] Modelo listo (delegate: ${delegate})`)
         return
@@ -79,7 +80,7 @@ class KinetixAI {
     throw new Error('[KinetixAI] No se pudo inicializar MediaPipe')
   }
 
-  async start(gameMode, video, canvasW, canvasH, overlayCanvas) {
+  async start(gameMode, video, canvasW, canvasH, overlayCanvas, siluetaCanvas) {
     this.stop()
     await this.init()
     this.gameMode = gameMode
@@ -88,6 +89,11 @@ class KinetixAI {
     this._canvasH = canvasH ?? window.innerHeight
     this.overlayCanvas = overlayCanvas ?? null
     this.overlayCtx = overlayCanvas?.getContext('2d') ?? null
+    // Canvas de pantalla completa donde se recorta el cuerpo del paciente
+    // (por segmentación de MediaPipe) y se superpone sobre el fondo del
+    // juego — ver _drawSilueta().
+    this.siluetaCanvas = siluetaCanvas ?? null
+    this.siluetaCtx = siluetaCanvas?.getContext('2d') ?? null
     this.running = true
     this._piernaLevantada = false
     this._piernaCnt = 0
@@ -112,8 +118,13 @@ class KinetixAI {
       try {
         const result = this.landmarker.detectForVideo(this.video, now)
         const landmarks = result.landmarks[0] ?? null
+        const mask = result.segmentationMasks?.[0] ?? null
         if (landmarks) this._interpret(landmarks)
         if (this.overlayCtx) this._drawOverlay(landmarks)
+        if (this.siluetaCtx) this._drawSilueta(mask, landmarks)
+        // MPMask es un recurso nativo (WebGL) — hay que liberarlo cada frame
+        // o se acumula memoria de GPU.
+        mask?.close()
       } catch { /* ignora errores de frame */ }
     }
     this._rafId = requestAnimationFrame(() => this._loop())
@@ -151,6 +162,54 @@ class KinetixAI {
         ctx.fill()
       }
     }
+    ctx.restore()
+  }
+
+  // Recorta el cuerpo del paciente del video (usando la máscara de
+  // segmentación de MediaPipe) y lo dibuja sobre un canvas de pantalla
+  // completa con fondo transparente — puesto por encima del canvas de
+  // Phaser, así el paciente aparece "parado adentro" del juego en vez de
+  // taparlo con el video completo de la cámara.
+  _drawSilueta(mask, landmarks) {
+    const ctx = this.siluetaCtx
+    const w = this.siluetaCanvas.width
+    const h = this.siluetaCanvas.height
+    ctx.clearRect(0, 0, w, h)
+    if (!mask) return
+
+    const mw = mask.width
+    const mh = mask.height
+    if (!mw || !mh) return
+
+    // Canvas chico reusado entre frames: pinta la máscara como un alfa
+    // (blanco opaco = persona, transparente = fondo).
+    if (!this._maskCanvas || this._maskCanvas.width !== mw || this._maskCanvas.height !== mh) {
+      this._maskCanvas = document.createElement('canvas')
+      this._maskCanvas.width = mw
+      this._maskCanvas.height = mh
+      this._maskCtx = this._maskCanvas.getContext('2d')
+      this._maskImageData = this._maskCtx.createImageData(mw, mh)
+    }
+    const datos = mask.getAsFloat32Array()
+    const px = this._maskImageData.data
+    for (let i = 0; i < datos.length; i++) {
+      const a = datos[i] * 255
+      px[i * 4] = 255
+      px[i * 4 + 1] = 255
+      px[i * 4 + 2] = 255
+      px[i * 4 + 3] = a
+    }
+    this._maskCtx.putImageData(this._maskImageData, 0, 0)
+
+    ctx.save()
+    // Mismo espejo que el resto de los overlays (el video se ve como espejo)
+    ctx.translate(w, 0)
+    ctx.scale(-1, 1)
+    ctx.drawImage(this._maskCanvas, 0, 0, w, h)
+    // source-in: solo queda lo que se dibuje ahora donde ya había alfa
+    // (la silueta) — recorta el video con la forma de la máscara.
+    ctx.globalCompositeOperation = 'source-in'
+    ctx.drawImage(this.video, 0, 0, w, h)
     ctx.restore()
   }
 

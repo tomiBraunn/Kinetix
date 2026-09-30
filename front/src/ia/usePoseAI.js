@@ -7,12 +7,16 @@ import { getStream } from './CameraStream'
  * @param {'surf'|'flamenco'|'estrellas'} gameMode
  * @param {boolean} enabled  false para pausar la detección
  * @param {number}  headerH  altura del header en px (solo surf usa 58, el resto 0)
- * @returns {React.RefObject<HTMLCanvasElement>} ref para un <canvas> opcional
- *   donde se dibuja la cámara (en espejo) + el esqueleto detectado, en vivo.
+ * @returns {{ canvasRef: React.RefObject<HTMLCanvasElement>, siluetaRef: React.RefObject<HTMLCanvasElement> }}
+ *   canvasRef: <canvas> chico opcional con la cámara (en espejo) + esqueleto, en vivo.
+ *   siluetaRef: <canvas> de pantalla completa con el cuerpo del paciente
+ *   recortado por segmentación (fondo transparente) — para superponer
+ *   sobre el juego.
  */
 export function usePoseAI(gameMode, enabled = true, headerH = 0) {
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
+  const siluetaRef = useRef(null)
 
   useEffect(() => {
     if (!enabled) {
@@ -45,12 +49,12 @@ export function usePoseAI(gameMode, enabled = true, headerH = 0) {
       videoRef.current = video
 
       video.addEventListener('loadeddata', () => {
-        kinetixAI.start(gameMode, video, canvasW, canvasH, canvasRef.current)
+        kinetixAI.start(gameMode, video, canvasW, canvasH, canvasRef.current, siluetaRef.current)
       }, { once: true })
 
       // Por si loadeddata ya pasó
       if (video.readyState >= 2) {
-        kinetixAI.start(gameMode, video, canvasW, canvasH, canvasRef.current)
+        kinetixAI.start(gameMode, video, canvasW, canvasH, canvasRef.current, siluetaRef.current)
       }
     }
 
@@ -65,5 +69,5 @@ export function usePoseAI(gameMode, enabled = true, headerH = 0) {
     }
   }, [gameMode, enabled, headerH])
 
-  return canvasRef
+  return { canvasRef, siluetaRef }
 }
