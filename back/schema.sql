@@ -90,8 +90,14 @@ CREATE TABLE IF NOT EXISTS metricas_sesion (
   rango_movimiento_avg double precision,
   estabilidad_score double precision,
   datos_ia_raw jsonb,
+  analisis_ia text,
   created_at timestamp DEFAULT now()
 );
+
+-- Migración para el proyecto real (project_ref ihnvurzeuenwymqqyejz) si la
+-- tabla ya existía sin esta columna — ejecutar una sola vez a mano en el
+-- SQL Editor de Supabase (el MCP conectado puede apuntar a otro proyecto):
+-- ALTER TABLE metricas_sesion ADD COLUMN IF NOT EXISTS analisis_ia text;
 
 -- ============================================================
 -- eventos_sesion (timeline de feedback/eventos de juego — S5)

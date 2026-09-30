@@ -31,5 +31,6 @@ router.post('/:id/videos', videoUpload.fields([
 ]), sesionController.videos)
 router.get('/:id/metricas', sesionController.metricasCrudas)
 router.get('/:id/videos', sesionController.videosDeSesion)
+router.get('/:id/analisis-ia', sesionController.analisisIA)
 
 module.exports = router

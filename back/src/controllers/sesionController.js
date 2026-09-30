@@ -1,5 +1,6 @@
 const sesionModel = require('../models/sesion')
 const { uploadTo } = require('../utils/storage')
+const { generarAnalisis } = require('../utils/nvidiaAI')
 
 const VIDEOS_BUCKET = 'sesion-videos'
 
@@ -130,6 +131,29 @@ async function metricasCrudas(req, res) {
   }
 }
 
+async function analisisIA(req, res) {
+  try {
+    const sesion = await sesionModel.findByIdConDetalle(req.params.id, req.userId)
+    if (!sesion) return res.status(404).json({ error: 'Sesión no encontrada' })
+
+    const cacheado = sesion.metricas_sesion?.analisis_ia
+    if (cacheado) return res.json({ analisis: cacheado })
+
+    const analisis = await generarAnalisis(sesion)
+    if (analisis) {
+      // No await bloqueante de la respuesta: si el cacheo falla, el usuario
+      // igual recibe el análisis ya generado (se vuelve a generar la próxima vez).
+      sesionModel.guardarAnalisisIA(sesion.id, analisis).catch((err) => {
+        console.error('[analisisIA] no se pudo cachear:', err.message)
+      })
+    }
+
+    res.json({ analisis, error: analisis ? null : 'No se pudo generar el análisis de IA.' })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+}
+
 async function videosDeSesion(req, res) {
   try {
     const sesion = await sesionDeKinesiologo(req.params.id, req.userId)
@@ -141,4 +165,4 @@ async function videosDeSesion(req, res) {
   }
 }
 
-module.exports = { create, finalizar, listar, detalle, eventos, metricas, videos, metricasCrudas, videosDeSesion }
+module.exports = { create, finalizar, listar, detalle, eventos, metricas, videos, metricasCrudas, videosDeSesion, analisisIA }

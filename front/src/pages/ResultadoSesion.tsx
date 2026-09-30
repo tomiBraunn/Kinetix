@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   getSesion,
+  getAnalisisIA,
   type SesionDetalle,
   JUEGO_LABEL,
   JUEGO_ICON,
@@ -119,6 +120,7 @@ export default function ResultadoSesion() {
   const [sesion, setSesion] = useState<SesionDetalle | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [analisisGenerativo, setAnalisisGenerativo] = useState<string | null>(null)
 
   useEffect(() => {
     if (!sesionId) return
@@ -127,6 +129,11 @@ export default function ResultadoSesion() {
       .then((data) => { if (active) setSesion(data) })
       .catch((err) => { if (active) setError(err instanceof Error ? err.message : 'No se pudo cargar la sesión') })
       .finally(() => { if (active) setLoading(false) })
+    // No bloquea la pantalla: si el modelo tarda o falla, se queda con el
+    // comentario por reglas que ya se muestra igual.
+    getAnalisisIA(sesionId)
+      .then((data) => { if (active && data.analisis) setAnalisisGenerativo(data.analisis) })
+      .catch(() => {})
     return () => { active = false }
   }, [sesionId])
 
@@ -190,24 +197,26 @@ export default function ResultadoSesion() {
             <Stat label="Estado" value={sesion.estado === 'finalizada' ? 'Finalizada' : sesion.estado} />
           </div>
 
-          {metricasIA(sesion).length > 0 && (
+          {(metricasIA(sesion).length > 0 || analisisGenerativo || comentarioIA(sesion)) && (
             <div className="mt-6 bg-primary rounded-[18px] p-6 text-white">
               <div className="flex items-center gap-2 mb-4">
                 <span className="material-symbols-rounded text-[20px] text-accent-light">auto_awesome</span>
                 <p className="text-xs font-bold uppercase tracking-wider text-white/80">Análisis de IA — MediaPipe</p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                {metricasIA(sesion).map((m) => (
-                  <div key={m.label}>
-                    <p className="text-2xl font-black">{m.value}</p>
-                    <p className="text-white/70 text-xs font-semibold mt-0.5">{m.label}</p>
-                  </div>
-                ))}
-              </div>
+              {metricasIA(sesion).length > 0 && (
+                <div className="grid grid-cols-2 gap-4">
+                  {metricasIA(sesion).map((m) => (
+                    <div key={m.label}>
+                      <p className="text-2xl font-black">{m.value}</p>
+                      <p className="text-white/70 text-xs font-semibold mt-0.5">{m.label}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-              {comentarioIA(sesion) && (
-                <p className="text-white/90 text-sm leading-relaxed mt-5 pt-5 border-t border-white/15">
-                  {comentarioIA(sesion)}
+              {(analisisGenerativo || comentarioIA(sesion)) && (
+                <p className={`text-white/90 text-sm leading-relaxed ${metricasIA(sesion).length > 0 ? 'mt-5 pt-5 border-t border-white/15' : ''}`}>
+                  {analisisGenerativo ?? comentarioIA(sesion)}
                 </p>
               )}
             </div>
