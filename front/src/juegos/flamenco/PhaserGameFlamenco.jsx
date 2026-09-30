@@ -1,12 +1,16 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
 import Phaser from 'phaser'
 import EscenaFlamenco from './EscenaFlamenco'
 import { openCamera, closeCamera } from '../../ia/CameraStream'
 
-export default function PhaserGameFlamenco({ headerHeight = 0 }) {
+const PhaserGameFlamenco = forwardRef(function PhaserGameFlamenco({ headerHeight = 0 }, ref) {
   const contenedorRef = useRef(null)
   const videoRef      = useRef(null)
   const gameRef       = useRef(null)
+
+  useImperativeHandle(ref, () => ({
+    getGameCanvas: () => gameRef.current?.canvas ?? null,
+  }), [])
 
   useEffect(() => {
     if (gameRef.current) return
@@ -50,4 +54,6 @@ export default function PhaserGameFlamenco({ headerHeight = 0 }) {
       />
     </div>
   )
-}
+})
+
+export default PhaserGameFlamenco

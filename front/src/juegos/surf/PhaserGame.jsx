@@ -1,12 +1,16 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
 import Phaser from 'phaser'
 import EscenaPrincipal from './EscenaPrincipal'
 import { openCamera, closeCamera } from '../../ia/CameraStream'
 
-export default function PhaserGame({ headerHeight = 0 }) {
+const PhaserGame = forwardRef(function PhaserGame({ headerHeight = 0 }, ref) {
   const contenedorRef = useRef(null)
   const videoRef      = useRef(null)
   const gameRef       = useRef(null)
+
+  useImperativeHandle(ref, () => ({
+    getGameCanvas: () => gameRef.current?.canvas ?? null,
+  }), [])
 
   useEffect(() => {
     if (gameRef.current) return
@@ -50,4 +54,6 @@ export default function PhaserGame({ headerHeight = 0 }) {
       />
     </div>
   )
-}
+})
+
+export default PhaserGame

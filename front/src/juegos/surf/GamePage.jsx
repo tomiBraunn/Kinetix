@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import PhaserGame from './PhaserGame'
 import { usePoseAI } from '../../ia/usePoseAI'
-import { crearSesion, finalizarSesion } from '../../lib/sesiones.ts'
+import { useSessionRecorder } from '../../ia/useSessionRecorder'
+import { crearSesion, finalizarSesion, subirVideosSesion, mandarEventosSesion } from '../../lib/sesiones.ts'
 
 const HEADER_H = 58
 
@@ -31,6 +32,9 @@ export default function GamePage() {
   const [params] = useSearchParams()
   const pacienteId = params.get('pacienteId')
   const sesionIdRef = useRef(null)
+  const phaserRef   = useRef(null)
+  const eventosRef  = useRef([])
+  const recorder = useSessionRecorder()
 
   const [puntos, setPuntos] = useState(0)
   const [tiempo, setTiempo] = useState(60)
@@ -42,19 +46,36 @@ export default function GamePage() {
   // Arranca MediaPipe Pose con las dimensiones correctas del canvas de surf
   const camaraCanvasRef = usePoseAI('surf', !pausado, HEADER_H)
 
-  // Crea sesión al montar (solo si hay paciente seleccionado)
+  // Crea sesión al montar (solo si hay paciente seleccionado) + arranca la
+  // grabación de los 3 videos
   useEffect(() => {
     if (!pacienteId) return
     crearSesion(pacienteId, 'surf')
-      .then(s => { sesionIdRef.current = s.id })
+      .then(s => {
+        sesionIdRef.current = s.id
+        setTimeout(() => {
+          recorder.start({
+            landmarksCanvas: camaraCanvasRef.current,
+            gameCanvas: phaserRef.current?.getGameCanvas(),
+          })
+        }, 500)
+      })
       .catch(console.warn)
   }, [pacienteId])
 
-  // Guarda resultados al terminar el juego
+  // Guarda resultados al terminar el juego + sube videos y eventos
   useEffect(() => {
-    const handler = (e) => {
+    const handler = async (e) => {
       if (!sesionIdRef.current) return
-      finalizarSesion(sesionIdRef.current, { juego: 'surf', ...e.detail }).catch(console.warn)
+      const sesionId = sesionIdRef.current
+      finalizarSesion(sesionId, { juego: 'surf', ...e.detail }).catch(console.warn)
+
+      eventosRef.current.push({ tipo: 'fin_juego', datos: e.detail })
+      const videos = await recorder.stop()
+      subirVideosSesion(sesionId, videos).catch(console.warn)
+      mandarEventosSesion(sesionId, eventosRef.current).catch(console.warn)
+
+      setTimeout(() => navigate(`/sesiones/${sesionId}`), 1800)
     }
     window.addEventListener('kinetix:surf:fin', handler)
     return () => window.removeEventListener('kinetix:surf:fin', handler)
@@ -75,6 +96,7 @@ export default function GamePage() {
     const handler = () => {
       setMostrarFeedback(true)
       setFeedbackKey(k => k + 1)
+      eventosRef.current.push({ tipo: 'acierto', mensaje: '¡Muy bien!' })
       const t = setTimeout(() => setMostrarFeedback(false), 1300)
       return () => clearTimeout(t)
     }
@@ -164,7 +186,7 @@ export default function GamePage() {
           </div>
         )}
 
-        <PhaserGame headerHeight={HEADER_H} />
+        <PhaserGame ref={phaserRef} headerHeight={HEADER_H} />
 
         {/* Vista de la cámara + esqueleto detectado por MediaPipe, en vivo */}
         <canvas

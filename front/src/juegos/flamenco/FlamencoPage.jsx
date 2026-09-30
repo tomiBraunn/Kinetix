@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import PhaserGameFlamenco from './PhaserGameFlamenco'
 import { usePoseAI } from '../../ia/usePoseAI'
-import { crearSesion, finalizarSesion } from '../../lib/sesiones.ts'
+import { useSessionRecorder } from '../../ia/useSessionRecorder'
+import { crearSesion, finalizarSesion, subirVideosSesion, mandarEventosSesion } from '../../lib/sesiones.ts'
 
 const HEADER_H = 58
 
@@ -31,6 +32,10 @@ export default function FlamencoPage() {
   const [params]    = useSearchParams()
   const pacienteId  = params.get('pacienteId')
   const sesionIdRef = useRef(null)
+  const phaserRef   = useRef(null)
+  const eventosRef  = useRef([])
+  const intentosPrevRef = useRef(0)
+  const recorder = useSessionRecorder()
 
   const [tiempoRestante, setTiempoRestante] = useState(60)
   const [timerActual,    setTimerActual]    = useState(0)
@@ -42,24 +47,45 @@ export default function FlamencoPage() {
 
   const camaraCanvasRef = usePoseAI('flamenco', !pausado, HEADER_H)
 
-  // Sesión (solo si viene con paciente)
+  // Sesión (solo si viene con paciente) + arranca la grabación de los 3 videos
   useEffect(() => {
     if (!pacienteId) return
     crearSesion(pacienteId, 'flamenco')
-      .then(s => { sesionIdRef.current = s.id })
+      .then(s => {
+        sesionIdRef.current = s.id
+        // pequeño margen para que el canvas de landmarks y el canvas de
+        // Phaser ya existan (ambos se crean en el mismo montaje inicial).
+        setTimeout(() => {
+          recorder.start({
+            landmarksCanvas: camaraCanvasRef.current,
+            gameCanvas: phaserRef.current?.getGameCanvas(),
+          })
+        }, 500)
+      })
       .catch(console.warn)
   }, [pacienteId])
 
   useEffect(() => {
-    const handler = (e) => {
+    const handler = async (e) => {
       if (!sesionIdRef.current) return
-      finalizarSesion(sesionIdRef.current, { juego: 'flamenco', ...e.detail }).catch(console.warn)
+      const sesionId = sesionIdRef.current
+      finalizarSesion(sesionId, { juego: 'flamenco', ...e.detail }).catch(console.warn)
+
+      eventosRef.current.push({ tipo: 'fin_juego', datos: e.detail })
+      const videos = await recorder.stop()
+      subirVideosSesion(sesionId, videos).catch(console.warn)
+      mandarEventosSesion(sesionId, eventosRef.current).catch(console.warn)
+
+      // Deja ver un instante la pantalla de "¡Tiempo!" del juego y despues
+      // lleva al resultado. La subida de video/eventos sigue en curso arriba
+      // (no se espera), el resultado ya sabe mostrar "no disponible" mientras.
+      setTimeout(() => navigate(`/sesiones/${sesionId}`), 1800)
     }
     window.addEventListener('kinetix:flamenco:fin', handler)
     return () => window.removeEventListener('kinetix:flamenco:fin', handler)
   }, [])
 
-  // Sincroniza HUD con estado del juego
+  // Sincroniza HUD con estado del juego + acumula "repeticion" por cada intento
   useEffect(() => {
     const handler = (e) => {
       const { tiempoRestante, timerActual, mejorTiempo, intentos } = e.detail
@@ -67,6 +93,10 @@ export default function FlamencoPage() {
       setTimerActual(timerActual)
       setMejorTiempo(mejorTiempo)
       setIntentos(intentos)
+      if (intentos > intentosPrevRef.current) {
+        eventosRef.current.push({ tipo: 'repeticion', datos: { numero: intentos } })
+        intentosPrevRef.current = intentos
+      }
     }
     window.addEventListener('kinetix:flamenco', handler)
     return () => window.removeEventListener('kinetix:flamenco', handler)
@@ -76,7 +106,10 @@ export default function FlamencoPage() {
   useEffect(() => {
     const handler = (e) => {
       setPiernaArriba(e.detail.levantada)
-      if (e.detail.levantada) setInstruccion(s => Math.max(s, 1))
+      if (e.detail.levantada) {
+        setInstruccion(s => Math.max(s, 1))
+        eventosRef.current.push({ tipo: 'mensaje', mensaje: '¡Mantené el equilibrio!' })
+      }
     }
     window.addEventListener('kinetix:flamenco:pierna', handler)
     return () => window.removeEventListener('kinetix:flamenco:pierna', handler)
@@ -192,7 +225,7 @@ export default function FlamencoPage() {
           </div>
         )}
 
-        <PhaserGameFlamenco headerHeight={HEADER_H} />
+        <PhaserGameFlamenco ref={phaserRef} headerHeight={HEADER_H} />
 
         {/* Vista de la cámara + esqueleto detectado por MediaPipe, en vivo */}
         <canvas
