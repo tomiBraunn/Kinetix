@@ -308,7 +308,16 @@ export default function DetallePaciente() {
         Volver a pacientes
       </Link>
 
-      <div className="flex items-center justify-end mb-6">
+      <div className="flex items-center justify-end gap-3 mb-6">
+        {!editando && (
+          <Link
+            to={`/games?pacienteId=${paciente.id}`}
+            className="inline-flex items-center gap-2 rounded-full bg-accent text-white text-sm font-bold px-5 py-2.5 hover:bg-[#C83890] transition-colors shadow-[0_6px_24px_-12px_rgba(224,64,160,0.35)]"
+          >
+            <span className="material-symbols-rounded text-[18px]">sports_esports</span>
+            Iniciar juego
+          </Link>
+        )}
         <button
           onClick={() => setEditando((v) => !v)}
           className="inline-flex items-center gap-2 rounded-full border border-accent/40 text-accent text-sm font-bold px-5 py-2.5 hover:bg-accent hover:text-white transition-colors bg-white shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)]"

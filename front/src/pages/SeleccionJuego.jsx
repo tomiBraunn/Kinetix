@@ -1,35 +1,33 @@
 import { useNavigate } from 'react-router-dom'
+import imgSurf from '../assets/juegos/surf-challenge.jpg'
+import imgFlamenco from '../assets/juegos/flamenco-challenge.jpg'
 
 const JUEGOS = [
   {
     id: 'surf',
-    titulo: 'Surf',
-    subtitulo: 'Juego 1',
-    descripcion: 'Subite a la tabla de surf y atrapá peces moviéndote sin perder el equilibrio.',
-    metricas: ['Equilibrio sobre la tabla', 'Velocidad de reacción', 'Peces atrapados'],
+    nombre: 'Surf Challenge',
+    categoriaLabel: 'Coordinación y equilibrio',
+    duracion: '1 min',
+    descripcion: 'Poné a prueba tu equilibrio y coordinación atrapando peces antes de que se acabe el tiempo.',
+    imagen: imgSurf,
     ruta: '/juego/surf',
-    icono: '🏄',
-    color: '#3b9eff',
   },
   {
     id: 'flamenco',
-    titulo: 'Flamenco Challenge',
-    subtitulo: 'Juego 2',
-    descripcion: 'Levantá la pierna y mantené el equilibrio el mayor tiempo posible sin bajarla.',
-    metricas: ['Tiempo en equilibrio', 'Estabilidad postural', 'Cantidad de intentos'],
+    nombre: 'Flamenco Challenge',
+    categoriaLabel: 'Equilibrio y postura',
+    duracion: '1 min',
+    descripcion: 'Levantá una pierna, mantené el equilibrio y tratá de superar tu mejor marca.',
+    imagen: imgFlamenco,
     ruta: '/juego/flamenco',
-    icono: '🦩',
-    color: '#ff5faa',
   },
   {
     id: 'estrellas',
-    titulo: 'Alcanzá la Estrella',
-    subtitulo: 'Juego 3',
-    descripcion: 'Tocá las estrellas que aparecen en pantalla con la mano sin mover los pies.',
-    metricas: ['Equilibrio postural', 'Estrellas alcanzadas', 'Movimientos de pies'],
+    nombre: 'Alcanzá la Estrella',
+    categoriaLabel: 'Equilibrio y coordinación',
+    duracion: '1 min',
+    descripcion: 'Estirá los brazos y tocá las estrellas sin mover los pies.',
     ruta: '/juego/estrellas',
-    icono: '⭐',
-    color: '#f0c040',
   },
 ]
 
@@ -39,144 +37,124 @@ export default function SeleccionJuego() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#0a0a0f',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '40px 20px',
+      background: '#FBF8FF',
       fontFamily: 'system-ui, sans-serif',
+      padding: '20px 16px 48px',
     }}>
       <button
         onClick={() => navigate('/')}
         style={{
-          position: 'fixed',
-          top: 20,
-          left: 20,
-          background: 'rgba(255,255,255,0.07)',
-          color: '#fff',
-          border: '1px solid rgba(255,255,255,0.15)',
-          borderRadius: 8,
-          padding: '8px 16px',
+          background: 'rgba(43,49,156,0.08)',
+          color: '#2B319C',
+          border: 'none',
+          borderRadius: 20,
+          padding: '9px 16px',
           cursor: 'pointer',
           fontSize: 14,
+          fontWeight: 700,
+          marginBottom: 20,
         }}
       >
         ← Inicio
       </button>
 
-      <h1 style={{
-        color: '#ffffff',
-        fontSize: 'clamp(26px, 4vw, 46px)',
-        fontWeight: 700,
-        margin: '0 0 8px',
-        textAlign: 'center',
-      }}>
-        Elegí tu <span style={{ color: '#ff5faa' }}>juego</span>
-      </h1>
-      <p style={{
-        color: '#666',
-        fontSize: 15,
-        margin: '0 0 52px',
-        textAlign: 'center',
-      }}>
-        Cada actividad trabaja equilibrio y coordinación con análisis de IA en tiempo real
-      </p>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 8 }}>
+        <span style={{ width: 5, borderRadius: 3, background: '#E040A0', flexShrink: 0 }} />
+        <div>
+          <h1 style={{
+            color: '#2B319C',
+            fontSize: 'clamp(24px, 7vw, 30px)',
+            fontWeight: 700,
+            margin: 0,
+            letterSpacing: -0.5,
+          }}>
+            Explorá los juegos
+          </h1>
+          <p style={{ color: '#767684', fontSize: 14, margin: '8px 0 0', lineHeight: 1.5 }}>
+            Se juegan con la cámara del celular. Elegí uno para empezar.
+          </p>
+        </div>
+      </div>
 
-      <div style={{
-        display: 'flex',
-        gap: 28,
-        flexWrap: 'wrap',
-        justifyContent: 'center',
-        maxWidth: 1200,
-      }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 18, marginTop: 24 }}>
         {JUEGOS.map(j => (
           <div
             key={j.id}
             style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.09)',
-              borderRadius: 20,
-              padding: '36px 32px',
-              width: 340,
+              background: '#fff',
+              border: '1px solid #E8E9F3',
+              borderRadius: 22,
+              boxShadow: '0px 8px 22px 0px rgba(31,31,64,0.1)',
+              overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
-              gap: 14,
-              transition: 'transform 0.2s, border-color 0.2s, box-shadow 0.2s',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.transform = 'translateY(-6px)'
-              e.currentTarget.style.borderColor = j.color
-              e.currentTarget.style.boxShadow = `0 12px 40px ${j.color}22`
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.transform = 'translateY(0)'
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)'
-              e.currentTarget.style.boxShadow = 'none'
             }}
           >
-            <span style={{ fontSize: 44 }}>{j.icono}</span>
+            {j.imagen ? (
+              <img src={j.imagen} alt={j.nombre} style={{ height: 160, width: '100%', objectFit: 'cover' }} />
+            ) : (
+              <div style={{
+                height: 160, width: '100%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'linear-gradient(135deg, #ddd6fe, #c7d2fe 50%, #fbcfe8)',
+              }}>
+                <span style={{ fontSize: 64, filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.25))' }}>⭐</span>
+              </div>
+            )}
 
-            <div>
-              <p style={{
-                color: j.color,
-                fontSize: 11,
+            <div style={{ padding: 20, display: 'flex', flexDirection: 'column' }}>
+              <span style={{
+                alignSelf: 'flex-start',
+                background: '#EEEFFD',
+                color: '#2B319C',
+                fontSize: 10,
                 fontWeight: 700,
-                letterSpacing: 2,
-                margin: 0,
                 textTransform: 'uppercase',
+                letterSpacing: 0.4,
+                borderRadius: 999,
+                padding: '6px 12px',
+                marginBottom: 10,
               }}>
-                {j.subtitulo}
+                {j.categoriaLabel}
+              </span>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
+                <h2 style={{ color: '#0F1387', fontSize: 20, fontWeight: 600, margin: 0 }}>{j.nombre}</h2>
+                <span style={{
+                  flexShrink: 0,
+                  background: 'rgba(236,131,191,0.25)',
+                  color: '#E040A0',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  borderRadius: 999,
+                  padding: '6px 12px',
+                }}>
+                  {j.duracion}
+                </span>
+              </div>
+
+              <p style={{ color: '#767684', fontSize: 14, lineHeight: 1.55, margin: 0 }}>
+                {j.descripcion}
               </p>
-              <h2 style={{
-                color: '#fff',
-                fontSize: 26,
-                fontWeight: 700,
-                margin: '4px 0 0',
-              }}>
-                {j.titulo}
-              </h2>
+
+              <button
+                onClick={() => navigate(j.ruta)}
+                style={{
+                  marginTop: 18,
+                  background: '#E040A0',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 15,
+                  padding: '14px 0',
+                  fontSize: 15,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  width: '100%',
+                }}
+              >
+                Seleccionar juego
+              </button>
             </div>
-
-            <p style={{ color: '#999', fontSize: 14, lineHeight: 1.65, margin: 0 }}>
-              {j.descripcion}
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-              {j.metricas.map(m => (
-                <div key={m} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                  <div style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: '50%',
-                    background: j.color,
-                    flexShrink: 0,
-                  }} />
-                  <span style={{ color: '#777', fontSize: 13 }}>{m}</span>
-                </div>
-              ))}
-            </div>
-
-            <button
-              onClick={() => navigate(j.ruta)}
-              style={{
-                marginTop: 10,
-                background: j.color,
-                color: '#fff',
-                border: 'none',
-                borderRadius: 10,
-                padding: '13px 0',
-                fontSize: 15,
-                fontWeight: 600,
-                cursor: 'pointer',
-                width: '100%',
-                transition: 'opacity 0.15s',
-              }}
-              onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
-              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-            >
-              Jugar
-            </button>
           </div>
         ))}
       </div>

@@ -85,6 +85,24 @@ export async function getEstadisticas(): Promise<EstadisticasGlobales> {
   return api.get<EstadisticasGlobales>('/estadisticas', { token: token() })
 }
 
+export type VideosASubir = { crudo?: Blob; landmarks?: Blob; gameplay?: Blob }
+
+export async function subirVideosSesion(sesionId: string, videos: VideosASubir) {
+  const formData = new FormData()
+  if (videos.crudo) formData.append('crudo', videos.crudo, 'crudo.webm')
+  if (videos.landmarks) formData.append('landmarks', videos.landmarks, 'landmarks.webm')
+  if (videos.gameplay) formData.append('gameplay', videos.gameplay, 'gameplay.webm')
+  // api.post no fuerza Content-Type cuando el body es FormData (ver api.ts) —
+  // el browser setea multipart/form-data con el boundary correcto solo.
+  return api.post(`/sesiones/${sesionId}/videos`, formData, { token: token() })
+}
+
+export type EventoSesion = { tipo: 'acierto' | 'repeticion' | 'fin_juego' | 'mensaje'; mensaje?: string; datos?: unknown }
+
+export async function mandarEventosSesion(sesionId: string, eventos: EventoSesion[]) {
+  return api.post(`/sesiones/${sesionId}/eventos`, { eventos }, { token: token() })
+}
+
 // Helpers de presentación
 export const JUEGO_LABEL: Record<string, string> = {
   surf: 'Surf',

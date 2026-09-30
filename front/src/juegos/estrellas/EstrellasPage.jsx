@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import PhaserGameEstrellas from './PhaserGameEstrellas'
 import { usePoseAI } from '../../ia/usePoseAI'
-import { crearSesion, finalizarSesion } from '../../lib/sesiones.ts'
+import { useSessionRecorder } from '../../ia/useSessionRecorder'
+import { crearSesion, finalizarSesion, subirVideosSesion, mandarEventosSesion } from '../../lib/sesiones.ts'
 
 const HEADER_H = 52
 
@@ -32,6 +33,9 @@ export default function EstrellasPage() {
   const [params]    = useSearchParams()
   const pacienteId  = params.get('pacienteId')
   const sesionIdRef = useRef(null)
+  const phaserRef   = useRef(null)
+  const eventosRef  = useRef([])
+  const recorder = useSessionRecorder()
 
   const [puntos,          setPuntos]          = useState(0)
   const [tiempoRestante,  setTiempoRestante]  = useState(60)
@@ -43,18 +47,34 @@ export default function EstrellasPage() {
 
   const camaraCanvasRef = usePoseAI('estrellas', !pausado, HEADER_H)
 
-  // Sesión (solo si viene con paciente)
+  // Sesión (solo si viene con paciente) + arranca la grabación de los 3 videos
   useEffect(() => {
     if (!pacienteId) return
     crearSesion(pacienteId, 'estrellas')
-      .then(s => { sesionIdRef.current = s.id })
+      .then(s => {
+        sesionIdRef.current = s.id
+        setTimeout(() => {
+          recorder.start({
+            landmarksCanvas: camaraCanvasRef.current,
+            gameCanvas: phaserRef.current?.getGameCanvas(),
+          })
+        }, 500)
+      })
       .catch(console.warn)
   }, [pacienteId])
 
   useEffect(() => {
-    const handler = (e) => {
+    const handler = async (e) => {
       if (!sesionIdRef.current) return
-      finalizarSesion(sesionIdRef.current, { juego: 'estrellas', ...e.detail }).catch(console.warn)
+      const sesionId = sesionIdRef.current
+      finalizarSesion(sesionId, { juego: 'estrellas', ...e.detail }).catch(console.warn)
+
+      eventosRef.current.push({ tipo: 'fin_juego', datos: e.detail })
+      const videos = await recorder.stop()
+      subirVideosSesion(sesionId, videos).catch(console.warn)
+      mandarEventosSesion(sesionId, eventosRef.current).catch(console.warn)
+
+      setTimeout(() => navigate(`/sesiones/${sesionId}`), 1800)
     }
     window.addEventListener('kinetix:estrellas:fin', handler)
     return () => window.removeEventListener('kinetix:estrellas:fin', handler)
@@ -78,6 +98,7 @@ export default function EstrellasPage() {
     const handler = () => {
       setMostrarFeedback(true)
       setFeedbackKey(k => k + 1)
+      eventosRef.current.push({ tipo: 'acierto', mensaje: '¡Bien!' })
       const t = setTimeout(() => setMostrarFeedback(false), 900)
       return () => clearTimeout(t)
     }
@@ -185,7 +206,7 @@ export default function EstrellasPage() {
           </div>
         )}
 
-        <PhaserGameEstrellas headerHeight={HEADER_H} />
+        <PhaserGameEstrellas ref={phaserRef} headerHeight={HEADER_H} />
 
         {/* Vista de la cámara + esqueleto detectado por MediaPipe, en vivo */}
         <canvas
