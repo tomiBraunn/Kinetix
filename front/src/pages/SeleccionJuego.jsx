@@ -1,4 +1,7 @@
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { api } from '../lib/api'
+import { nombreCompleto } from '../lib/pacientes'
 import imgSurf from '../assets/juegos/surf-challenge.jpg'
 import imgFlamenco from '../assets/juegos/flamenco-challenge.jpg'
 
@@ -33,6 +36,26 @@ const JUEGOS = [
 
 export default function SeleccionJuego() {
   const navigate = useNavigate()
+  const [pacientes, setPacientes] = useState([])
+  const [pacienteId, setPacienteId] = useState('')
+  const token = localStorage.getItem('kinetix_token')
+  const [cargandoPacientes, setCargandoPacientes] = useState(!!token)
+
+  // Esta pantalla es pública (la abre el botón "Juegos" de la app mobile,
+  // sin pasar por /pacientes/:id primero), así que acá es donde hay que
+  // elegir el paciente para que la sesión se guarde — sin esto, los juegos
+  // corrían sin pacienteId y no se creaba ninguna sesión.
+  useEffect(() => {
+    if (!token) return
+    api.get('/pacientes', { token })
+      .then(setPacientes)
+      .catch(() => {})
+      .finally(() => setCargandoPacientes(false))
+  }, [token])
+
+  function irAJuego(ruta) {
+    navigate(pacienteId ? `${ruta}?pacienteId=${pacienteId}` : ruta)
+  }
 
   return (
     <div style={{
@@ -75,6 +98,45 @@ export default function SeleccionJuego() {
           </p>
         </div>
       </div>
+
+      {!cargandoPacientes && (
+        <div style={{
+          marginTop: 20,
+          background: '#fff',
+          border: '1px solid #E8E9F3',
+          borderRadius: 16,
+          padding: 14,
+        }}>
+          <label style={{ display: 'block', color: '#2B319C', fontSize: 12, fontWeight: 700, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+            Paciente
+          </label>
+          {pacientes.length > 0 ? (
+            <select
+              value={pacienteId}
+              onChange={(e) => setPacienteId(e.target.value)}
+              style={{
+                width: '100%',
+                fontSize: 15,
+                fontWeight: 600,
+                color: '#0F1387',
+                padding: '10px 12px',
+                borderRadius: 10,
+                border: '1px solid #D9DCEA',
+                background: '#fff',
+              }}
+            >
+              <option value="">Sin asignar — no se va a guardar</option>
+              {pacientes.map((p) => (
+                <option key={p.id} value={p.id}>{nombreCompleto(p)}</option>
+              ))}
+            </select>
+          ) : (
+            <p style={{ color: '#767684', fontSize: 13, margin: 0 }}>
+              No hay pacientes cargados todavía. El resultado no se va a guardar hasta que asignes uno.
+            </p>
+          )}
+        </div>
+      )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18, marginTop: 24 }}>
         {JUEGOS.map(j => (
@@ -138,7 +200,7 @@ export default function SeleccionJuego() {
               </p>
 
               <button
-                onClick={() => navigate(j.ruta)}
+                onClick={() => irAJuego(j.ruta)}
                 style={{
                   marginTop: 18,
                   background: '#E040A0',
