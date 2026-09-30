@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   getSesion,
+  getAnalisisIA,
   type SesionDetalle,
   JUEGO_LABEL,
   JUEGO_ICON,
@@ -119,6 +120,7 @@ export default function ResultadoSesion() {
   const [sesion, setSesion] = useState<SesionDetalle | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [analisisGenerativo, setAnalisisGenerativo] = useState<string | null>(null)
 
   useEffect(() => {
     if (!sesionId) return
@@ -127,6 +129,11 @@ export default function ResultadoSesion() {
       .then((data) => { if (active) setSesion(data) })
       .catch((err) => { if (active) setError(err instanceof Error ? err.message : 'No se pudo cargar la sesión') })
       .finally(() => { if (active) setLoading(false) })
+    // No bloquea la pantalla: si el modelo tarda o falla, se queda con el
+    // comentario por reglas que ya se muestra igual.
+    getAnalisisIA(sesionId)
+      .then((data) => { if (active && data.analisis) setAnalisisGenerativo(data.analisis) })
+      .catch(() => {})
     return () => { active = false }
   }, [sesionId])
 
@@ -205,9 +212,9 @@ export default function ResultadoSesion() {
                 ))}
               </div>
 
-              {comentarioIA(sesion) && (
+              {(analisisGenerativo || comentarioIA(sesion)) && (
                 <p className="text-white/90 text-sm leading-relaxed mt-5 pt-5 border-t border-white/15">
-                  {comentarioIA(sesion)}
+                  {analisisGenerativo ?? comentarioIA(sesion)}
                 </p>
               )}
             </div>

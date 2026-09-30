@@ -86,6 +86,10 @@ export async function getSesion(sesionId: string): Promise<SesionDetalle> {
   return api.get<SesionDetalle>(`/sesiones/${sesionId}`, { token: token() })
 }
 
+export async function getAnalisisIA(sesionId: string): Promise<{ analisis: string | null; error?: string | null }> {
+  return api.get(`/sesiones/${sesionId}/analisis-ia`, { token: token() })
+}
+
 export type EstadisticasGlobales = {
   sesiones_totales: number
   precision_promedio: number | null
