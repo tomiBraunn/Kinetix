@@ -197,23 +197,25 @@ export default function ResultadoSesion() {
             <Stat label="Estado" value={sesion.estado === 'finalizada' ? 'Finalizada' : sesion.estado} />
           </div>
 
-          {metricasIA(sesion).length > 0 && (
+          {(metricasIA(sesion).length > 0 || analisisGenerativo || comentarioIA(sesion)) && (
             <div className="mt-6 bg-primary rounded-[18px] p-6 text-white">
               <div className="flex items-center gap-2 mb-4">
                 <span className="material-symbols-rounded text-[20px] text-accent-light">auto_awesome</span>
                 <p className="text-xs font-bold uppercase tracking-wider text-white/80">Análisis de IA — MediaPipe</p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                {metricasIA(sesion).map((m) => (
-                  <div key={m.label}>
-                    <p className="text-2xl font-black">{m.value}</p>
-                    <p className="text-white/70 text-xs font-semibold mt-0.5">{m.label}</p>
-                  </div>
-                ))}
-              </div>
+              {metricasIA(sesion).length > 0 && (
+                <div className="grid grid-cols-2 gap-4">
+                  {metricasIA(sesion).map((m) => (
+                    <div key={m.label}>
+                      <p className="text-2xl font-black">{m.value}</p>
+                      <p className="text-white/70 text-xs font-semibold mt-0.5">{m.label}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {(analisisGenerativo || comentarioIA(sesion)) && (
-                <p className="text-white/90 text-sm leading-relaxed mt-5 pt-5 border-t border-white/15">
+                <p className={`text-white/90 text-sm leading-relaxed ${metricasIA(sesion).length > 0 ? 'mt-5 pt-5 border-t border-white/15' : ''}`}>
                   {analisisGenerativo ?? comentarioIA(sesion)}
                 </p>
               )}
