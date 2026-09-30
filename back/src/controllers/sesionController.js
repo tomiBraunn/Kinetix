@@ -1,5 +1,6 @@
 const sesionModel = require('../models/sesion')
 const { uploadTo } = require('../utils/storage')
+const supabase = require('../utils/supabase')
 const { generarAnalisis } = require('../utils/nvidiaAI')
 
 const VIDEOS_BUCKET = 'sesion-videos'
@@ -120,6 +121,60 @@ async function videos(req, res) {
   }
 }
 
+const TIPOS_VIDEO = ['crudo', 'landmarks', 'gameplay']
+const MIMES_VIDEO = { 'video/webm': 'webm', 'video/mp4': 'mp4' }
+
+// Paso 1 de la subida directa: el navegador sube cada video a Supabase Storage
+// con una URL firmada, sin pasar por la función serverless (Vercel corta los
+// requests de más de 4.5 MB, y un video de 30s pesa más que eso).
+async function urlsSubidaVideos(req, res) {
+  try {
+    const sesion = await sesionDeKinesiologo(req.params.id, req.userId)
+    if (!sesion) return res.status(404).json({ error: 'Sesión no encontrada' })
+
+    const pedidos = Object.entries(req.body?.videos || {})
+      .filter(([tipo, mime]) => TIPOS_VIDEO.includes(tipo) && MIMES_VIDEO[mime])
+    if (pedidos.length === 0) {
+      return res.status(400).json({ error: 'Pedí al menos un video (crudo, landmarks o gameplay) en webm o mp4' })
+    }
+
+    const resultado = {}
+    for (const [tipo, mime] of pedidos) {
+      const path = `${sesion.id}/${tipo}-${Date.now()}.${MIMES_VIDEO[mime]}`
+      const { data, error } = await supabase.storage.from(VIDEOS_BUCKET).createSignedUploadUrl(path)
+      if (error) throw error
+      resultado[tipo] = { path, signedUrl: data.signedUrl }
+    }
+    res.json(resultado)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+}
+
+// Paso 2: el navegador avisa qué paths terminó de subir y se guardan las URLs.
+async function confirmarVideos(req, res) {
+  try {
+    const sesion = await sesionDeKinesiologo(req.params.id, req.userId)
+    if (!sesion) return res.status(404).json({ error: 'Sesión no encontrada' })
+
+    const urls = {}
+    for (const tipo of TIPOS_VIDEO) {
+      const path = req.body?.[tipo]
+      if (!path) continue
+      if (typeof path !== 'string' || !path.startsWith(`${sesion.id}/`)) {
+        return res.status(400).json({ error: `Path inválido para ${tipo}` })
+      }
+      urls[`url_${tipo}`] = supabase.storage.from(VIDEOS_BUCKET).getPublicUrl(path).data.publicUrl
+    }
+    if (Object.keys(urls).length === 0) return res.status(400).json({ error: 'No hay videos para confirmar' })
+
+    await sesionModel.guardarVideos(sesion.id, urls)
+    res.status(201).json(urls)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+}
+
 async function metricasCrudas(req, res) {
   try {
     const sesion = await sesionDeKinesiologo(req.params.id, req.userId)
@@ -165,4 +220,4 @@ async function videosDeSesion(req, res) {
   }
 }
 
-module.exports = { create, finalizar, listar, detalle, eventos, metricas, videos, metricasCrudas, videosDeSesion, analisisIA }
+module.exports = { urlsSubidaVideos, confirmarVideos, create, finalizar, listar, detalle, eventos, metricas, videos, metricasCrudas, videosDeSesion, analisisIA }

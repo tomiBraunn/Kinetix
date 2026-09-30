@@ -48,6 +48,13 @@ function AnalyticsPageView() {
   return null
 }
 
+// Sin paciente la sesión no se puede guardar: vuelve al selector de juego/paciente.
+function ConPaciente({ children }) {
+  const { search } = useLocation()
+  if (new URLSearchParams(search).get('pacienteId')) return children
+  return <Navigate to="/juego" replace />
+}
+
 function SoloApp({ children }) {
   if (esAppMovil) return children
   return (
@@ -90,9 +97,9 @@ export default function App() {
 
         {/* Selección de juego + juegos full-screen (públicos para pruebas de IA sin backend) */}
         <Route path="/juego" element={<SoloApp><SeleccionJuego /></SoloApp>} />
-        <Route path="/juego/surf" element={<SoloApp><GamePage /></SoloApp>} />
-        <Route path="/juego/flamenco" element={<SoloApp><FlamencoPage /></SoloApp>} />
-        <Route path="/juego/estrellas" element={<SoloApp><EstrellasPage /></SoloApp>} />
+        <Route path="/juego/surf" element={<SoloApp><ConPaciente><GamePage /></ConPaciente></SoloApp>} />
+        <Route path="/juego/flamenco" element={<SoloApp><ConPaciente><FlamencoPage /></ConPaciente></SoloApp>} />
+        <Route path="/juego/estrellas" element={<SoloApp><ConPaciente><EstrellasPage /></ConPaciente></SoloApp>} />
 
         {/* Catch-all: en kinetix-ai (solo landing) todo lo demás vuelve a "/" */}
         <Route

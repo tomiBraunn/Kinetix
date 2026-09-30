@@ -6,7 +6,7 @@ const { authMiddleware } = require('../middlewares/index')
 
 const videoUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 20 * 1024 * 1024 },
+  limits: { fileSize: 50 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowed = ['video/webm', 'video/mp4']
     if (allowed.includes(file.mimetype)) {
@@ -24,6 +24,8 @@ router.post('/', sesionController.create)
 router.put('/:id/finalizar', sesionController.finalizar)
 router.post('/:id/eventos', sesionController.eventos)
 router.post('/:id/metricas', sesionController.metricas)
+router.post('/:id/videos/urls', sesionController.urlsSubidaVideos)
+router.post('/:id/videos/confirmar', sesionController.confirmarVideos)
 router.post('/:id/videos', videoUpload.fields([
   { name: 'crudo', maxCount: 1 },
   { name: 'landmarks', maxCount: 1 },

@@ -102,21 +102,29 @@ export async function getEstadisticas(): Promise<EstadisticasGlobales> {
 
 export type VideosASubir = { crudo?: Blob; landmarks?: Blob; gameplay?: Blob }
 
-// El navegador setea el Content-Type de cada parte del multipart según
-// blob.type — el nombre de archivo es solo cosmético, pero lo mantenemos
-// consistente con el formato real (Safari/iOS graba en mp4, no webm).
-function extension(blob: Blob) {
-  return blob.type.includes('mp4') ? 'mp4' : 'webm'
-}
-
+// Subida directa a Supabase Storage con URLs firmadas: el video no pasa por la
+// función serverless del backend (Vercel corta los requests de más de 4.5 MB).
 export async function subirVideosSesion(sesionId: string, videos: VideosASubir) {
-  const formData = new FormData()
-  if (videos.crudo) formData.append('crudo', videos.crudo, `crudo.${extension(videos.crudo)}`)
-  if (videos.landmarks) formData.append('landmarks', videos.landmarks, `landmarks.${extension(videos.landmarks)}`)
-  if (videos.gameplay) formData.append('gameplay', videos.gameplay, `gameplay.${extension(videos.gameplay)}`)
-  // api.post no fuerza Content-Type cuando el body es FormData (ver api.ts) —
-  // el browser setea multipart/form-data con el boundary correcto solo.
-  return api.post(`/sesiones/${sesionId}/videos`, formData, { token: token() })
+  const presentes = (['crudo', 'landmarks', 'gameplay'] as const).filter((t) => videos[t] && videos[t]!.size > 0)
+  if (presentes.length === 0) return
+
+  const pedido = Object.fromEntries(presentes.map((t) => [t, videos[t]!.type.split(';')[0]]))
+  const urls = await api.post<Record<string, { path: string; signedUrl: string }>>(
+    `/sesiones/${sesionId}/videos/urls`, { videos: pedido }, { token: token() },
+  )
+
+  const subidos: Record<string, string> = {}
+  await Promise.all(presentes.map(async (tipo) => {
+    const blob = videos[tipo]!
+    const body = new FormData()
+    body.append('cacheControl', '3600')
+    body.append('', blob)
+    const res = await fetch(urls[tipo].signedUrl, { method: 'PUT', body, headers: { 'x-upsert': 'true' } })
+    if (!res.ok) throw new Error(`No se pudo subir el video ${tipo}: ${res.status} ${await res.text()}`)
+    subidos[tipo] = urls[tipo].path
+  }))
+
+  return api.post(`/sesiones/${sesionId}/videos/confirmar`, subidos, { token: token() })
 }
 
 export type EventoSesion = { tipo: 'acierto' | 'repeticion' | 'fin_juego' | 'mensaje'; mensaje?: string; datos?: unknown }

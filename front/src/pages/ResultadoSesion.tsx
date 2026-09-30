@@ -137,6 +137,24 @@ export default function ResultadoSesion() {
     return () => { active = false }
   }, [sesionId])
 
+  // Los videos se suben apenas termina el juego, en paralelo a la navegación a
+  // esta pantalla: si todavía no están, reintenta unos segundos.
+  const sinVideos = !!sesion && !sesion.videos_sesion
+  useEffect(() => {
+    if (!sesionId || !sinVideos) return
+    let active = true
+    let intentos = 0
+    const timer = setInterval(() => {
+      if (++intentos > 18) { clearInterval(timer); return }
+      getSesion(sesionId)
+        .then((data) => {
+          if (active && data.videos_sesion) { setSesion(data); clearInterval(timer) }
+        })
+        .catch(() => {})
+    }, 5000)
+    return () => { active = false; clearInterval(timer) }
+  }, [sesionId, sinVideos])
+
   if (loading) {
     return (
       <div className="max-w-3xl mx-auto space-y-4">
