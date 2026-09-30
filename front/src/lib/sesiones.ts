@@ -113,8 +113,13 @@ export async function subirVideosSesion(sesionId: string, videos: VideosASubir) 
     `/sesiones/${sesionId}/videos/urls`, { videos: pedido }, { token: token() },
   )
 
+  // Promise.all aborta todo el lote apenas UNA subida falla, y con eso se
+  // pierde también la confirmación de las que sí llegaron bien a Storage
+  // (quedan huérfanas: el archivo está en el bucket pero nunca se guarda su
+  // URL en videos_sesion). Con allSettled confirmamos lo que se pudo subir
+  // y solo logueamos lo que falló.
   const subidos: Record<string, string> = {}
-  await Promise.all(presentes.map(async (tipo) => {
+  const resultados = await Promise.allSettled(presentes.map(async (tipo) => {
     const blob = videos[tipo]!
     const body = new FormData()
     body.append('cacheControl', '3600')
@@ -123,7 +128,11 @@ export async function subirVideosSesion(sesionId: string, videos: VideosASubir) 
     if (!res.ok) throw new Error(`No se pudo subir el video ${tipo}: ${res.status} ${await res.text()}`)
     subidos[tipo] = urls[tipo].path
   }))
+  resultados.forEach((r, i) => {
+    if (r.status === 'rejected') console.warn(`[subirVideosSesion] fallo en ${presentes[i]}:`, r.reason)
+  })
 
+  if (Object.keys(subidos).length === 0) return
   return api.post(`/sesiones/${sesionId}/videos/confirmar`, subidos, { token: token() })
 }
 
