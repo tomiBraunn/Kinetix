@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
-import { nombreCompleto } from '../lib/pacientes'
+import { nombreCompleto, iniciales } from '../lib/pacientes'
 import imgSurf from '../assets/juegos/surf-challenge.jpg'
 import imgFlamenco from '../assets/juegos/flamenco-challenge.jpg'
 
@@ -34,17 +34,105 @@ const JUEGOS = [
   },
 ]
 
+// Pantalla de "¿qué paciente sos?" — se muestra cuando el kinesiólogo toca
+// un juego sin haber elegido paciente todavía. Es un paso obligatorio (con
+// opción de saltar) en vez de un select chico y fácil de pasar por alto.
+function SelectorPaciente({ pacientes, cargando, onElegir, onSaltar }) {
+  const [busqueda, setBusqueda] = useState('')
+  const filtrados = busqueda.trim()
+    ? pacientes.filter((p) => nombreCompleto(p).toLowerCase().includes(busqueda.trim().toLowerCase()))
+    : pacientes
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 50,
+      background: '#FBF8FF',
+      display: 'flex', flexDirection: 'column',
+      padding: '28px 20px',
+      fontFamily: 'system-ui, sans-serif',
+      overflowY: 'auto',
+    }}>
+      <h1 style={{ color: '#2B319C', fontSize: 26, fontWeight: 700, margin: 0, letterSpacing: -0.5 }}>
+        ¿Qué paciente sos?
+      </h1>
+      <p style={{ color: '#767684', fontSize: 14, margin: '8px 0 20px', lineHeight: 1.5 }}>
+        Elegí quién va a hacer el ejercicio para que el video y las estadísticas queden guardados.
+      </p>
+
+      {pacientes.length > 3 && (
+        <input
+          type="text"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder="Buscar por nombre..."
+          style={{
+            fontSize: 15, padding: '12px 14px', borderRadius: 12,
+            border: '1px solid #D9DCEA', marginBottom: 16, background: '#fff',
+          }}
+        />
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+        {cargando ? (
+          <p style={{ color: '#767684', fontSize: 14 }}>Cargando pacientes…</p>
+        ) : filtrados.length === 0 ? (
+          <p style={{ color: '#767684', fontSize: 14 }}>
+            {pacientes.length === 0 ? 'Todavía no hay pacientes cargados.' : 'No encontré a nadie con ese nombre.'}
+          </p>
+        ) : (
+          filtrados.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => onElegir(p.id)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 14,
+                background: '#fff', border: '1px solid #E8E9F3', borderRadius: 16,
+                padding: '14px 16px', textAlign: 'left', cursor: 'pointer',
+                boxShadow: '0px 4px 14px 0px rgba(31,31,64,0.06)',
+              }}
+            >
+              {p.avatar_url ? (
+                <img src={p.avatar_url} alt={nombreCompleto(p)} style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+              ) : (
+                <span style={{
+                  width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+                  background: '#2B319C', color: '#fff', fontWeight: 700, fontSize: 15,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {iniciales(p)}
+                </span>
+              )}
+              <span style={{ color: '#0F1387', fontSize: 16, fontWeight: 600 }}>{nombreCompleto(p)}</span>
+            </button>
+          ))
+        )}
+      </div>
+
+      <button
+        onClick={onSaltar}
+        style={{
+          marginTop: 20, background: 'none', border: 'none',
+          color: '#767684', fontSize: 13, fontWeight: 600, textDecoration: 'underline',
+          cursor: 'pointer', alignSelf: 'center',
+        }}
+      >
+        Continuar sin asignar paciente
+      </button>
+    </div>
+  )
+}
+
 export default function SeleccionJuego() {
   const navigate = useNavigate()
   const [pacientes, setPacientes] = useState([])
   const [pacienteId, setPacienteId] = useState('')
+  const [juegoPendiente, setJuegoPendiente] = useState(null)
   const token = localStorage.getItem('kinetix_token')
   const [cargandoPacientes, setCargandoPacientes] = useState(!!token)
 
-  // Esta pantalla es pública (la abre el botón "Juegos" de la app mobile,
-  // sin pasar por /pacientes/:id primero), así que acá es donde hay que
-  // elegir el paciente para que la sesión se guarde — sin esto, los juegos
-  // corrían sin pacienteId y no se creaba ninguna sesión.
+  // /juego es pública (la abre el botón "Juegos" de la app mobile, sin pasar
+  // por /pacientes/:id primero) — sin esto no había forma de asignar
+  // paciente acá y los juegos corrían sin pacienteId, sin guardar nada.
   useEffect(() => {
     if (!token) return
     api.get('/pacientes', { token })
@@ -54,7 +142,24 @@ export default function SeleccionJuego() {
   }, [token])
 
   function irAJuego(ruta) {
-    navigate(pacienteId ? `${ruta}?pacienteId=${pacienteId}` : ruta)
+    if (pacienteId) {
+      navigate(`${ruta}?pacienteId=${pacienteId}`)
+    } else {
+      setJuegoPendiente(ruta)
+    }
+  }
+
+  function elegirPaciente(id) {
+    setPacienteId(id)
+    const ruta = juegoPendiente
+    setJuegoPendiente(null)
+    if (ruta) navigate(`${ruta}?pacienteId=${id}`)
+  }
+
+  function saltarPaciente() {
+    const ruta = juegoPendiente
+    setJuegoPendiente(null)
+    if (ruta) navigate(ruta)
   }
 
   return (
@@ -64,6 +169,15 @@ export default function SeleccionJuego() {
       fontFamily: 'system-ui, sans-serif',
       padding: '20px 16px 48px',
     }}>
+      {juegoPendiente && (
+        <SelectorPaciente
+          pacientes={pacientes}
+          cargando={cargandoPacientes}
+          onElegir={elegirPaciente}
+          onSaltar={saltarPaciente}
+        />
+      )}
+
       <button
         onClick={() => navigate('/')}
         style={{
@@ -99,42 +213,21 @@ export default function SeleccionJuego() {
         </div>
       </div>
 
-      {!cargandoPacientes && (
+      {pacienteId && (
         <div style={{
-          marginTop: 20,
-          background: '#fff',
-          border: '1px solid #E8E9F3',
-          borderRadius: 16,
-          padding: 14,
+          marginTop: 18,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+          background: '#EEEFFD', borderRadius: 14, padding: '10px 14px',
         }}>
-          <label style={{ display: 'block', color: '#2B319C', fontSize: 12, fontWeight: 700, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.4 }}>
-            Paciente
-          </label>
-          {pacientes.length > 0 ? (
-            <select
-              value={pacienteId}
-              onChange={(e) => setPacienteId(e.target.value)}
-              style={{
-                width: '100%',
-                fontSize: 15,
-                fontWeight: 600,
-                color: '#0F1387',
-                padding: '10px 12px',
-                borderRadius: 10,
-                border: '1px solid #D9DCEA',
-                background: '#fff',
-              }}
-            >
-              <option value="">Sin asignar — no se va a guardar</option>
-              {pacientes.map((p) => (
-                <option key={p.id} value={p.id}>{nombreCompleto(p)}</option>
-              ))}
-            </select>
-          ) : (
-            <p style={{ color: '#767684', fontSize: 13, margin: 0 }}>
-              No hay pacientes cargados todavía. El resultado no se va a guardar hasta que asignes uno.
-            </p>
-          )}
+          <span style={{ color: '#2B319C', fontSize: 13, fontWeight: 700 }}>
+            Paciente: {nombreCompleto(pacientes.find((p) => p.id === pacienteId) ?? { nombre: '', apellido: '' })}
+          </span>
+          <button
+            onClick={() => setPacienteId('')}
+            style={{ background: 'none', border: 'none', color: '#2B319C', fontSize: 12, fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
+          >
+            Cambiar
+          </button>
         </div>
       )}
 
