@@ -4,6 +4,12 @@ const cookieParser = require('cookie-parser');
 const passport = require('./utils/passport');
 const app = express();
 
+// Vercel corre atrás de un proxy — sin esto, req.protocol da 'http' y
+// passport arma el redirect_uri de Google como http://, que no matchea
+// ninguno de los https:// registrados en Google Cloud Console (error
+// redirect_uri_mismatch).
+app.set('trust proxy', 1);
+
 app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
