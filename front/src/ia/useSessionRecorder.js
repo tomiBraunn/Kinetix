@@ -53,6 +53,64 @@ function detenerYArmarBlob(entry) {
   })
 }
 
+const ESPERA_MAX_MS = 8000
+const ESPERA_INTERVALO_MS = 300
+
+// Fuera del componente a propósito: no depende de ningún estado de React,
+// solo de los refs que se le pasan explícitamente.
+function iniciarGrabaciones(stream, { landmarksCanvas, gameCanvas }, refs) {
+  refs.crudoRef.current = grabar(stream)
+  if (!refs.crudoRef.current) console.warn('[useSessionRecorder] no se pudo grabar el video crudo')
+
+  if (landmarksCanvas) {
+    try {
+      refs.landmarksRef.current = grabar(landmarksCanvas.captureStream(30))
+      if (!refs.landmarksRef.current) console.warn('[useSessionRecorder] no se pudo grabar el video de landmarks')
+    } catch (e) {
+      console.warn('[useSessionRecorder] captureStream de landmarks falló:', e)
+    }
+  }
+
+  if (gameCanvas) {
+    const w = gameCanvas.width
+    const h = gameCanvas.height
+    const offscreen = document.createElement('canvas')
+    offscreen.width = w
+    offscreen.height = h
+    const ctx = offscreen.getContext('2d')
+
+    const video = document.createElement('video')
+    video.autoplay = true
+    video.playsInline = true
+    video.muted = true
+    video.srcObject = stream
+    // Safari a veces no arranca un <video> que nunca se agregó al DOM solo
+    // con el atributo autoplay — pedirlo explícito no rompe nada en el resto.
+    video.play().catch(() => {})
+    refs.composeVideoRef.current = video
+
+    const dibujar = () => {
+      if (video.readyState >= 2) {
+        ctx.save()
+        ctx.translate(w, 0)
+        ctx.scale(-1, 1)
+        ctx.drawImage(video, 0, 0, w, h)
+        ctx.restore()
+      }
+      ctx.drawImage(gameCanvas, 0, 0, w, h)
+      refs.composeRafRef.current = requestAnimationFrame(dibujar)
+    }
+    refs.composeRafRef.current = requestAnimationFrame(dibujar)
+
+    try {
+      refs.gameplayRef.current = grabar(offscreen.captureStream(30))
+      if (!refs.gameplayRef.current) console.warn('[useSessionRecorder] no se pudo grabar el video de gameplay')
+    } catch (e) {
+      console.warn('[useSessionRecorder] captureStream de gameplay falló:', e)
+    }
+  }
+}
+
 /**
  * Graba las 3 versiones de una sesión de juego (crudo, landmarks, gameplay) y
  * las entrega como Blobs listos para subir con subirVideosSesion().
@@ -70,57 +128,32 @@ export function useSessionRecorder() {
   const gameplayRef = useRef(null)
   const composeRafRef = useRef(null)
   const composeVideoRef = useRef(null)
+  const esperaRef = useRef(null)
 
-  const start = useCallback(({ landmarksCanvas, gameCanvas }) => {
-    const stream = getStream()
-
-    crudoRef.current = grabar(stream)
-
-    if (landmarksCanvas) {
-      try {
-        landmarksRef.current = grabar(landmarksCanvas.captureStream(30))
-      } catch (e) {
-        console.warn('[useSessionRecorder] captureStream de landmarks falló:', e)
-      }
-    }
-
-    if (stream && gameCanvas) {
-      const w = gameCanvas.width
-      const h = gameCanvas.height
-      const offscreen = document.createElement('canvas')
-      offscreen.width = w
-      offscreen.height = h
-      const ctx = offscreen.getContext('2d')
-
-      const video = document.createElement('video')
-      video.autoplay = true
-      video.playsInline = true
-      video.muted = true
-      video.srcObject = stream
-      composeVideoRef.current = video
-
-      const dibujar = () => {
-        if (video.readyState >= 2) {
-          ctx.save()
-          ctx.translate(w, 0)
-          ctx.scale(-1, 1)
-          ctx.drawImage(video, 0, 0, w, h)
-          ctx.restore()
+  const start = useCallback((args) => {
+    // getStream() puede devolver null todavía si openCamera() no terminó (el
+    // usuario puede tardar en aceptar el permiso, o la cámara del celular
+    // tarda en inicializar) — antes esto abortaba la grabación en silencio
+    // sin ningún aviso. Reintenta hasta 8s en vez de asumir que ya está listo.
+    const intentar = (msEsperados) => {
+      const stream = getStream()
+      if (!stream) {
+        if (msEsperados >= ESPERA_MAX_MS) {
+          console.warn(`[useSessionRecorder] no hay stream de cámara después de ${ESPERA_MAX_MS}ms, no se va a grabar nada`)
+          return
         }
-        ctx.drawImage(gameCanvas, 0, 0, w, h)
-        composeRafRef.current = requestAnimationFrame(dibujar)
+        esperaRef.current = setTimeout(() => intentar(msEsperados + ESPERA_INTERVALO_MS), ESPERA_INTERVALO_MS)
+        return
       }
-      composeRafRef.current = requestAnimationFrame(dibujar)
-
-      try {
-        gameplayRef.current = grabar(offscreen.captureStream(30))
-      } catch (e) {
-        console.warn('[useSessionRecorder] captureStream de gameplay falló:', e)
-      }
+      console.log(`[useSessionRecorder] stream listo (esperó ${msEsperados}ms), arrancando grabación`)
+      iniciarGrabaciones(stream, args, { crudoRef, landmarksRef, gameplayRef, composeRafRef, composeVideoRef })
     }
+    intentar(0)
   }, [])
 
   const stop = useCallback(async () => {
+    if (esperaRef.current) clearTimeout(esperaRef.current)
+    esperaRef.current = null
     if (composeRafRef.current) cancelAnimationFrame(composeRafRef.current)
     composeRafRef.current = null
     if (composeVideoRef.current) {
