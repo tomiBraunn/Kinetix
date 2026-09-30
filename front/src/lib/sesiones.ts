@@ -98,11 +98,18 @@ export async function getEstadisticas(): Promise<EstadisticasGlobales> {
 
 export type VideosASubir = { crudo?: Blob; landmarks?: Blob; gameplay?: Blob }
 
+// El navegador setea el Content-Type de cada parte del multipart según
+// blob.type — el nombre de archivo es solo cosmético, pero lo mantenemos
+// consistente con el formato real (Safari/iOS graba en mp4, no webm).
+function extension(blob: Blob) {
+  return blob.type.includes('mp4') ? 'mp4' : 'webm'
+}
+
 export async function subirVideosSesion(sesionId: string, videos: VideosASubir) {
   const formData = new FormData()
-  if (videos.crudo) formData.append('crudo', videos.crudo, 'crudo.webm')
-  if (videos.landmarks) formData.append('landmarks', videos.landmarks, 'landmarks.webm')
-  if (videos.gameplay) formData.append('gameplay', videos.gameplay, 'gameplay.webm')
+  if (videos.crudo) formData.append('crudo', videos.crudo, `crudo.${extension(videos.crudo)}`)
+  if (videos.landmarks) formData.append('landmarks', videos.landmarks, `landmarks.${extension(videos.landmarks)}`)
+  if (videos.gameplay) formData.append('gameplay', videos.gameplay, `gameplay.${extension(videos.gameplay)}`)
   // api.post no fuerza Content-Type cuando el body es FormData (ver api.ts) —
   // el browser setea multipart/form-data con el boundary correcto solo.
   return api.post(`/sesiones/${sesionId}/videos`, formData, { token: token() })

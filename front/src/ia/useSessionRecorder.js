@@ -1,14 +1,42 @@
 import { useCallback, useRef } from 'react'
 import { getStream } from './CameraStream'
 
+// Safari/iOS (el motor detrás del WebView de la app mobile) no soporta
+// grabar en WebM — MediaRecorder tira NotSupportedError. mp4/h264 sí anda
+// ahí desde iOS 14.1. Se prueba en orden y se usa el primero soportado.
+const MIME_CANDIDATOS = [
+  'video/webm;codecs=vp9',
+  'video/webm;codecs=vp8',
+  'video/webm',
+  'video/mp4;codecs=h264',
+  'video/mp4',
+]
+
+function mimeSoportado() {
+  if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) return null
+  return MIME_CANDIDATOS.find((t) => MediaRecorder.isTypeSupported(t)) ?? null
+}
+
+// El backend valida el Content-Type exacto del archivo subido ('video/webm'
+// o 'video/mp4', ver back/src/routes/sesiones.js) — sin los parámetros de
+// códec, que sí necesita el propio MediaRecorder.
+function mimeBase(mimeType) {
+  return mimeType.split(';')[0]
+}
+
 function grabar(stream) {
   if (!stream) return null
+  const mimeType = mimeSoportado()
+  if (!mimeType) {
+    console.warn('[useSessionRecorder] este navegador no soporta grabar video en ningun formato')
+    return null
+  }
   try {
     const chunks = []
-    const rec = new MediaRecorder(stream, { mimeType: 'video/webm' })
+    const rec = new MediaRecorder(stream, { mimeType })
     rec.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data) }
     rec.start()
-    return { rec, chunks }
+    return { rec, chunks, mimeType: mimeBase(mimeType) }
   } catch (e) {
     console.warn('[useSessionRecorder] no se pudo iniciar la grabación:', e)
     return null
@@ -17,10 +45,10 @@ function grabar(stream) {
 
 function detenerYArmarBlob(entry) {
   if (!entry) return Promise.resolve(undefined)
-  const { rec, chunks } = entry
-  if (rec.state === 'inactive') return Promise.resolve(new Blob(chunks, { type: 'video/webm' }))
+  const { rec, chunks, mimeType } = entry
+  if (rec.state === 'inactive') return Promise.resolve(new Blob(chunks, { type: mimeType }))
   return new Promise((resolve) => {
-    rec.addEventListener('stop', () => resolve(new Blob(chunks, { type: 'video/webm' })), { once: true })
+    rec.addEventListener('stop', () => resolve(new Blob(chunks, { type: mimeType })), { once: true })
     rec.stop()
   })
 }
