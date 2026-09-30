@@ -29,7 +29,7 @@ function edadDesde(fechaNacimiento) {
   const cumplioEsteAño = hoy.getMonth() > nacimiento.getMonth()
     || (hoy.getMonth() === nacimiento.getMonth() && hoy.getDate() >= nacimiento.getDate());
   if (!cumplioEsteAño) edad -= 1;
-  return edad;
+  return edad > 0 ? edad : null;
 }
 
 function armarPrompt(sesion) {
