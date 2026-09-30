@@ -118,6 +118,7 @@ export async function subirVideosSesion(sesionId: string, videos: VideosASubir) 
   // (quedan huérfanas: el archivo está en el bucket pero nunca se guarda su
   // URL en videos_sesion). Con allSettled confirmamos lo que se pudo subir
   // y solo logueamos lo que falló.
+  // allSettled: si un video falla, igual se confirman los que sí se subieron.
   const subidos: Record<string, string> = {}
   const resultados = await Promise.allSettled(presentes.map(async (tipo) => {
     const blob = videos[tipo]!
@@ -125,14 +126,12 @@ export async function subirVideosSesion(sesionId: string, videos: VideosASubir) 
     body.append('cacheControl', '3600')
     body.append('', blob)
     const res = await fetch(urls[tipo].signedUrl, { method: 'PUT', body, headers: { 'x-upsert': 'true' } })
-    if (!res.ok) throw new Error(`No se pudo subir el video ${tipo}: ${res.status} ${await res.text()}`)
+    if (!res.ok) throw new Error(`No se pudo subir el video ${tipo} (${(blob.size / 1e6).toFixed(1)} MB): ${res.status} ${await res.text()}`)
     subidos[tipo] = urls[tipo].path
   }))
-  resultados.forEach((r, i) => {
-    if (r.status === 'rejected') console.warn(`[subirVideosSesion] fallo en ${presentes[i]}:`, r.reason)
-  })
+  resultados.forEach((r) => { if (r.status === 'rejected') console.warn(r.reason) })
+  if (Object.keys(subidos).length === 0) throw new Error('No se pudo subir ningún video')
 
-  if (Object.keys(subidos).length === 0) return
   return api.post(`/sesiones/${sesionId}/videos/confirmar`, subidos, { token: token() })
 }
 
