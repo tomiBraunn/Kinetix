@@ -33,7 +33,10 @@ function grabar(stream) {
   }
   try {
     const chunks = []
-    const rec = new MediaRecorder(stream, { mimeType })
+    // Bitrate acotado: en un celular hay 3 encoders a la vez (más MediaPipe y Phaser)
+    // y con el bitrate por defecto alguno puede quedar sin datos.
+    const rec = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 1_500_000 })
+    rec.onerror = (e) => console.warn('[useSessionRecorder] error de MediaRecorder:', e.error ?? e)
     rec.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data) }
     rec.start()
     return { rec, chunks, mimeType: mimeBase(mimeType) }
@@ -170,6 +173,7 @@ export function useSessionRecorder() {
     landmarksRef.current = null
     gameplayRef.current = null
 
+    console.log('[useSessionRecorder] tamaños (bytes):', { crudo: crudo?.size, landmarks: landmarks?.size, gameplay: gameplay?.size })
     return { crudo, landmarks, gameplay }
   }, [])
 
