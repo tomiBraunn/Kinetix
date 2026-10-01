@@ -51,6 +51,8 @@ class KinetixAI {
     // backend al terminar la sesión — ver getMetricasResumen().
     this._muestrasCadera = []   // {x,y} del centro de cadera, cada frame (estabilidad)
     this._muestrasAngulo = []   // ángulo de rodilla o codo, cada frame (rango de movimiento)
+    this._muestrasTronco = []   // inclinación del torso respecto de la vertical, en grados
+    this._frames = { izq: 0, der: 0 } // frames con cada pierna levantada (Flamenco)
   }
 
   async init() {
@@ -99,6 +101,8 @@ class KinetixAI {
     this._piernaCnt = 0
     this._muestrasCadera = []
     this._muestrasAngulo = []
+    this._muestrasTronco = []
+    this._frames = { izq: 0, der: 0 }
     _cooldown.clear()
     console.log(`[KinetixAI] Detectando poses → juego: ${gameMode} canvas: ${this._canvasW}x${this._canvasH}`)
     this._loop()
@@ -253,6 +257,25 @@ class KinetixAI {
       this._muestrasCadera.push({ x: (cIzq.x + cDer.x) / 2, y: (cIzq.y + cDer.y) / 2 })
     }
 
+    // Control del tronco: cuánto se inclina la línea hombros→caderas respecto
+    // de la vertical.
+    const hI = landmarks[LM.HOMBRO_IZQ], hD = landmarks[LM.HOMBRO_DER]
+    if (visOk(hI) && visOk(hD) && visOk(cIzq) && visOk(cDer)) {
+      const dx = (hI.x + hD.x) / 2 - (cIzq.x + cDer.x) / 2
+      const dy = (hI.y + hD.y) / 2 - (cIzq.y + cDer.y) / 2
+      this._muestrasTronco.push(Math.abs((Math.atan2(dx, -dy) * 180) / Math.PI))
+    }
+
+    // Apoyo por pierna (Flamenco): la pierna "levantada" es la del tobillo
+    // más alto (y menor); el apoyo es en la otra.
+    if (this.gameMode === 'flamenco') {
+      const tI = landmarks[LM.TOBILLO_IZQ], tD = landmarks[LM.TOBILLO_DER]
+      if (visOk(tI) && visOk(tD)) {
+        if (tD.y - tI.y > 0.05) this._frames.izq += 1
+        else if (tI.y - tD.y > 0.05) this._frames.der += 1
+      }
+    }
+
     // Rango de movimiento: ángulo de rodilla en Flamenco (la pierna que se
     // levanta), ángulo de codo en Surf/Estrellas (el brazo que se estira).
     if (this.gameMode === 'flamenco') {
@@ -306,7 +329,31 @@ class KinetixAI {
       rango_movimiento_max = Math.round(Math.max(...this._muestrasAngulo) - Math.min(...this._muestrasAngulo))
     }
 
-    return { estabilidad_score, rango_movimiento_avg, rango_movimiento_max }
+    // Scores 0-100 (100 = sin desvío). Escalas empíricas, como la de estabilidad.
+    let control_tronco = null
+    if (this._muestrasTronco.length >= 10) {
+      const prom = this._muestrasTronco.reduce((a, b) => a + b, 0) / this._muestrasTronco.length
+      control_tronco = Math.round(Math.max(0, Math.min(100, 100 - prom * 5)))
+    }
+
+    let control_lateral = null
+    if (this._muestrasCadera.length >= 10) {
+      const xs = this._muestrasCadera.map((m) => m.x)
+      const media = xs.reduce((a, b) => a + b, 0) / xs.length
+      const desvio = Math.sqrt(xs.reduce((a, v) => a + (v - media) ** 2, 0) / xs.length)
+      control_lateral = Math.round(Math.max(0, Math.min(100, 100 - desvio * 600)))
+    }
+
+    // % del tiempo con una pierna levantada en que se apoyó en cada una.
+    let apoyo_der_pct = null
+    let apoyo_izq_pct = null
+    const levantadas = this._frames.izq + this._frames.der
+    if (this.gameMode === 'flamenco' && levantadas >= 10) {
+      apoyo_der_pct = Math.round((this._frames.izq / levantadas) * 100) // izquierda arriba = apoyo derecho
+      apoyo_izq_pct = 100 - apoyo_der_pct
+    }
+
+    return { estabilidad_score, rango_movimiento_avg, rango_movimiento_max, control_tronco, control_lateral, apoyo_der_pct, apoyo_izq_pct }
   }
 
   _interpret(landmarks) {

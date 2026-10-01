@@ -33,6 +33,10 @@ export type MetricasEquilibrio = {
   estabilidad_score: number | null
   rango_movimiento_avg: number | null
   rango_movimiento_max: number | null
+  control_tronco?: number | null
+  control_lateral?: number | null
+  apoyo_der_pct?: number | null
+  apoyo_izq_pct?: number | null
 }
 
 function token() { return getToken() ?? undefined }
@@ -52,7 +56,14 @@ export async function finalizarSesion(sesionId: string, metricas: Metricas, metr
           : metricas.juego === 'flamenco' ? metricas.intentos
           : metricas.estrellas_alcanzadas,
         ...metricasEquilibrio,
-        datos_ia_raw: metricas,
+        // Las métricas extra van dentro de datos_ia_raw (jsonb): no requieren columnas nuevas.
+        datos_ia_raw: {
+          ...metricas,
+          control_tronco: metricasEquilibrio?.control_tronco ?? null,
+          control_lateral: metricasEquilibrio?.control_lateral ?? null,
+          apoyo_der_pct: metricasEquilibrio?.apoyo_der_pct ?? null,
+          apoyo_izq_pct: metricasEquilibrio?.apoyo_izq_pct ?? null,
+        },
       },
     },
     { token: token() },

@@ -123,7 +123,20 @@ function armarBarras(s: SesionDetalle, mejorPrevio: number | null): Barra[] {
   if (m?.precision_porcentaje != null) {
     barras.push({ label: 'Precisión de movimiento', porcentaje: m.precision_porcentaje, referencia: `Objetivo ${OBJETIVO_PRECISION}` })
   }
-  const actual = resultadoNum(s.juego, (m?.datos_ia_raw ?? {}) as Raw)
+  // Métricas calculadas con MediaPipe (ver KinetixAI.getMetricasResumen); solo si existen.
+  const raw = (m?.datos_ia_raw ?? {}) as Raw
+  if (s.juego === 'surf' && raw.control_lateral != null) {
+    barras.push({ label: 'Control lateral', porcentaje: raw.control_lateral, referencia: 'Objetivo 70' })
+  }
+  if (raw.control_tronco != null) {
+    barras.push({ label: 'Control del tronco', porcentaje: raw.control_tronco, referencia: 'Objetivo 75' })
+  }
+  if (s.juego === 'flamenco' && raw.apoyo_der_pct != null && raw.apoyo_izq_pct != null) {
+    barras.push({ label: 'Apoyo · pierna derecha', porcentaje: raw.apoyo_der_pct, referencia: 'del tiempo en una pierna' })
+    barras.push({ label: 'Apoyo · pierna izquierda', porcentaje: raw.apoyo_izq_pct, referencia: 'del tiempo en una pierna' })
+  }
+
+  const actual = resultadoNum(s.juego, raw)
   if (actual != null && mejorPrevio != null && mejorPrevio > 0) {
     barras.push({
       label: 'Resultado vs. mejor marca previa',
@@ -418,11 +431,11 @@ export default function Analisis() {
                           <div className="flex-1 min-w-0">
                             <p className="text-[12px] font-semibold text-[#1a1f6e] mb-2">{b.label}</p>
                             <div className="h-[10px] rounded-[5px] bg-[#ebedf7] overflow-hidden">
-                              <div className={`h-full rounded-[5px] ${PALETA[i].barra}`} style={{ width: `${Math.max(0, Math.min(100, b.porcentaje))}%` }} />
+                              <div className={`h-full rounded-[5px] ${PALETA[i % PALETA.length].barra}`} style={{ width: `${Math.max(0, Math.min(100, b.porcentaje))}%` }} />
                             </div>
                           </div>
                           <div className="w-[96px] text-right">
-                            <p className={`text-[12px] font-bold ${PALETA[i].texto}`}>{fmt(b.porcentaje)}%</p>
+                            <p className={`text-[12px] font-bold ${PALETA[i % PALETA.length].texto}`}>{fmt(b.porcentaje)}%</p>
                             <p className="text-[10px] text-[#61698a]">{b.referencia}</p>
                           </div>
                         </div>
