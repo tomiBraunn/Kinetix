@@ -20,6 +20,7 @@ import Pacientes from './pages/Pacientes.tsx'
 import CrearPaciente from './pages/CrearPaciente.tsx'
 import DetallePaciente from './pages/DetallePaciente.tsx'
 import Games from './pages/SeleccionJuego.tsx'
+import JuegosPlaceholder from './pages/JuegosPlaceholder.tsx'
 import Analisis from './pages/Analisis.tsx'
 import ResultadoSesion from './pages/ResultadoSesion.tsx'
 
@@ -90,7 +91,7 @@ export default function App() {
           <Route path="/pacientes" element={<Pacientes />} />
           <Route path="/pacientes/nuevo" element={<CrearPaciente />} />
           <Route path="/pacientes/:id" element={<DetallePaciente />} />
-          <Route path="/games" element={<SoloApp><Games /></SoloApp>} />
+          <Route path="/games" element={esAppMovil ? <Games /> : <JuegosPlaceholder />} />
           <Route path="/analisis" element={<Analisis />} />
           <Route path="/sesiones/:sesionId" element={<ResultadoSesion />} />
         </Route>

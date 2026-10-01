@@ -50,7 +50,7 @@ async function listar({ kinesiologo_id, paciente_id, limit = 50 }) {
     .select(`
       id, juego, estado, iniciada_en, finalizada_en, duracion_segundos,
       pacientes ( id, nombre, apellido ),
-      metricas_sesion ( repeticiones_correctas, datos_ia_raw )
+      metricas_sesion ( repeticiones_correctas, estabilidad_score, rango_movimiento_avg, precision_porcentaje, datos_ia_raw )
     `)
     .eq('kinesiologo_id', kinesiologo_id)
     .eq('estado', 'finalizada')

@@ -51,16 +51,64 @@ function armarPrompt(sesion) {
   return [
     'Sos un asistente que ayuda a un kinesiólogo a interpretar los resultados',
     'de una sesión de rehabilitación gamificada para adultos mayores.',
-    'Con los datos de abajo, escribí un análisis breve (3-4 oraciones, en',
-    'español, tono profesional y cercano) sobre el desempeño del paciente en',
-    'esta sesión puntual: qué dicen los números sobre su equilibrio y rango',
-    'de movimiento, y una sugerencia concreta para la próxima sesión si',
-    'corresponde. No inventes datos que no te di. No uses viñetas ni títulos,',
-    'un solo párrafo.',
+    'Con los datos de abajo, analizá el desempeño del paciente en esta sesión',
+    'puntual (qué dicen los números sobre su equilibrio y rango de movimiento).',
+    'Respondé SOLO con un objeto JSON válido, sin markdown ni bloques de código,',
+    'en español, con estas claves (todas strings, salvo "areas"):',
+    '- "fortaleza": una oración sobre lo que hizo bien.',
+    '- "a_mejorar": una oración sobre qué debería mejorar.',
+    '- "proxima_meta": una oración con una meta concreta para la próxima sesión.',
+    '- "sugerencia": una o dos oraciones con qué trabajar en la próxima sesión.',
+    '- "areas": array de 2 etiquetas cortas (máx. 3 palabras cada una) de las',
+    '  zonas o habilidades a trabajar.',
+    '- "mensaje": una o dos oraciones motivacionales dirigidas al paciente, en',
+    '  segunda persona (voseo rioplatense), tono cálido.',
+    'No inventes datos que no te di; si un dato no está, no lo menciones.',
     '',
     'Datos de la sesión:',
     ...lineas.filter(Boolean),
   ].join('\n');
+}
+
+const CLAVES_TEXTO = ['fortaleza', 'a_mejorar', 'proxima_meta', 'sugerencia', 'mensaje'];
+
+// Si el modelo devolvió el JSON pedido (a veces lo envuelve en ```json), lo
+// normaliza y lo re-serializa limpio; si no, deja el texto tal cual (se
+// muestra como párrafo plano y el front cae a sus textos por defecto).
+function normalizarRespuesta(texto) {
+  const bloque = texto.match(/\{[\s\S]*\}/)?.[0];
+  if (!bloque) return texto;
+  try {
+    const d = JSON.parse(bloque);
+    if (!d || typeof d !== 'object' || Array.isArray(d)) return texto;
+    const limpio = {};
+    for (const clave of CLAVES_TEXTO) {
+      if (typeof d[clave] === 'string' && d[clave].trim()) limpio[clave] = d[clave].trim();
+    }
+    if (Array.isArray(d.areas)) {
+      limpio.areas = d.areas.filter((a) => typeof a === 'string' && a.trim()).map((a) => a.trim()).slice(0, 2);
+    }
+    return Object.keys(limpio).length ? JSON.stringify(limpio) : texto;
+  } catch {
+    return texto;
+  }
+}
+
+// Lo que se guarda en metricas_sesion.analisis_ia puede ser el JSON de arriba
+// o, en sesiones analizadas antes de este cambio, un párrafo plano. Devuelve
+// siempre { analisis: <párrafo para mostrar>, detalle: <objeto | null> }.
+function formatearAnalisis(texto) {
+  if (!texto) return { analisis: null, detalle: null };
+  try {
+    const d = JSON.parse(texto);
+    if (d && typeof d === 'object' && !Array.isArray(d)) {
+      const analisis = [d.fortaleza, d.a_mejorar, d.sugerencia].filter(Boolean).join(' ');
+      return { analisis: analisis || null, detalle: d };
+    }
+  } catch {
+    // texto plano de cuando el prompt pedía un solo párrafo
+  }
+  return { analisis: texto, detalle: null };
 }
 
 // Devuelve el texto del análisis, o null si no hay API key / falla el modelo.
@@ -99,11 +147,11 @@ async function generarAnalisis(sesion) {
       console.error('[nvidiaAI] respuesta sin contenido:', JSON.stringify(data).slice(0, 500));
       return null;
     }
-    return texto;
+    return normalizarRespuesta(texto);
   } catch (err) {
     console.error('[nvidiaAI] fallo llamando al modelo:', err.message);
     return null;
   }
 }
 
-module.exports = { generarAnalisis };
+module.exports = { generarAnalisis, formatearAnalisis };

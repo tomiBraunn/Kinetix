@@ -13,6 +13,9 @@ export type SesionRow = {
   // 1:1, no como array, aunque el nombre de la tabla sea plural.
   metricas_sesion: {
     repeticiones_correctas: number | null
+    estabilidad_score: number | null
+    rango_movimiento_avg: number | null
+    precision_porcentaje: number | null
     datos_ia_raw: Record<string, unknown> | null
   } | null
 }
@@ -86,8 +89,25 @@ export async function getSesion(sesionId: string): Promise<SesionDetalle> {
   return api.get<SesionDetalle>(`/sesiones/${sesionId}`, { token: token() })
 }
 
-export async function getAnalisisIA(sesionId: string): Promise<{ analisis: string | null; error?: string | null }> {
-  return api.get(`/sesiones/${sesionId}/analisis-ia`, { token: token() })
+// Análisis estructurado que devuelve el modelo (ver back/src/utils/nvidiaAI.js).
+// `detalle` es null para sesiones analizadas antes, que solo tienen `analisis`.
+export type DetalleAnalisisIA = {
+  fortaleza?: string
+  a_mejorar?: string
+  proxima_meta?: string
+  sugerencia?: string
+  areas?: string[]
+  mensaje?: string
+}
+
+export type AnalisisIA = {
+  analisis: string | null
+  detalle: DetalleAnalisisIA | null
+  error?: string | null
+}
+
+export async function getAnalisisIA(sesionId: string): Promise<AnalisisIA> {
+  return api.get<AnalisisIA>(`/sesiones/${sesionId}/analisis-ia`, { token: token() })
 }
 
 export type EstadisticasGlobales = {

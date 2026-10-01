@@ -150,6 +150,29 @@ function FotoPacienteCard({
   )
 }
 
+// "2 meses y 5 días" desde la fecha de inicio del tratamiento (YYYY-MM-DD).
+function tiempoEnTratamiento(inicio: string | null | undefined): string {
+  if (!inicio) return '—'
+  const desde = new Date(`${inicio.slice(0, 10)}T00:00:00`)
+  const hoy = new Date()
+  if (Number.isNaN(desde.getTime())) return '—'
+  if (desde > hoy) return 'Aún no comenzó'
+
+  let meses = (hoy.getFullYear() - desde.getFullYear()) * 12 + (hoy.getMonth() - desde.getMonth())
+  if (hoy.getDate() < desde.getDate()) meses -= 1
+  const base = new Date(desde)
+  base.setMonth(base.getMonth() + meses)
+  const dias = Math.floor((hoy.getTime() - base.getTime()) / 86400000)
+
+  const anios = Math.floor(meses / 12)
+  const partes = [
+    anios > 0 ? `${anios} ${anios === 1 ? 'año' : 'años'}` : null,
+    meses % 12 > 0 ? `${meses % 12} ${meses % 12 === 1 ? 'mes' : 'meses'}` : null,
+    anios === 0 && dias > 0 ? `${dias} ${dias === 1 ? 'día' : 'días'}` : null,
+  ].filter(Boolean)
+  return partes.length ? partes.join(' y ') : 'Comenzó hoy'
+}
+
 function PerfilPacienteCard({
   paciente,
   edad,
@@ -191,6 +214,18 @@ function PerfilPacienteCard({
       </div>
 
       <div className="mt-6 pt-4 border-t border-slate-100 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-text-muted text-xs font-bold uppercase tracking-wider">Inicio del tratamiento</span>
+          <span className="text-text-label font-semibold text-sm text-right">
+            {formatearFecha(paciente.fecha_inicio_rehabilitacion) || '—'}
+          </span>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-text-muted text-xs font-bold uppercase tracking-wider">Tiempo en tratamiento</span>
+          <span className="text-text-label font-semibold text-sm text-right">
+            {tiempoEnTratamiento(paciente.fecha_inicio_rehabilitacion)}
+          </span>
+        </div>
         <div className="flex items-center justify-between">
           <span className="text-text-muted text-xs font-bold uppercase tracking-wider">Sesiones totales</span>
           <span className="text-primary font-black text-lg">{sesiones.length}</span>

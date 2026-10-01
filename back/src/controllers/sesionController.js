@@ -1,7 +1,7 @@
 const sesionModel = require('../models/sesion')
 const { uploadTo } = require('../utils/storage')
 const supabase = require('../utils/supabase')
-const { generarAnalisis } = require('../utils/nvidiaAI')
+const { generarAnalisis, formatearAnalisis } = require('../utils/nvidiaAI')
 
 const VIDEOS_BUCKET = 'sesion-videos'
 
@@ -192,18 +192,21 @@ async function analisisIA(req, res) {
     if (!sesion) return res.status(404).json({ error: 'Sesión no encontrada' })
 
     const cacheado = sesion.metricas_sesion?.analisis_ia
-    if (cacheado) return res.json({ analisis: cacheado })
+    if (cacheado) return res.json(formatearAnalisis(cacheado))
 
-    const analisis = await generarAnalisis(sesion)
-    if (analisis) {
+    const texto = await generarAnalisis(sesion)
+    if (texto) {
       // No await bloqueante de la respuesta: si el cacheo falla, el usuario
       // igual recibe el análisis ya generado (se vuelve a generar la próxima vez).
-      sesionModel.guardarAnalisisIA(sesion.id, analisis).catch((err) => {
+      sesionModel.guardarAnalisisIA(sesion.id, texto).catch((err) => {
         console.error('[analisisIA] no se pudo cachear:', err.message)
       })
     }
 
-    res.json({ analisis, error: analisis ? null : 'No se pudo generar el análisis de IA.' })
+    res.json({
+      ...formatearAnalisis(texto),
+      error: texto ? null : 'No se pudo generar el análisis de IA.',
+    })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
