@@ -95,7 +95,9 @@ function armarTarjetas(s: SesionDetalle, prev: SesionRow | null): Tarjeta[] {
       equilibrio,
       rango,
       { label: 'Peces atrapados', valor: raw.puntos ?? null, unidad: 'peces', delta: delta(raw.puntos, praw.puntos, ' peces') },
-      { label: 'Rango máximo', valor: m?.rango_movimiento_max ?? null, unidad: '°', delta: null },
+      raw.tiempo_reaccion_s != null
+        ? { label: 'Tiempo de reacción', valor: raw.tiempo_reaccion_s, unidad: 's', delta: delta(raw.tiempo_reaccion_s, praw.tiempo_reaccion_s, ' s', 2) }
+        : { label: 'Rango máximo', valor: m?.rango_movimiento_max ?? null, unidad: '°', delta: null },
     ]
   }
   if (s.juego === 'flamenco') {
@@ -110,7 +112,9 @@ function armarTarjetas(s: SesionDetalle, prev: SesionRow | null): Tarjeta[] {
     equilibrio,
     rango,
     { label: 'Estrellas alcanzadas', valor: raw.estrellas_alcanzadas ?? null, unidad: '', delta: delta(raw.estrellas_alcanzadas, praw.estrellas_alcanzadas, ' estrellas') },
-    { label: 'Movimientos de pies', valor: raw.movimientos_pies ?? null, unidad: '', delta: null },
+    raw.tiempo_reaccion_s != null
+      ? { label: 'Tiempo de reacción', valor: raw.tiempo_reaccion_s, unidad: 's', delta: delta(raw.tiempo_reaccion_s, praw.tiempo_reaccion_s, ' s', 2) }
+      : { label: 'Movimientos de pies', valor: raw.movimientos_pies ?? null, unidad: '', delta: null },
   ]
 }
 

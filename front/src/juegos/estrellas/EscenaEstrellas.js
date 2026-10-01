@@ -1,4 +1,5 @@
 import Phaser from 'phaser'
+import { reiniciarReaccion, objetivoAparece, objetivoTocado } from '../../ia/reaccion'
 
 const NUM_ESTRELLAS  = 3
 const DURACION_JUEGO = 30
@@ -16,6 +17,7 @@ export default class EscenaEstrellas extends Phaser.Scene {
     // Radio más grande en portrait (pantalla angosta → objetos más grandes)
     this.radio = width < 600 ? 40 : 28
 
+    reiniciarReaccion()
     this.estrellas      = []
     this.puntos         = 0
     this.equilibrioRoto = 0
@@ -103,6 +105,7 @@ export default class EscenaEstrellas extends Phaser.Scene {
     })
 
     this.estrellas.push(estrella)
+    objetivoAparece(estrella.id)
   }
 
   _dibujarEstrella(gfx, r) {
@@ -135,6 +138,7 @@ export default class EscenaEstrellas extends Phaser.Scene {
 
     this.estrellas.splice(idx, 1)
     this.puntos++
+    objetivoTocado(estrella.id)
 
     window.dispatchEvent(new CustomEvent('kinetix:estrellas:punto'))
     this._dispatch()

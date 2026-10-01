@@ -1,4 +1,5 @@
 import { PoseLandmarker, FilesetResolver } from '@mediapipe/tasks-vision'
+import { tiempoReaccionMediana } from './reaccion'
 
 const WASM_URL  = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm'
 const MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task'
@@ -353,7 +354,10 @@ class KinetixAI {
       apoyo_izq_pct = 100 - apoyo_der_pct
     }
 
-    return { estabilidad_score, rango_movimiento_avg, rango_movimiento_max, control_tronco, control_lateral, apoyo_der_pct, apoyo_izq_pct }
+    return {
+      estabilidad_score, rango_movimiento_avg, rango_movimiento_max, control_tronco, control_lateral, apoyo_der_pct, apoyo_izq_pct,
+      tiempo_reaccion_s: tiempoReaccionMediana(),
+    }
   }
 
   _interpret(landmarks) {

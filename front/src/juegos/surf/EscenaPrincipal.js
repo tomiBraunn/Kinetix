@@ -1,4 +1,5 @@
 import Phaser from 'phaser'
+import { reiniciarReaccion, objetivoAparece, objetivoTocado } from '../../ia/reaccion'
 
 const NUM_PECES = 4
 const DURACION_JUEGO = 30
@@ -19,6 +20,7 @@ export default class EscenaPrincipal extends Phaser.Scene {
   create() {
     const { width, height } = this.scale
 
+    reiniciarReaccion()
     this.peces = []
     this.puntos = 0
     this.tiempoRestante = DURACION_JUEGO
@@ -209,6 +211,7 @@ export default class EscenaPrincipal extends Phaser.Scene {
     })
 
     this.peces.push(pez)
+    objetivoAparece(pez.id)
   }
 
   tocarPez(pez) {
@@ -218,6 +221,7 @@ export default class EscenaPrincipal extends Phaser.Scene {
 
     this.peces.splice(idx, 1)
     this.puntos++
+    objetivoTocado(pez.id)
 
     window.dispatchEvent(new CustomEvent('kinetix:surf:punto'))
     this._despacharEstado()
