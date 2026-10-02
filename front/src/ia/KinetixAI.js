@@ -1,5 +1,6 @@
 import { PoseLandmarker, FilesetResolver } from '@mediapipe/tasks-vision'
 import { tiempoReaccionMediana } from './reaccion'
+import { eficienciaDeTrayecto, coordinacionScore } from './trayectoria'
 
 const WASM_URL  = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm'
 const MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task'
@@ -54,6 +55,8 @@ class KinetixAI {
     this._muestrasAngulo = []   // ángulo de rodilla o codo, cada frame (rango de movimiento)
     this._muestrasTronco = []   // inclinación del torso respecto de la vertical, en grados
     this._frames = { izq: 0, der: 0 } // frames con cada pierna levantada (Flamenco)
+    this._trayManos = { izq: [], der: [] } // camino de cada muñeca desde el último toque
+    this._eficiencias = []      // eficiencia (0–1) del trayecto de cada toque (coordinación)
   }
 
   async init() {
@@ -104,6 +107,8 @@ class KinetixAI {
     this._muestrasAngulo = []
     this._muestrasTronco = []
     this._frames = { izq: 0, der: 0 }
+    this._trayManos = { izq: [], der: [] }
+    this._eficiencias = []
     _cooldown.clear()
     console.log(`[KinetixAI] Detectando poses → juego: ${gameMode} canvas: ${this._canvasW}x${this._canvasH}`)
     this._loop()
@@ -357,7 +362,35 @@ class KinetixAI {
     return {
       estabilidad_score, rango_movimiento_avg, rango_movimiento_max, control_tronco, control_lateral, apoyo_der_pct, apoyo_izq_pct,
       tiempo_reaccion_s: tiempoReaccionMediana(),
+      coordinacion: this.gameMode === 'flamenco' ? null : coordinacionScore(this._eficiencias),
     }
+  }
+
+  // Guarda el camino de cada muñeca (solo Surf/Estrellas, donde se tocan
+  // objetivos). Tope de muestras para no crecer sin límite si no hay toques.
+  _seguirManos(manoIzq, manoDer) {
+    const visible = (lm) => lm && (lm.visibility ?? 1) > 0.3
+    if (visible(manoIzq)) this._trayManos.izq.push({ x: manoIzq.x, y: manoIzq.y })
+    if (visible(manoDer)) this._trayManos.der.push({ x: manoDer.x, y: manoDer.y })
+    for (const lado of ['izq', 'der']) {
+      if (this._trayManos[lado].length > 600) this._trayManos[lado].splice(0, 300)
+    }
+  }
+
+  // Al tocar un objetivo: cierra el trayecto de la mano que lo tocó y
+  // empieza uno nuevo para el próximo objetivo.
+  _cerrarTrayecto(lado) {
+    const e = eficienciaDeTrayecto(this._trayManos[lado])
+    if (e != null) this._eficiencias.push(e)
+    this._trayManos = { izq: [], der: [] }
+  }
+
+  // Cuál de las dos muñecas está tocando (la más cercana al objetivo).
+  _manoQueToca(manoIzq, manoDer, norm, radioNorm) {
+    const dIzq = this._dist(manoIzq, norm)
+    const dDer = this._dist(manoDer, norm)
+    if (dIzq < radioNorm && (dDer >= radioNorm || dIzq <= dDer)) return 'izq'
+    return dDer < radioNorm ? 'der' : null
   }
 
   _interpret(landmarks) {
@@ -365,6 +398,7 @@ class KinetixAI {
 
     const manoIzq = landmarks[LM.MUÑECA_IZQ]
     const manoDer = landmarks[LM.MUÑECA_DER]
+    if (this.gameMode === 'surf' || this.gameMode === 'estrellas') this._seguirManos(manoIzq, manoDer)
 
     switch (this.gameMode) {
 
@@ -377,10 +411,9 @@ class KinetixAI {
           // radio en normalizado (radio en px / ancho canvas)
           const radioNorm = (pez.radio * 1.8) / this._canvasW
           const norm = this._pxToNorm(pez.x, pez.y)
-          const tocado =
-            this._dist(manoIzq, norm) < radioNorm ||
-            this._dist(manoDer, norm) < radioNorm
-          if (tocado && sinCooldown(pez.id)) {
+          const lado = this._manoQueToca(manoIzq, manoDer, norm, radioNorm)
+          if (lado && sinCooldown(pez.id)) {
+            this._cerrarTrayecto(lado)
             console.log('[KinetixAI] Surf: pez tocado', pez.id)
             window.kinetix?.onStickerTocado?.(pez.id)
           }
@@ -432,10 +465,9 @@ class KinetixAI {
         for (const est of estrellas) {
           const radioNorm = (est.radio * 1.8) / this._canvasW
           const norm = this._pxToNorm(est.x, est.y)
-          const tocada =
-            this._dist(manoIzq, norm) < radioNorm ||
-            this._dist(manoDer, norm) < radioNorm
-          if (tocada && sinCooldown(est.id)) {
+          const lado = this._manoQueToca(manoIzq, manoDer, norm, radioNorm)
+          if (lado && sinCooldown(est.id)) {
+            this._cerrarTrayecto(lado)
             console.log('[KinetixAI] Estrellas: estrella tocada', est.id)
             window.kinetix?.onStickerTocado?.(est.id)
           }

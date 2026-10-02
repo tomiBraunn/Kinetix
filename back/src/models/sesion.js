@@ -28,6 +28,9 @@ async function finalizar(id, { duracion_segundos, metricas }) {
       repeticiones_correctas: metricas.repeticiones_correctas ?? 0,
       repeticiones_totales: metricas.repeticiones_totales ?? 0,
       estabilidad_score: metricas.estabilidad_score ?? null,
+      rango_movimiento_avg: metricas.rango_movimiento_avg ?? null,
+      rango_movimiento_max: metricas.rango_movimiento_max ?? null,
+      precision_porcentaje: metricas.precision_porcentaje ?? null,
       datos_ia_raw: metricas.datos_ia_raw ?? null,
     })
   if (metError) throw metError

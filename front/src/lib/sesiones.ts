@@ -38,6 +38,7 @@ export type MetricasEquilibrio = {
   apoyo_der_pct?: number | null
   apoyo_izq_pct?: number | null
   tiempo_reaccion_s?: number | null
+  coordinacion?: number | null
 }
 
 function token() { return getToken() ?? undefined }
@@ -65,6 +66,7 @@ export async function finalizarSesion(sesionId: string, metricas: Metricas, metr
           apoyo_der_pct: metricasEquilibrio?.apoyo_der_pct ?? null,
           apoyo_izq_pct: metricasEquilibrio?.apoyo_izq_pct ?? null,
           tiempo_reaccion_s: metricasEquilibrio?.tiempo_reaccion_s ?? null,
+          coordinacion: metricasEquilibrio?.coordinacion ?? null,
         },
       },
     },

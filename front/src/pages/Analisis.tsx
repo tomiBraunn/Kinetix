@@ -103,7 +103,9 @@ function armarTarjetas(s: SesionDetalle, prev: SesionRow | null): Tarjeta[] {
   if (s.juego === 'flamenco') {
     return [
       equilibrio,
-      rango,
+      raw.control_tronco != null
+        ? { label: 'Control postural', valor: raw.control_tronco, unidad: '/ 100', delta: delta(raw.control_tronco, praw.control_tronco, ' puntos') }
+        : rango,
       { label: 'Tiempo de sostén', valor: raw.mejor_tiempo_segundos ?? null, unidad: 's', delta: delta(raw.mejor_tiempo_segundos, praw.mejor_tiempo_segundos, ' s', 1) },
       { label: 'Intentos', valor: raw.intentos ?? null, unidad: '', delta: delta(raw.intentos, praw.intentos, '') },
     ]
@@ -131,6 +133,9 @@ function armarBarras(s: SesionDetalle, mejorPrevio: number | null): Barra[] {
   const raw = (m?.datos_ia_raw ?? {}) as Raw
   if (s.juego === 'surf' && raw.control_lateral != null) {
     barras.push({ label: 'Control lateral', porcentaje: raw.control_lateral, referencia: 'Objetivo 70' })
+  }
+  if (raw.coordinacion != null) {
+    barras.push({ label: 'Coordinación mano–vista', porcentaje: raw.coordinacion, referencia: 'Objetivo 75' })
   }
   if (raw.control_tronco != null) {
     barras.push({ label: 'Control del tronco', porcentaje: raw.control_tronco, referencia: 'Objetivo 75' })
@@ -381,6 +386,12 @@ export default function Analisis() {
               <p className="text-[10px] font-semibold text-[#61698a]">Resultado</p>
               <p className="text-[15px] font-bold text-[#1a1f6e]">{resultadoPrincipal(sel)}</p>
             </div>
+            {sel.juego === 'estrellas' && typeof (m?.datos_ia_raw as Raw | null)?.movimientos_pies === 'number' && (
+              <div>
+                <p className="text-[10px] font-semibold text-[#61698a]">Mov. de pies</p>
+                <p className="text-[15px] font-bold text-[#1a1f6e]">{(m!.datos_ia_raw as Raw).movimientos_pies}</p>
+              </div>
+            )}
             <div>
               <p className="text-[10px] font-semibold text-[#61698a]">Comparación</p>
               <p className={`text-[14px] font-semibold ${comparacion.color}`}>{cargandoDetalle ? '…' : comparacion.texto}</p>
@@ -403,7 +414,7 @@ export default function Analisis() {
                         <p className="text-[10px] font-semibold text-[#61698a] uppercase">{t.label}</p>
                       </div>
                       <p className="mt-4 flex items-baseline gap-2">
-                        <span className="text-[30px] leading-[1.2] font-bold text-[#1a1f6e]">{t.valor == null ? '—' : fmt(t.valor, 1)}</span>
+                        <span className="text-[30px] leading-[1.2] font-bold text-[#1a1f6e]">{t.valor == null ? '—' : fmt(t.valor, t.label === 'Tiempo de reacción' ? 2 : 1)}</span>
                         {t.valor != null && t.unidad && <span className="text-[13px] font-semibold text-[#61698a]">{t.unidad}</span>}
                       </p>
                       {t.delta && <p className={`text-[11px] font-semibold mt-3 ${c.texto}`}>{t.delta}</p>}
