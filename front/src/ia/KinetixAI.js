@@ -211,15 +211,27 @@ class KinetixAI {
     }
     this._maskCtx.putImageData(this._maskImageData, 0, 0)
 
+    // El video de fondo se muestra con object-fit: cover (conserva la
+    // proporción y recorta los bordes). La silueta tiene que usar exactamente
+    // el mismo encuadre; si se estira el frame al tamaño del canvas queda
+    // deformada y desalineada respecto de la persona real.
+    const vw = this.video.videoWidth || mw
+    const vh = this.video.videoHeight || mh
+    const escala = Math.max(w / vw, h / vh)
+    const dw = vw * escala
+    const dh = vh * escala
+    const dx = (w - dw) / 2
+    const dy = (h - dh) / 2
+
     ctx.save()
     // Mismo espejo que el resto de los overlays (el video se ve como espejo)
     ctx.translate(w, 0)
     ctx.scale(-1, 1)
-    ctx.drawImage(this._maskCanvas, 0, 0, w, h)
+    ctx.drawImage(this._maskCanvas, dx, dy, dw, dh)
     // source-in: solo queda lo que se dibuje ahora donde ya había alfa
     // (la silueta) — recorta el video con la forma de la máscara.
     ctx.globalCompositeOperation = 'source-in'
-    ctx.drawImage(this.video, 0, 0, w, h)
+    ctx.drawImage(this.video, dx, dy, dw, dh)
     ctx.restore()
   }
 
