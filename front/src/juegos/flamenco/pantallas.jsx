@@ -86,6 +86,7 @@ export function BotonSaltar({ onClick }) {
     <div className="pointer-events-none absolute inset-x-0 top-[176px] z-20 mx-auto flex max-w-[402px] justify-end pr-[26px]">
       <button
         type="button"
+        data-mano
         onClick={onClick}
         className="pointer-events-auto h-9 rounded-full border border-[#b11c6c] bg-white px-5 text-[15px] font-bold leading-[21px] text-[#b11c6c] shadow-[0_1.966px_1.966px_rgba(0,0,0,0.25)]"
       >
@@ -124,7 +125,8 @@ export function TarjetaSesion({ titulo, texto, botones = [] }) {
       <p className="whitespace-pre-line text-[18px] leading-[23px]">{texto}</p>
       {/* key por posición: la etiqueta puede cambiar cada segundo (cuenta regresiva) y no tiene que remontar el botón */}
       {botones.map(({ texto: etiqueta, onClick, variante = 'principal' }, i) => (
-        <button key={i} type="button" onClick={onClick} className={VARIANTES[variante] ?? VARIANTES.principal}>
+        // data-mano: se elige con la mano (CursorMano). Solo los principales: salir del juego, con el mouse
+        <button key={i} type="button" data-mano={variante === 'principal' ? '' : undefined} onClick={onClick} className={VARIANTES[variante] ?? VARIANTES.principal}>
           {etiqueta}
         </button>
       ))}

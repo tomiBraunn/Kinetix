@@ -15,6 +15,7 @@ import { hablar, callar, desbloquear, useVoz } from '../../ia/voz'
 import Mascota from '../Mascota'
 import BotonVoz from '../BotonVoz'
 import BotonGirarCamara from '../BotonGirarCamara'
+import CursorMano from '../CursorMano'
 import musica from '../../assets/juegos/surf/musica-fondo.mp3'
 
 const HEADER_H = 48
@@ -261,6 +262,7 @@ export default function GamePage() {
           <ControlMusica volumen={volumen} silencio={silencio} onVolumen={cambiarVolumen} onSilencio={alternarSilencio} />
         )}
 
+        <CursorMano activo={!pausado && fase !== 'instrucciones'} areaRef={areaRef} />
         {fase !== 'instrucciones' && <BotonVoz posicion="bottom-[61px]">{fase === 'calibracion' && <BotonGirarCamara />}</BotonVoz>}
 
         {fase === 'calibracion' && (

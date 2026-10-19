@@ -19,6 +19,7 @@ import { useSessionRecorder } from '../../ia/useSessionRecorder'
 import { hablar, callar, desbloquear, useVoz } from '../../ia/voz'
 import BotonVoz from '../BotonVoz'
 import BotonGirarCamara from '../BotonGirarCamara'
+import CursorMano from '../CursorMano'
 import { useCuentaRegresiva } from '../useCuentaRegresiva'
 import { crearSesion, finalizarSesion, subirVideosSesion, mandarEventosSesion } from '../../lib/sesiones.ts'
 
@@ -341,6 +342,7 @@ export default function FlamencoPage() {
             <Mascota especie="flamingo" pose={pose} habla={hablando} className="w-[98px]" />
           </MascotaSobreTarjeta>
         )}
+        <CursorMano activo={!pausado && fase !== 'instrucciones'} areaRef={areaRef} />
         {fase !== 'instrucciones' && <BotonVoz>{fase === 'calibracion' && <BotonGirarCamara />}</BotonVoz>}
         {fase === 'instrucciones' && <AntesDeEmpezarFlamenco onListo={() => { desbloquear(); enviar('listo') }} />}
       </div>

@@ -305,7 +305,7 @@ export function DesafioCompletado({ ronda, onSeguir, onVolver }) {
         <p className="mt-px text-[18px] font-semibold text-[#e82e91]">¡Buen trabajo!</p>
         <p className="mt-1.5 text-center text-[14px] text-[#5e668c]">{detalle}<br />¿Querés seguir jugando?</p>
         <div className="mt-[17px] flex w-[278px] max-w-full flex-col gap-3 text-[14px] font-semibold" style={fuenteInter}>
-          <button onClick={onSeguir} className="h-[46px] rounded-[15px] bg-[#ff5faa] text-white">Seguir jugando</button>
+          <button data-mano onClick={onSeguir} className="h-[46px] rounded-[15px] bg-[#ff5faa] text-white">Seguir jugando</button>
           <button onClick={onVolver} className="h-[46px] rounded-[15px] border border-[#ff5faa] bg-white text-[#ff5faa]">Volver al menú de juegos</button>
         </div>
       </div>

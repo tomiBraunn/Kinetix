@@ -1,0 +1,41 @@
+/* Cursor de la mano (ver CursorMano.jsx): un círculo con la mano que se va llenando de verde mientras se
+   espera sobre un botón (--progreso va de 0 a 1), y el botón elegible marcado con un borde verde. */
+.cursor-mano {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 9999px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.15s;
+  background: conic-gradient(#34d399 calc(var(--progreso, 0) * 360deg), rgba(255, 255, 255, 0.7) 0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.cursor-mano::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 9999px;
+  background: #fff;
+}
+
+.cursor-mano > span {
+  position: relative;
+  color: #2b319c;
+}
+
+[data-mano-sobre] {
+  outline: 5px solid #34d399;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor-mano { transition: none; }
+}

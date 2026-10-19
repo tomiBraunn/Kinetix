@@ -227,6 +227,13 @@ class KinetixAI {
     return this._rotacion % 180 ? { vw: vh, vh: vw } : { vw, vh }
   }
 
+  // Ancho / alto de la imagen que se analiza (ya girada): los landmarks normalizados necesitan esto para
+  // comparar distancias en x con las de y.
+  aspecto() {
+    const { vw, vh } = this._dimsFuente()
+    return vw && vh ? vw / vh : 0.75
+  }
+
   _fuenteActual() {
     return this._rotacion ? this._girada(this.video, this.video.videoWidth, this.video.videoHeight) : this.video
   }
