@@ -44,6 +44,22 @@ const sinCadera = persona(); delete sinCadera[23]
 assert.equal(ev(sinCadera, base, guia, area).pista, 'nucleo', 'sin caderas no se puede medir el tronco')
 assert.equal(ev([], base, guia, area).pista, 'nucleo')
 
+// ─ requiere: el Surf se juega con las manos (solo tronco); el Flamenco necesita las rodillas
+assert.equal(ev(persona(), base, guia, area, 'torso').pista, 'ok', 'torso es lo de siempre')
+assert.equal(ev(persona(), base, guia, area, 'rodillas').pista, 'rodillas', 'sin rodillas a la vista el Flamenco no calibra')
+assert.equal(ev(persona({ piernas: true }), base, guia, area, 'rodillas').pista, 'ok', 'con las rodillas a la vista sí')
+const unaRodilla = persona({ piernas: true }); unaRodilla[26].y = 1.1
+assert.equal(ev(unaRodilla, base, guia, area, 'rodillas').pista, 'rodillas', 'una rodilla fuera del cuadro cuenta como faltante')
+const rodillaBorrosa = persona({ piernas: true }); rodillaBorrosa[25].visibility = 0.3
+assert.equal(ev(rodillaBorrosa, base, guia, area, 'rodillas').pista, 'rodillas', 'rodilla con poca visibilidad: no se puede confiar')
+const sinTobillos = persona({ piernas: true }); sinTobillos[27].y = 1.2; sinTobillos[28].y = 1.2
+assert.equal(ev(sinTobillos, base, guia, area, 'rodillas').pista, 'ok', 'los tobillos no hacen falta: el Flamenco se arregla con la rodilla')
+// el orden de las pistas: primero lo que se arregla acomodándose, al final las rodillas
+assert.equal(ev(persona({ cx: 0.8 }), base, guia, area, 'rodillas').pista, 'derecha', 'descentrado y sin rodillas: primero que se corra')
+assert.equal(ev(persona({ largo: torsoGuia * 2.4 }), base, guia, area, 'rodillas').pista, 'cerca', 'muy cerca y sin rodillas: primero que se aleje')
+assert.equal(ev(persona({ largo: torsoGuia / (ESCALA_MAX + 0.2) }), base, guia, area, 'rodillas').pista, 'lejos')
+assert.equal(ev(persona({ piernas: true }), base, guia, area, 'rodillas').medida.sx, 0.5, 'la medida del tronco sigue saliendo igual')
+
 // ─ vistaPara: el centro de los hombros va al de la silueta, y el tronco queda del largo de la guía
 const grande = persona({ largo: torsoGuia * 1.6 })
 const medida = { sx: 0.5, sy: grande[11].y, hx: 0.5, hy: grande[23].y }

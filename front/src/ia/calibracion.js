@@ -74,10 +74,15 @@ export function vistaPara(m, base, guia, area) {
  * ¿Está el paciente listo para empezar? Pide cabeza, hombros y caderas detectados
  * dentro del cuadro (no hace falta el cuerpo entero), en el medio y a una distancia
  * que la vista pueda compensar.
- * @returns { detectados, pista, medida? }  pista: 'nucleo' | 'izquierda' | 'derecha' | 'cerca' | 'lejos' | 'ok'
+ * @param requiere  lo que el juego necesita ver además del tronco: 'torso' (nada más: el Surf se
+ *                  juega con las manos) | 'rodillas' (el Flamenco mide la altura de la rodilla).
+ *                  Sin esto el paciente calibra bien con las rodillas fuera de cuadro y después
+ *                  el juego no lo detecta, sin explicación. Se pide al final: si está muy cerca,
+ *                  primero conviene decirle que se aleje.
+ * @returns { detectados, pista, medida? }  pista: 'nucleo' | 'izquierda' | 'derecha' | 'cerca' | 'lejos' | 'rodillas' | 'ok'
  *          ('izquierda'/'derecha' = hacia dónde tiene que correrse el paciente)
  */
-export function evaluar(lms, base, guia, area) {
+export function evaluar(lms, base, guia, area, requiere = 'torso') {
   const det = detectados(lms)
   const [hi, hd, ci, cd] = [lms[11], lms[12], lms[23], lms[24]]
   if (![lms[0], hi, hd, ci, cd].every(enCuadro)) return { detectados: det, pista: 'nucleo' }
@@ -89,5 +94,6 @@ export function evaluar(lms, base, guia, area) {
   const { escala } = vistaPara(medida, base, guia, area)
   if (escala < ESCALA_MIN) return { detectados: det, pista: 'cerca', medida }
   if (escala > ESCALA_MAX) return { detectados: det, pista: 'lejos', medida }
+  if (requiere === 'rodillas' && ![lms[25], lms[26]].every(enCuadro)) return { detectados: det, pista: 'rodillas', medida }
   return { detectados: det, pista: 'ok', medida }
 }

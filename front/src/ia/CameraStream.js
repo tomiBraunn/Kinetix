@@ -2,11 +2,20 @@
 let _stream = null
 let _promise = null
 
+// Se pide 4:3 (480×640 con el celular en vertical, 640×480 si no) y no 16:9: el sensor de los celulares
+// es 4:3 y un pedido 16:9 lo recorta, o sea que la cámara ve menos escena. En un espacio chico cada
+// grado de campo de visión es distancia que el paciente no tiene que retroceder, y de paso son menos
+// píxeles para MediaPipe. Es `ideal`, no `exact`: si el aparato no lo tiene usa lo más cercano.
+function restricciones() {
+  const vertical = window.innerHeight > window.innerWidth
+  return { facingMode: 'user', width: { ideal: vertical ? 480 : 640 }, height: { ideal: vertical ? 640 : 480 } }
+}
+
 export async function openCamera() {
   if (_stream) return _stream
   if (_promise) return _promise
   const pedido = navigator.mediaDevices
-    .getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false })
+    .getUserMedia({ video: restricciones(), audio: false })
     .then(s => {
       // Si se cerró (closeCamera) mientras se esperaba el permiso, esta cámara ya nadie la va a
       // cerrar: se apaga acá, si no la luz quedaría prendida fuera del juego.
