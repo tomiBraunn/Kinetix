@@ -7,7 +7,7 @@ import { useSyncExternalStore } from 'react'
 const sintesis = typeof window !== 'undefined' && 'speechSynthesis' in window ? window.speechSynthesis : null
 const CLAVE = 'kinetix_voz_silenciada'
 const RITMO = 0.92        // un poco más lento que lo normal: se entiende mejor
-const REPETIR_MS = 4000   // el mismo texto pegado no se repite (avisos que titilan)
+const REPETIR_MS = 15000  // el mismo texto no se repite enseguida (avisos que titilan)
 
 // Orden de preferencia: la de Argentina si la hay, después las latinoamericanas y España.
 const IDIOMAS = ['es-AR', 'es-419', 'es-US', 'es-MX', 'es-CL', 'es-CO', 'es-ES']
@@ -22,7 +22,14 @@ export function elegirVoz(voces, preferidos = IDIOMAS) {
   return espanol.find((v) => v.localService) ?? espanol[0] ?? null
 }
 
+// Mientras se desarrolla la voz arranca apagada en cada carga: con el servidor de desarrollo abierto
+// todo el día se escuchaba cada vez que recargaba la página. Se prende con el botón de voz (solo esa
+// carga) o con ?voz=1 en la URL, para probarla. La versión publicada (vite build) arranca con la voz
+// prendida, salvo que alguien la haya silenciado con el botón.
+const EN_DESARROLLO = !!import.meta.env?.DEV
+
 function leerSilencio() {
+  if (EN_DESARROLLO) return !/[?&]voz=1(&|$)/.test(window.location.search)
   try { return localStorage.getItem(CLAVE) === '1' } catch { return false }
 }
 

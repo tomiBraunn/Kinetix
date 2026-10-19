@@ -145,6 +145,7 @@ const PISTAS = {
 }
 const INICIAL = { detectados: Array(PUNTOS_SILUETA.length).fill(false), pista: 'nucleo' }
 const MANTENER_MS = 1500 // quieto y bien detectado durante este tiempo
+const PISTA_VOZ_MS = 2500 // una pista tiene que sostenerse tanto para que la voz la diga
 
 const promedio = (ms) => {
   const prom = (k) => ms.reduce((acc, m) => acc + m[k], 0) / ms.length
@@ -159,10 +160,18 @@ export function GuiaSilueta({ pausado, onListo, requiere = 'torso' }) {
 
   useEffect(() => { listoRef.current = onListo })
 
-  // La voz dice cada pista nueva. De lejos no se lee el cartel; sinInterrumpir: una pista que cambia
-  // seguido no pisa la consigna de la página mientras se la está leyendo.
+  // La voz dice cada pista una sola vez y solo si se mantiene un rato: con la detección titilando la pista
+  // cambia a cada rato y, hablada cada vez, la calibración sonaba sin parar. De lejos no se lee el cartel.
+  // sinInterrumpir: no pisa la consigna de la página mientras se la está leyendo. La de "listo" va enseguida
+  // (la calibración termina en un segundo y medio).
+  const dichasRef = useRef(new Set())
   useEffect(() => {
-    if (!pausado) hablar(PISTAS[estado.pista], { sinInterrumpir: true })
+    if (pausado || dichasRef.current.has(estado.pista)) return
+    const id = setTimeout(() => {
+      dichasRef.current.add(estado.pista)
+      hablar(PISTAS[estado.pista], { sinInterrumpir: true })
+    }, estado.pista === 'ok' ? 0 : PISTA_VOZ_MS)
+    return () => clearTimeout(id)
   }, [estado.pista, pausado])
 
   useEffect(() => {

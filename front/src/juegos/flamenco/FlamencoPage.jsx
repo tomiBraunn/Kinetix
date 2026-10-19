@@ -110,12 +110,12 @@ export default function FlamencoPage() {
       const e = estadoRef.current
       const s = Math.floor(segundosSostenidos(e, ahora))
       setSegundos(s)
-      // Ánimo: al cruzar los 5, 10 y 20 s la mascota lo dice (globo y voz). Se detecta acá y no en un
-      // efecto sobre `segundos`: es un evento puntual, no estado derivado. El ref evita repetirlo al reanudar.
+      // Ánimo: al cruzar los 5, 10 y 20 s la mascota lo dice en el globo (sin voz: mientras sostiene no hay
+      // que distraerlo). Se detecta acá y no en un efecto sobre `segundos`: es un evento puntual, no estado
+      // derivado. El ref evita repetirlo al reanudar.
       const i = HITOS_ANIMO_S.indexOf(s)
       if (e.fase === 'equilibrio' && s !== segundoPrevioRef.current && i !== -1) {
         setAnimo(FRASES_ANIMO[i])
-        hablar(FRASES_ANIMO[i])
         clearTimeout(animoTimerRef.current)
         animoTimerRef.current = setTimeout(() => setAnimo(null), ANIMO_MS)
       }
