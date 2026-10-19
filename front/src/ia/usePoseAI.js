@@ -17,26 +17,31 @@ export function usePoseAI(gameMode, enabled = true, headerH = 0) {
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
   const siluetaRef = useRef(null)
+  const pausadaRef = useRef(false) // venía de una pausa: al reanudar se conserva lo acumulado
 
   useEffect(() => {
     if (!enabled) {
       kinetixAI.stop()
+      pausadaRef.current = true
       return
     }
 
+    const reanudando = pausadaRef.current
+    pausadaRef.current = false
     const canvasW = window.innerWidth
     const canvasH = window.innerHeight - headerH
 
-    // Reutiliza el stream de cámara que ya abrió Phaser
-    // Si Phaser todavía no lo abrió, espera 200ms y reintenta
-    function tryStart(retries = 10) {
+    // Reutiliza el stream de cámara que ya abrió la página. Si todavía no está, reintenta cada
+    // 200 ms mientras el efecto siga vivo: el permiso de cámara puede tardar bastante más que
+    // unos segundos y, si se rendía antes, la detección no arrancaba nunca.
+    let cancelado = false
+    let espera = null
+    function tryStart(intentos = 0) {
+      if (cancelado) return
       const stream = getStream()
       if (!stream) {
-        if (retries <= 0) {
-          console.warn('[usePoseAI] Stream no disponible')
-          return
-        }
-        setTimeout(() => tryStart(retries - 1), 200)
+        if (intentos === 10) console.warn('[usePoseAI] Stream no disponible todavía, sigo esperando')
+        espera = setTimeout(() => tryStart(intentos + 1), 200)
         return
       }
 
@@ -49,18 +54,20 @@ export function usePoseAI(gameMode, enabled = true, headerH = 0) {
       videoRef.current = video
 
       video.addEventListener('loadeddata', () => {
-        kinetixAI.start(gameMode, video, canvasW, canvasH, canvasRef.current, siluetaRef.current)
+        if (!cancelado) kinetixAI.start(gameMode, video, canvasW, canvasH, canvasRef.current, siluetaRef.current, { reanudando })
       }, { once: true })
 
       // Por si loadeddata ya pasó
       if (video.readyState >= 2) {
-        kinetixAI.start(gameMode, video, canvasW, canvasH, canvasRef.current, siluetaRef.current)
+        kinetixAI.start(gameMode, video, canvasW, canvasH, canvasRef.current, siluetaRef.current, { reanudando })
       }
     }
 
     tryStart()
 
     return () => {
+      cancelado = true
+      clearTimeout(espera)
       kinetixAI.stop()
       if (videoRef.current) {
         videoRef.current.srcObject = null

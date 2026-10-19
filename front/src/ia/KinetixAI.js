@@ -90,7 +90,10 @@ class KinetixAI {
     throw new Error('[KinetixAI] No se pudo inicializar MediaPipe')
   }
 
-  async start(gameMode, video, canvasW, canvasH, overlayCanvas, siluetaCanvas) {
+  // reanudando: la detección se había pausado y sigue la misma partida. Se conserva lo
+  // acumulado (métricas de la sesión), la vista calibrada y si la pierna estaba arriba;
+  // si no, pausar descartaría todo eso y un pie bajado durante la pausa nunca avisaría.
+  async start(gameMode, video, canvasW, canvasH, overlayCanvas, siluetaCanvas, { reanudando = false } = {}) {
     this.stop()
     await this.init()
     this.gameMode = gameMode
@@ -105,11 +108,13 @@ class KinetixAI {
     this.siluetaCanvas = siluetaCanvas ?? null
     this.siluetaCtx = siluetaCanvas?.getContext('2d') ?? null
     this.running = true
-    this._piernaLevantada = false
-    this._piernaCnt = 0
-    this.reiniciarMetricas()
-    this.reiniciarVista()
-    _cooldown.clear()
+    if (!reanudando) {
+      this._piernaLevantada = false
+      this._piernaCnt = 0
+      this.reiniciarMetricas()
+      this.reiniciarVista()
+      _cooldown.clear()
+    }
     console.log(`[KinetixAI] Detectando poses → juego: ${gameMode} canvas: ${this._canvasW}x${this._canvasH}`)
     this._loop()
   }
@@ -501,7 +506,8 @@ class KinetixAI {
 
     return {
       estabilidad_score, rango_movimiento_avg, rango_movimiento_max, control_tronco, control_lateral, apoyo_der_pct, apoyo_izq_pct,
-      tiempo_reaccion_s: tiempoReaccionMediana(),
+      // El Flamenco no mide reacción: sin esto se colaría la de la última partida de Surf/Estrellas (el estado es del módulo)
+      tiempo_reaccion_s: this.gameMode === 'flamenco' ? null : tiempoReaccionMediana(),
       coordinacion: this.gameMode === 'flamenco' ? null : coordinacionScore(this._eficiencias),
     }
   }

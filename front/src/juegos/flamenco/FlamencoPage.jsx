@@ -27,6 +27,8 @@ export default function FlamencoPage() {
   const [params] = useSearchParams()
   const pacienteId = params.get('pacienteId')
   const sesionIdRef = useRef(null)
+  const creandoRef = useRef(Promise.resolve()) // creación de la sesión + arranque de la grabación, si están en curso
+  const montadoRef = useRef(true)
   const eventosRef = useRef([])
   const inicioRef = useRef(0)
   const { start: iniciarGrabacion, stop: detenerGrabacion } = useSessionRecorder()
@@ -87,25 +89,30 @@ export default function FlamencoPage() {
     if (LEVANTAR.includes(fase) && kinetixAI.piernaLevantada) enviar('piernaLevantada')
   }, [fase, enviar])
 
-  // Línea de tiempo para el kinesiólogo
+  // Línea de tiempo para el kinesiólogo. No depende de que la sesión ya esté creada (si la API
+  // demora, se perderían los primeros eventos): 'equilibrio' y las repeticiones solo ocurren
+  // después de "Comenzar", que es cuando se vacía la lista.
   useEffect(() => {
-    if (!sesionIdRef.current) return
     if (fase === 'equilibrio') eventosRef.current.push({ tipo: 'mensaje', mensaje: CONSIGNAS.equilibrio })
   }, [fase])
   useEffect(() => {
-    if (completadas === 0 || !sesionIdRef.current) return
+    if (completadas === 0) return
     eventosRef.current.push({ tipo: 'repeticion', datos: { numero: completadas, tiempo_segundos: estadoRef.current.tiempos[completadas - 1] } })
   }, [completadas])
 
   // Cierra la sesión: guarda resultados y sube videos y eventos. Sirve tanto para el
   // desafío completo como para cuando se vuelve al menú después de alguna repetición.
-  const terminarSesion = useCallback(() => {
-    const sesionId = sesionIdRef.current
-    if (!sesionId) return
-    sesionIdRef.current = null
+  // Puede llamarse más de una vez (completado, "volver", al desmontar): solo la primera hace algo.
+  const terminarSesion = useCallback(async () => {
+    // Lo jugado se toma ahora; la sesión todavía puede estar creándose (API lenta) y, si no se
+    // esperara, el resultado se perdería y la grabación quedaría andando.
     const eventos = eventosRef.current
     eventosRef.current = []
     const datos = { ...resumen(estadoRef.current), duracion_segundos: Math.max(1, Math.round((performance.now() - inicioRef.current) / 1000)) }
+    await creandoRef.current
+    const sesionId = sesionIdRef.current
+    if (!sesionId) return
+    sesionIdRef.current = null
 
     finalizarSesion(sesionId, { juego: 'flamenco', ...datos }, kinetixAI.getMetricasResumen()).catch(console.warn)
     eventos.push({ tipo: 'fin_juego', datos })
@@ -129,12 +136,13 @@ export default function FlamencoPage() {
     eventosRef.current = []
     inicioRef.current = performance.now()
     if (!pacienteId) return
-    crearSesion(pacienteId, 'flamenco')
+    creandoRef.current = crearSesion(pacienteId, 'flamenco')
       .then(s => {
         sesionIdRef.current = s.id
-        setTimeout(() => {
-          iniciarGrabacion({ landmarksCanvas: camaraCanvasRef.current, gameCanvas: hudCanvasRef.current })
-        }, 500)
+        return new Promise(resolver => setTimeout(resolver, 500)) // la grabación arranca medio segundo después, igual que en el Surf
+      })
+      .then(() => {
+        if (montadoRef.current) iniciarGrabacion({ landmarksCanvas: camaraCanvasRef.current, gameCanvas: hudCanvasRef.current })
       })
       .catch(console.warn)
   }, [enviar, pacienteId, iniciarGrabacion, camaraCanvasRef])
@@ -144,6 +152,20 @@ export default function FlamencoPage() {
     if (estadoRef.current.completadas > 0) terminarSesion()
     navigate('/juego')
   }, [terminarSesion, navigate])
+
+  // Salir por otro camino (el "atrás" del navegador, por ejemplo) no pasa por "volver": lo jugado
+  // se guarda igual y la grabación no puede quedar andando sobre una cámara ya cerrada.
+  useEffect(() => {
+    montadoRef.current = true
+    return () => {
+      montadoRef.current = false
+      if (estadoRef.current.completadas > 0) terminarSesion()
+      else if (sesionIdRef.current) {
+        sesionIdRef.current = null
+        detenerGrabacion().catch(console.warn)
+      }
+    }
+  }, [terminarSesion, detenerGrabacion])
 
   const togglePausa = () => {
     enviar(pausado ? 'reanudar' : 'pausar')
@@ -178,8 +200,8 @@ export default function FlamencoPage() {
       <EscenaParque activa={CON_ESCENA.includes(fase)} onEntro={() => enviar('escenaLista')} />
 
       <BarraSuperior
-        conPausa={fase !== 'instrucciones' && fase !== 'completado'}
-        conSalir={fase !== 'completado'}
+        conPausa={fase !== 'instrucciones'}
+        conSalir
         pausado={pausado}
         onPausa={togglePausa}
         onSalir={volver}

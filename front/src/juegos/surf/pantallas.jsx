@@ -29,7 +29,7 @@ export function BarraSuperior({ conPausa, conSalir, pausado, onPausa, onSalir })
       </div>
       <div className="flex items-center gap-3 text-[11px] tracking-[0.7px] text-white">
         {conPausa && (
-          <button onClick={onPausa} className="flex h-[25px] min-w-[73px] items-center justify-center gap-0.5 rounded-[20px] bg-[#b11c6c] px-[9px]">
+          <button onClick={onPausa} className="flex h-[25px] w-[73px] items-center justify-center gap-0.5 rounded-[20px] bg-[#b11c6c]">
             {pausado ? 'Reanudar' : 'Pausar'}
             {!pausado && <span className="size-5"><img src={iconoPausa} alt="" className="block size-full" /></span>}
           </button>
@@ -232,15 +232,16 @@ export function AntesDeEmpezar({ onListo, pasos = PASOS }) {
   return (
     <div className="absolute inset-0 z-40 overflow-y-auto bg-[rgba(240,242,255,0.96)] text-primary-dark">
       <div className="mx-auto flex max-w-[402px] flex-col gap-5 px-[26px] pb-8 pt-10">
-        <p className="text-[13px] font-bold">ANTES DE EMPEZAR</p>
-        <h1 className="text-[29px] font-bold">¿Cómo se juega?</h1>
-        <p className="text-[17px]">Primero preparate. Después, el juego te va a indicar qué movimiento hacer.</p>
+        {/* Interlineados en px, los de Figma (832:95): sin ellos el navegador usa 1.5 y todo queda más alto */}
+        <p className="text-[13px] font-bold leading-[17px]">ANTES DE EMPEZAR</p>
+        <h1 className="text-[29px] font-bold leading-[38px]">¿Cómo se juega?</h1>
+        <p className="text-[17px] leading-[22px]">Primero preparate. Después, el juego te va a indicar qué movimiento hacer.</p>
         {pasos.map(([titulo, texto], i) => (
           <div key={titulo} className="flex items-start gap-3.5 rounded-[18px] bg-white p-4">
             <span className="grid size-[34px] shrink-0 place-items-center rounded-full bg-[#b11c6c] text-[18px] font-bold text-white">{i + 1}</span>
             <div className="flex flex-col gap-1">
-              <p className="text-[18px] font-bold">{titulo}</p>
-              <p className="text-[15px]">{texto}</p>
+              <p className="text-[18px] font-bold leading-[23px]">{titulo}</p>
+              <p className="text-[15px] leading-5">{texto}</p>
             </div>
           </div>
         ))}

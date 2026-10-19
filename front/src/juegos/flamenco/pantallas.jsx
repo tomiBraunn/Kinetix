@@ -63,7 +63,9 @@ export function ConsignaCentrada({ texto }) {
 // Diálogo NO modal: el parque se tiene que ver de fondo, por eso no hay velo ni aria-modal. La
 // tarjeta no atrapa clicks (nada de abajo es interactivo) y solo los botones los reciben.
 // En el diseño arranca en y=217 del área; en pantallas bajas se sube (480px = la tarjeta más
-// alta, la del primer descanso, más aire) para que el botón de abajo no quede cortado.
+// alta, la del primer descanso, más aire) para que el botón de abajo no quede cortado. Si ni
+// así entra (celular apaisado), la tarjeta hace scroll por dentro en vez de cortarse: por eso
+// recibe toques y su alto máximo es lo que queda de área.
 // Los interlineados son los de Figma en px (DM Sans "auto" da 1.302 y el navegador lo redondea
 // distinto), así la tarjeta mide lo mismo que en el diseño (ej. 393px la de "comenzar").
 const BOTON = 'pointer-events-auto h-[50px] w-full rounded-full text-[18px] font-bold leading-[23px]'
@@ -78,7 +80,7 @@ export function TarjetaSesion({ titulo, texto, botones = [] }) {
     <div
       role="dialog"
       aria-labelledby={idTitulo}
-      className="pointer-events-none absolute inset-x-[26px] top-[max(60px,min(217px,calc(100%-480px)))] z-40 mx-auto flex max-w-[350px] flex-col gap-5 rounded-[24px] bg-white px-6 py-7 text-primary-dark"
+      className="absolute inset-x-[26px] top-[var(--arriba)] z-40 mx-auto flex max-h-[calc(100%_-_var(--arriba)_-_8px)] max-w-[350px] flex-col gap-5 overflow-y-auto rounded-[24px] bg-white px-6 py-7 text-primary-dark [--arriba:max(60px,min(217px,calc(100%_-_480px)))]"
     >
       <p className="text-[13px] font-bold leading-[17px]">FLAMINGO CHALLENGE</p>
       <h2 id={idTitulo} className="text-[28px] font-bold leading-9">{titulo}</h2>
