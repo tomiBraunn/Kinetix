@@ -59,6 +59,24 @@ export function ConsignaCentrada({ texto }) {
   )
 }
 
+// ─── Saltar un paso ─────────────────────────────────────────────────────────
+// Salida para quien no llega a la posición "alto" (la más exigente): nadie tiene que forzarse a
+// algo que no puede ni quedarse sin cómo seguir. No está en el Figma: va debajo de la consigna y
+// Mia tiene que darle forma.
+export function BotonSaltar({ onClick }) {
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-[160px] z-20 mx-auto flex max-w-[402px] justify-center">
+      <button
+        type="button"
+        onClick={onClick}
+        className="pointer-events-auto h-9 rounded-full border border-[#b11c6c] bg-white px-5 text-[15px] font-bold leading-[21px] text-[#b11c6c] shadow-[0_1.966px_1.966px_rgba(0,0,0,0.25)]"
+      >
+        Me cuesta, saltar este paso
+      </button>
+    </div>
+  )
+}
+
 // ─── Tarjeta de sesión (comenzar / descanso / completado) ───────────────────
 // Diálogo NO modal: el parque se tiene que ver de fondo, por eso no hay velo ni aria-modal. La
 // tarjeta no atrapa clicks (nada de abajo es interactivo) y solo los botones los reciben.
@@ -100,7 +118,7 @@ export function TarjetaSesion({ titulo, texto, botones = [] }) {
 const PASOS = [
   ['Prepará el espacio', 'Dejá espacio libre para moverte y colocá la cámara frente a vos.'],
   ['Ubicate en la silueta', 'Alejate hasta que se vea todo tu cuerpo. Quedate quieto dentro de la silueta de puntos.'],
-  ['Seguí las consignas', 'El juego te va a pedir que levantes una pierna y mantengas el equilibrio. Seguí las indicaciones en pantalla.'],
+  ['Seguí las consignas', 'El juego te va a pedir que levantes cada pierna y mantengas el equilibrio. Seguí las indicaciones en pantalla.'],
 ]
 
 export function AntesDeEmpezarFlamenco({ onListo }) {

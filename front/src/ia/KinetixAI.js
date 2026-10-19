@@ -1,6 +1,7 @@
 import { PoseLandmarker, FilesetResolver } from '@mediapipe/tasks-vision'
 import { tiempoReaccionMediana } from './reaccion'
 import { eficienciaDeTrayecto, coordinacionScore } from './trayectoria'
+import { medirPiernas, evaluarPierna } from './piernas'
 
 const WASM_URL  = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm'
 const MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task'
@@ -51,6 +52,9 @@ class KinetixAI {
     this.ultimosLandmarks = null
     this._piernaLevantada = false
     this._piernaCnt = 0   // frames consecutivos con pierna arriba/abajo
+    this._pedido = { lado: null, posicion: 'flamenco' } // qué se le pide al paciente ahora (ver pedirPierna)
+    this._med = null      // última medición de las piernas (ver piernas.js)
+    this._pierna = null   // lo que se evaluó de la pierna pedida en el último frame
     this._canvasW = window.innerWidth
     this._canvasH = window.innerHeight
     // Acumuladores para las métricas de "equilibrio" que se mandan al
@@ -111,6 +115,8 @@ class KinetixAI {
     if (!reanudando) {
       this._piernaLevantada = false
       this._piernaCnt = 0
+      this._med = null
+      this._pierna = null
       this.reiniciarMetricas()
       this.reiniciarVista()
       _cooldown.clear()
@@ -137,9 +143,26 @@ class KinetixAI {
     return this._piernaLevantada
   }
 
+  // Qué se le pide al paciente (Flamenco): la pierna ('der' | 'izq'; null = cualquiera) y la
+  // posición ('flamenco': pie despegado | 'alto': rodilla bien arriba). Los eventos
+  // onPiernaLevantada/onPiernaBajada hablan siempre de esa pierna en esa posición.
+  pedirPierna(lado = null, posicion = 'flamenco') {
+    this._pedido = { lado, posicion }
+    this._piernaCnt = 0
+    // Lo que se venía cumpliendo valía para el pedido anterior: se vuelve a medir contra el nuevo
+    if (this._med) this._piernaLevantada = evaluarPierna(this._med, this._pedido, false).cumple
+  }
+
+  // Lo último que se vio de la pierna pedida: { cumple, arriba, otra, altura } (ver piernas.js),
+  // o null si no hay cuerpo a la vista.
+  get pierna() {
+    return this._pierna
+  }
+
   stop() {
     this.running = false
     this.ultimosLandmarks = null
+    this._pierna = null
     if (this._rafId) cancelAnimationFrame(this._rafId)
     this._rafId = null
   }
@@ -567,21 +590,15 @@ class KinetixAI {
       }
 
       // ─── FLAMENCO ──────────────────────────────────────────────────────────
-      // Detecta si alguna rodilla está levantada respecto a la otra cadera.
-      // Usa rodilla (no tobillo) porque es más visible y se levanta más.
+      // Detecta si la pierna pedida (pedirPierna) está en la posición pedida: "flamenco" (pie
+      // despegado del piso) o "alto" (rodilla bien arriba). Las medidas están en piernas.js.
       // Requiere 3 frames consecutivos para evitar falsos positivos.
       case 'flamenco': {
-        const rIzq = landmarks[LM.RODILLA_IZQ]
-        const rDer = landmarks[LM.RODILLA_DER]
-        const cIzq = landmarks[LM.CADERA_IZQ]
-        const cDer = landmarks[LM.CADERA_DER]
-
-        // Visibilidad mínima para considerar el landmark confiable
-        const visOk = (lm) => (lm.visibility ?? 1) > 0.4
-
-        const derechaLevantada = visOk(rDer) && visOk(cIzq) && rDer.y < cIzq.y - 0.04
-        const izquierdaLevantada = visOk(rIzq) && visOk(cDer) && rIzq.y < cDer.y - 0.04
-        const levantada = derechaLevantada || izquierdaLevantada
+        const med = medirPiernas(landmarks)
+        this._med = med
+        this._pierna = med && evaluarPierna(med, this._pedido, this._piernaLevantada)
+        if (!this._pierna) break // sin el torso a la vista no se decide nada
+        const levantada = this._pierna.cumple
 
         if (levantada === this._piernaLevantada) {
           this._piernaCnt = 0
