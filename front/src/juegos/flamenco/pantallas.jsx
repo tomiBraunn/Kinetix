@@ -4,7 +4,9 @@
 //   del juego (qué pieza se muestra en cada fase) vive en la página, no acá.
 import { useId } from 'react'
 import { AntesDeEmpezar } from '../surf/pantallas'
+import Mascota from '../Mascota'
 import iconoReloj from '../../assets/juegos/surf/reloj.svg'
+import flamingoMascota from '../../assets/juegos/mascotas/flamingo.svg'
 
 // Las y de Figma cuentan la barra superior (48px): el área de juego arranca en y=48, así que
 // todos los `top` de acá son la y del frame menos 48. Con pantalla más ancha que el frame
@@ -121,6 +123,7 @@ const PASOS = [
   ['Seguí las consignas', 'El juego te va a pedir que levantes cada pierna y mantengas el equilibrio. Seguí las indicaciones en pantalla.'],
 ]
 
+// La mascota es más alta que ancha (352×460): con 95px de ancho entra en el espacio libre de abajo sin scroll
 export function AntesDeEmpezarFlamenco({ onListo }) {
-  return <AntesDeEmpezar onListo={onListo} pasos={PASOS} />
+  return <AntesDeEmpezar onListo={onListo} pasos={PASOS} mascota={<Mascota src={flamingoMascota} className="w-[95px]" />} />
 }

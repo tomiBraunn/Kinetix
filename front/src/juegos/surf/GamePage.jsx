@@ -10,7 +10,9 @@ import { usePoseAI } from '../../ia/usePoseAI'
 import { kinetixAI } from '../../ia/KinetixAI'
 import { useSessionRecorder } from '../../ia/useSessionRecorder'
 import { crearSesion, finalizarSesion, subirVideosSesion, mandarEventosSesion } from '../../lib/sesiones.ts'
+import Mascota from '../Mascota'
 import musica from '../../assets/juegos/surf/musica-fondo.mp3'
+import pezMascota from '../../assets/juegos/mascotas/pez.svg'
 
 const HEADER_H = 48
 const VOLUMEN_INICIAL = 0.4
@@ -240,7 +242,9 @@ export default function GamePage() {
         {fase === 'consigna' && <Consigna num={2} texto="Tocá los peces con tus manos." />}
         {fase === 'jugando' && mensaje && <Mensaje clave={mensaje} />}
 
-        {fase === 'instrucciones' && <AntesDeEmpezar onListo={() => setFase('calibracion')} />}
+        {fase === 'instrucciones' && (
+          <AntesDeEmpezar onListo={() => setFase('calibracion')} mascota={<Mascota src={pezMascota} className="w-[150px]" />} />
+        )}
         {fase === 'completado' && (
           <DesafioCompletado ronda={ronda} onSeguir={seguirJugando} onVolver={() => navigate('/juego')} />
         )}

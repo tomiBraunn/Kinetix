@@ -227,8 +227,9 @@ const PASOS = [
   ['Seguí las consignas', 'El juego te va a indicar qué pez tocar. Mové los brazos para alcanzarlo y volvé al centro.'],
 ]
 
-// `pasos` es opcional: el Flamenco reusa esta pantalla con los suyos
-export function AntesDeEmpezar({ onListo, pasos = PASOS }) {
+// `pasos` es opcional: el Flamenco reusa esta pantalla con los suyos. `mascota` también: va
+// debajo del botón, en el espacio libre que deja el diseño (no está en el Figma de trabajo).
+export function AntesDeEmpezar({ onListo, pasos = PASOS, mascota = null }) {
   return (
     <div className="absolute inset-0 z-40 overflow-y-auto bg-[rgba(240,242,255,0.96)] text-primary-dark">
       <div className="mx-auto flex max-w-[402px] flex-col gap-5 px-[26px] pb-8 pt-10">
@@ -248,6 +249,7 @@ export function AntesDeEmpezar({ onListo, pasos = PASOS }) {
         <button onClick={onListo} className="h-[54px] rounded-[27px] bg-[#b11c6c] text-[18px] font-bold text-white">
           Estoy listo
         </button>
+        {mascota && <div className="flex justify-center">{mascota}</div>}
       </div>
     </div>
   )
