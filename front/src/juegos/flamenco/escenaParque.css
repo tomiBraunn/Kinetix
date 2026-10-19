@@ -1,0 +1,109 @@
+/* Escena animada del parque del Flamenco (ver EscenaParque.jsx).
+   Entrada, en este orden: cielo (fade de 5 s) → árboles lejanos (4,5 s) → nubes y árboles
+   laterales (5 s) → césped (5,5 s) → flores (6,2 s). Después, movimiento suave y continuo.
+   Si se cambian los tiempos, actualizar también ENTRADA_MS en EscenaParque.jsx (cuándo arranca el juego).
+   El CSS es global y escena.css (Surf) ya usa .escena .capa y keyframes como "aparecer" o "deriva":
+   por eso todo cuelga de .parque y los keyframes llevan prefijo, para no pisarse entre juegos.
+   Solo se animan transform y opacity (los resuelve la GPU, no cuestan layout). */
+
+.parque { container-type: size; }
+
+/* Antes de arrancar todo está oculto; al activarse corre la secuencia de entrada. */
+.parque .capa { opacity: 0; }
+.parque .capa.flores { transform-origin: 50% 100%; }   /* el "pop" y el mecido nacen desde el pasto */
+.parque.activa .capa              { animation: parque-aparecer 5s ease-in-out both; }                               /* cielo            0 → 5 s */
+.parque.activa .capa.lejos        { animation: parque-lejos 1s ease-out 4.5s both; }                                /* árboles lejanos  4,5 s */
+.parque.activa .capa.nube         { animation: var(--entrada) 1.3s ease-out calc(5s + var(--i) * .25s) both; }      /* nubes            5 s + escalonadas */
+.parque.activa .capa.arboles-izq  { animation: parque-entrar-izq 1.2s ease-out 5s both; }                           /* árboles          5 s */
+.parque.activa .capa.arboles-der  { animation: parque-entrar-der 1.2s ease-out 5s both; }
+.parque.activa .capa.cesped       { animation: parque-subir 1s cubic-bezier(.2, .8, .3, 1) 5.5s both; }             /* césped           5,5 s */
+.parque.activa .capa.flores       { animation: parque-pop .7s cubic-bezier(.2, 1.3, .4, 1) 6.2s both; }             /* flores           6,2 s */
+
+/* Movimiento continuo (en elementos interiores, para no pisar la animación de entrada) */
+.parque.activa .deriva     { animation: parque-deriva 12s ease-in-out infinite; animation-delay: calc(var(--i) * -3s); }
+.parque.activa .deriva-izq { animation: parque-deriva-izq 14s ease-in-out infinite; animation-delay: calc(var(--i) * -3s); }
+.parque.activa .deriva-der { animation: parque-deriva-der 14s ease-in-out infinite; animation-delay: calc(var(--i) * -3s); }
+.parque.activa .mecer      { animation: parque-mecer 4.6s ease-in-out infinite; transform-origin: 50% 100%; }
+
+@keyframes parque-aparecer      { from { opacity: 0 } to { opacity: 1 } }
+@keyframes parque-lejos         { from { opacity: 0; transform: translateY(2.5%) } to { opacity: 1; transform: none } }
+@keyframes parque-entrar-izq    { from { opacity: 0; transform: translateX(-30%) } to { opacity: 1; transform: none } }
+@keyframes parque-entrar-der    { from { opacity: 0; transform: translateX(30%) } to { opacity: 1; transform: none } }
+@keyframes parque-entrar-centro { from { opacity: 0; transform: translateY(6%) scale(.85) } to { opacity: 1; transform: none } }
+@keyframes parque-subir         { from { opacity: 0; transform: translateY(10%) } to { opacity: 1; transform: none } }
+@keyframes parque-pop           { from { opacity: 0; transform: scale(.6) } to { opacity: 1; transform: none } }
+
+/* Las capas miden lo mismo que el marco, así que los % son del marco entero (no del objeto dibujado).
+   Las que están pegadas a un borde de la imagen solo se corren hacia afuera: si no, se vería el corte. */
+@keyframes parque-deriva     { 0%, 100% { transform: translateX(-2.4%) } 50% { transform: translateX(2.4%) } }
+@keyframes parque-deriva-izq { 0%, 100% { transform: translateX(0) }     50% { transform: translateX(-2.4%) } }
+@keyframes parque-deriva-der { 0%, 100% { transform: translateX(0) }     50% { transform: translateX(2.4%) } }
+@keyframes parque-mecer      { 0%, 100% { transform: rotate(-1.4deg) }   50% { transform: rotate(1.4deg) } }
+
+/* ── Reemplazo CSS (se usa solo mientras no haya capas reales; ver REEMPLAZO en EscenaParque.jsx) ──
+   Cada dibujo ocupa su capa entera y se posiciona con % del alto/ancho de la pantalla. Los tamaños
+   de las nubes van en cqmin (la medida menor de la escena) para que no se deformen en una compu. */
+
+/* Cielo celeste vivo arriba que se aclara hacia el horizonte (~55 % del alto), con un brillo de sol.
+   Sigue por detrás del césped, así que los bordes redondeados de las colinas dejan ver el cielo. */
+.parque .cielo-css {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 82% 6%, rgba(255, 255, 255, .45), rgba(255, 255, 255, 0) 20%),
+    linear-gradient(180deg, #1c8cf0 0%, #48aefb 28%, #8fd4ff 46%, #d2f0ff 58%);
+}
+
+.parque .nube-css {
+  --w: 46cqmin;
+  position: absolute;
+  left: 4%;
+  top: 29%;   /* por debajo del banner de la consigna, que tapa esa franja */
+  width: var(--w);
+  height: calc(var(--w) * .22);
+  border-radius: 999px;
+  background: #fff;
+  opacity: .95;   /* en el div, no en cada pieza: las tres se funden en una sola nube */
+}
+.parque .nube-css::before,
+.parque .nube-css::after {
+  content: '';
+  position: absolute;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #fff;
+}
+.parque .nube-css::before { left: 14%; bottom: 35%; width: 34%; }
+.parque .nube-css::after  { left: 40%; bottom: 20%; width: 42%; }
+.parque .nube-css-2 { --w: 32cqmin; left: auto; right: 3%; top: 41%; }
+
+/* Césped: dos colinas con el borde superior redondeado, una más clara al fondo y otra al frente.
+   El horizonte queda entre el 52 % y el 58 % del alto. */
+.parque .cesped-css { position: absolute; inset: 0; }
+.parque .cesped-css::before,
+.parque .cesped-css::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, .3);   /* un reborde de luz que sigue la curva */
+}
+.parque .cesped-css::before {
+  left: -30%;
+  right: -25%;
+  top: 52%;
+  border-radius: 50% 50% 0 0 / 14% 14% 0 0;
+  background: linear-gradient(180deg, #a3ec6c 0%, #70d84e 100%);
+}
+.parque .cesped-css::after {
+  left: -40%;
+  right: -5%;
+  top: 57%;
+  border-radius: 50% 50% 0 0 / 12% 12% 0 0;
+  background: linear-gradient(180deg, #84e052 0%, #47c441 45%, #2ba43a 100%);
+}
+
+/* Accesibilidad: quien pidió menos movimiento ve la escena completa y quieta (cuando se activa). */
+@media (prefers-reduced-motion: reduce) {
+  .parque.activa .capa { opacity: 1 !important; }
+  .parque * { animation: none !important; }
+}

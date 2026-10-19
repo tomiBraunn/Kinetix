@@ -1,0 +1,106 @@
+// Piezas de pantalla del Flamenco Challenge, según los frames de Figma (archivo y8NlmFOJusZ1nl1jvvZdBo):
+//   832:47 Antes de empezar · 829:67/91/116 práctica · 858:69 comenzar · 858:121/152 repetición
+//   858:183/299 descanso · 858:415 completado. Mismo estilo que surf/pantallas.jsx; la lógica
+//   del juego (qué pieza se muestra en cada fase) vive en la página, no acá.
+import { useId } from 'react'
+import { AntesDeEmpezar } from '../surf/pantallas'
+import iconoReloj from '../../assets/juegos/surf/reloj.svg'
+
+// Las y de Figma cuentan la barra superior (48px): el área de juego arranca en y=48, así que
+// todos los `top` de acá son la y del frame menos 48. Con pantalla más ancha que el frame
+// (402px), cada pieza queda centrada con max-w-[402px], igual que las del Surf.
+
+// ─── Pastilla de tiempo (arriba a la izquierda) ─────────────────────────────
+// Idéntica a la de Contadores del Surf. Esas constantes no se exportan de allá para no
+// tocar el Surf más de lo necesario, así que se repiten acá.
+const pastilla = 'flex h-[29px] items-center rounded-[10px] border border-[#e3e3e3] shadow-[0_1.966px_1.966px_rgba(0,0,0,0.25)] text-[11.798px] text-[#444748]'
+
+// `segundos` puede venir con decimales (segundosSostenidos): el reloj muestra solo los enteros
+const mmss = (segundos) => {
+  const seg = Math.max(0, Math.floor(segundos) || 0)
+  return `${String(Math.floor(seg / 60)).padStart(2, '0')}:${String(seg % 60).padStart(2, '0')}`
+}
+
+export function PastillaTiempo({ segundos }) {
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-[19px] z-20 mx-auto max-w-[402px] px-[18px]">
+      <div className={`${pastilla} w-[126px] bg-[rgba(228,226,235,0.71)] pl-[9px]`}>
+        <img src={iconoReloj} alt="" className="block size-[14px]" />
+        <span className="ml-0.5 font-bold">Tiempo:</span>
+        <span className="ml-[7px] font-black">{mmss(segundos)}</span>
+      </div>
+    </div>
+  )
+}
+
+// ─── Pastilla de progreso (arriba a la derecha) ─────────────────────────────
+// "n de 3 completadas" / "Repetición n de 3". En Figma es blanca y lisa (sin sombra ni borde), con
+// el texto a 12px del borde izquierdo y 7px del superior. El ancho se achica solo en pantallas
+// angostas (< 366px) para no pisar la pastilla de tiempo.
+export function PastillaProgreso({ texto }) {
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-[17px] z-20 mx-auto flex max-w-[402px] justify-end px-[18px]">
+      <p className="h-9 w-[min(204px,calc(100%-132px))] whitespace-nowrap rounded-full bg-white pl-3 pt-[7px] text-[16px] font-bold leading-[21px] text-primary-dark">
+        {texto}
+      </p>
+    </div>
+  )
+}
+
+// ─── Consigna centrada ──────────────────────────────────────────────────────
+// Como la Consigna del Surf pero sin el círculo numerado: el texto va centrado y ocupa 314px
+// (18px de margen desde el borde externo: 17 de padding + 1 de borde, que el navegador
+// redondea desde los 1.475 del diseño).
+export function ConsignaCentrada({ texto }) {
+  return (
+    <div role="status" className="pointer-events-none absolute inset-x-[26px] top-[84px] z-20 mx-auto flex min-h-[67px] max-w-[350px] items-center justify-center rounded-[22px] border-[1.475px] border-primary bg-[#fffbfb] px-[17px] py-2 shadow-[0_1.966px_1.966px_rgba(0,0,0,0.25)]">
+      <p className="w-full text-center text-[18px] font-bold leading-[22px] text-primary-dark">{texto}</p>
+    </div>
+  )
+}
+
+// ─── Tarjeta de sesión (comenzar / descanso / completado) ───────────────────
+// Diálogo NO modal: el parque se tiene que ver de fondo, por eso no hay velo ni aria-modal. La
+// tarjeta no atrapa clicks (nada de abajo es interactivo) y solo los botones los reciben.
+// En el diseño arranca en y=217 del área; en pantallas bajas se sube (480px = la tarjeta más
+// alta, la del primer descanso, más aire) para que el botón de abajo no quede cortado.
+// Los interlineados son los de Figma en px (DM Sans "auto" da 1.302 y el navegador lo redondea
+// distinto), así la tarjeta mide lo mismo que en el diseño (ej. 393px la de "comenzar").
+const BOTON = 'pointer-events-auto h-[50px] w-full rounded-full text-[18px] font-bold leading-[23px]'
+const VARIANTES = {
+  principal: `${BOTON} bg-[#b11c6c] text-white`,
+  secundario: `${BOTON} border border-[#b11c6c] bg-white text-[#b11c6c]`,
+}
+
+export function TarjetaSesion({ titulo, texto, botones = [] }) {
+  const idTitulo = useId()
+  return (
+    <div
+      role="dialog"
+      aria-labelledby={idTitulo}
+      className="pointer-events-none absolute inset-x-[26px] top-[max(60px,min(217px,calc(100%-480px)))] z-40 mx-auto flex max-w-[350px] flex-col gap-5 rounded-[24px] bg-white px-6 py-7 text-primary-dark"
+    >
+      <p className="text-[13px] font-bold leading-[17px]">FLAMINGO CHALLENGE</p>
+      <h2 id={idTitulo} className="text-[28px] font-bold leading-9">{titulo}</h2>
+      {/* pre-line: el "\n\n" del texto es el párrafo en blanco del diseño */}
+      <p className="whitespace-pre-line text-[18px] leading-[23px]">{texto}</p>
+      {botones.map(({ texto: etiqueta, onClick, variante = 'principal' }) => (
+        <button key={etiqueta} type="button" onClick={onClick} className={VARIANTES[variante] ?? VARIANTES.principal}>
+          {etiqueta}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ─── Antes de empezar ───────────────────────────────────────────────────────
+// Mismo layout que el del Surf (832:47 es igual a 837:672); solo cambian los pasos.
+const PASOS = [
+  ['Prepará el espacio', 'Dejá espacio libre para moverte y colocá la cámara frente a vos.'],
+  ['Ubicate en la silueta', 'Alejate hasta que se vea todo tu cuerpo. Quedate quieto dentro de la silueta de puntos.'],
+  ['Seguí las consignas', 'El juego te va a pedir que levantes una pierna y mantengas el equilibrio. Seguí las indicaciones en pantalla.'],
+]
+
+export function AntesDeEmpezarFlamenco({ onListo }) {
+  return <AntesDeEmpezar onListo={onListo} pasos={PASOS} />
+}

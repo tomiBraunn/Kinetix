@@ -21,7 +21,7 @@ export type SesionRow = {
 }
 
 type MetricasSurf = { juego: 'surf'; puntos: number; duracion_segundos: number }
-type MetricasFlamenco = { juego: 'flamenco'; mejor_tiempo_segundos: number; intentos: number; duracion_segundos: number }
+type MetricasFlamenco = { juego: 'flamenco'; mejor_tiempo_segundos: number; intentos: number; tiempos_segundos?: number[]; duracion_segundos: number }
 type MetricasEstrellas = { juego: 'estrellas'; estrellas_alcanzadas: number; movimientos_pies: number; duracion_segundos: number }
 type Metricas = MetricasSurf | MetricasFlamenco | MetricasEstrellas
 

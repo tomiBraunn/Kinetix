@@ -126,6 +126,12 @@ class KinetixAI {
     this._eficiencias = []
   }
 
+  // ¿Hay una pierna levantada ahora? Los eventos de Flamenco solo avisan cuando
+  // cambia, así que el juego lo consulta al empezar cada repetición.
+  get piernaLevantada() {
+    return this._piernaLevantada
+  }
+
   stop() {
     this.running = false
     this.ultimosLandmarks = null

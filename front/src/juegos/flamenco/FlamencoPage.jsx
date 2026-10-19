@@ -1,252 +1,235 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+// Flamenco Challenge según los frames de Figma (archivo y8NlmFOJusZ1nl1jvvZdBo,
+// página JUEGOS). El flujo y las reglas están en logica.js; las piezas de pantalla
+// en pantallas.jsx; el parque por capas en EscenaParque.jsx.
+import { useState, useEffect, useRef, useReducer, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import PhaserGameFlamenco from './PhaserGameFlamenco'
+import EscenaParque from './EscenaParque'
+import { BarraSuperior, GuiaSilueta } from '../surf/pantallas'
+import { PastillaTiempo, PastillaProgreso, ConsignaCentrada, TarjetaSesion, AntesDeEmpezarFlamenco } from './pantallas'
+import { estadoInicial, reducir, segundosSostenidos, resumen, REPETICIONES } from './logica'
+import { CONSIGNAS, TARJETA_COMENZAR, TARJETAS_DESCANSO, TARJETA_COMPLETADO } from './mensajes'
+import { dibujarHud } from './hud'
 import { usePoseAI } from '../../ia/usePoseAI'
 import { kinetixAI } from '../../ia/KinetixAI'
+import { openCamera, closeCamera } from '../../ia/CameraStream'
 import { useSessionRecorder } from '../../ia/useSessionRecorder'
 import { crearSesion, finalizarSesion, subirVideosSesion, mandarEventosSesion } from '../../lib/sesiones.ts'
 
-const HEADER_H = 58
+const HEADER_H = 48
 
-const INSTRUCCIONES = [
-  { num: 1, texto: 'Párate frente a la cámara y esperá que te detecte' },
-  { num: 2, texto: 'Levantá una pierna y mantené el equilibrio' },
-]
-
-const pillStyle = {
-  background: 'rgba(255,255,255,0.92)',
-  borderRadius: 22,
-  padding: '7px 16px',
-  display: 'flex',
-  alignItems: 'center',
-  gap: 7,
-  fontSize: 15,
-  fontWeight: 600,
-  color: '#1a1a2e',
-  boxShadow: '0 2px 10px rgba(0,0,0,0.18)',
-  backdropFilter: 'blur(6px)',
-  fontFamily: 'system-ui, sans-serif',
-}
+// Hasta que el paciente esté bien detectado hay solo un fondo liso; el parque entra después
+const CON_ESCENA = ['preparando', 'practica-levantar', 'practica-equilibrio', 'comenzar', 'levantar', 'equilibrio', 'descanso', 'completado']
+const CON_TIEMPO = ['calibracion', 'preparando', 'practica-levantar', 'practica-equilibrio', 'levantar', 'equilibrio']
+const LEVANTAR = ['practica-levantar', 'levantar']
 
 export default function FlamencoPage() {
-  const navigate    = useNavigate()
-  const [params]    = useSearchParams()
-  const pacienteId  = params.get('pacienteId')
+  const navigate = useNavigate()
+  const [params] = useSearchParams()
+  const pacienteId = params.get('pacienteId')
   const sesionIdRef = useRef(null)
-  const phaserRef   = useRef(null)
-  const eventosRef  = useRef([])
-  const intentosPrevRef = useRef(0)
-  const recorder = useSessionRecorder()
+  const eventosRef = useRef([])
+  const inicioRef = useRef(0)
+  const { start: iniciarGrabacion, stop: detenerGrabacion } = useSessionRecorder()
 
-  const [tiempoRestante, setTiempoRestante] = useState(30)
-  const [timerActual,    setTimerActual]    = useState(0)
-  const [mejorTiempo,    setMejorTiempo]    = useState(0)
-  const [intentos,       setIntentos]       = useState(0)
-  const [piernaArriba,   setPiernaArriba]   = useState(false)
-  const [pausado,        setPausado]        = useState(false)
-  const [instruccion,    setInstruccion]    = useState(0)
+  const [estado, dispatch] = useReducer(reducir, undefined, estadoInicial)
+  const [segundos, setSegundos] = useState(0)
+  const [pausado, setPausado] = useState(false)
+  const { fase, rep, completadas } = estado
+  const estadoRef = useRef(estado)
+  useEffect(() => { estadoRef.current = estado })
+  const enviar = useCallback((tipo) => dispatch({ tipo, ahora: performance.now() }), [])
 
+  // Tamaño real del área de juego: los canvas se dimensionan con esto (ver GamePage del Surf)
+  const areaRef = useRef(null)
+  const [tam, setTam] = useState({ w: window.innerWidth, h: window.innerHeight - HEADER_H })
   const { canvasRef: camaraCanvasRef, siluetaRef } = usePoseAI('flamenco', !pausado, HEADER_H)
+  // Canvas fuera de pantalla con la consigna y las pastillas: el grabador lo usa como "gameplay"
+  const hudCanvasRef = useRef(null)
+  if (hudCanvasRef.current === null) hudCanvasRef.current = document.createElement('canvas')
 
-  // Sesión (solo si viene con paciente) + arranca la grabación de los 3 videos
+  // Abre la cámara (usePoseAI y la grabación toman el stream compartido)
   useEffect(() => {
+    openCamera().catch(err => console.warn('Cámara no disponible:', err))
+    return () => closeCamera()
+  }, [])
+
+  useEffect(() => {
+    const observador = new ResizeObserver(([e]) => {
+      const w = Math.round(e.contentRect.width)
+      const h = Math.round(e.contentRect.height)
+      setTam(t => (t.w === w && t.h === h ? t : { w, h }))
+    })
+    observador.observe(areaRef.current)
+    return () => observador.disconnect()
+  }, [])
+
+  // Eventos de la detección de pierna (KinetixAI, modo 'flamenco')
+  useEffect(() => {
+    window.kinetix = window.kinetix || {}
+    window.kinetix.onPiernaLevantada = () => enviar('piernaLevantada')
+    window.kinetix.onPiernaBajada = () => enviar('piernaBajada')
+    return () => {
+      delete window.kinetix.onPiernaLevantada
+      delete window.kinetix.onPiernaBajada
+    }
+  }, [enviar])
+
+  // Reloj de equilibrio: cuenta mientras la pierna está arriba (en pausa se congela)
+  useEffect(() => {
+    if (pausado) return
+    const id = setInterval(() => setSegundos(Math.floor(segundosSostenidos(estadoRef.current, performance.now()))), 100)
+    return () => clearInterval(id)
+  }, [pausado])
+
+  // Los eventos solo avisan cuando la pierna cambia: si el paciente ya la tiene
+  // levantada al empezar una repetición, no llegaría nunca el aviso.
+  useEffect(() => {
+    if (LEVANTAR.includes(fase) && kinetixAI.piernaLevantada) enviar('piernaLevantada')
+  }, [fase, enviar])
+
+  // Línea de tiempo para el kinesiólogo
+  useEffect(() => {
+    if (!sesionIdRef.current) return
+    if (fase === 'equilibrio') eventosRef.current.push({ tipo: 'mensaje', mensaje: CONSIGNAS.equilibrio })
+  }, [fase])
+  useEffect(() => {
+    if (completadas === 0 || !sesionIdRef.current) return
+    eventosRef.current.push({ tipo: 'repeticion', datos: { numero: completadas, tiempo_segundos: estadoRef.current.tiempos[completadas - 1] } })
+  }, [completadas])
+
+  // Cierra la sesión: guarda resultados y sube videos y eventos. Sirve tanto para el
+  // desafío completo como para cuando se vuelve al menú después de alguna repetición.
+  const terminarSesion = useCallback(() => {
+    const sesionId = sesionIdRef.current
+    if (!sesionId) return
+    sesionIdRef.current = null
+    const eventos = eventosRef.current
+    eventosRef.current = []
+    const datos = { ...resumen(estadoRef.current), duracion_segundos: Math.max(1, Math.round((performance.now() - inicioRef.current) / 1000)) }
+
+    finalizarSesion(sesionId, { juego: 'flamenco', ...datos }, kinetixAI.getMetricasResumen()).catch(console.warn)
+    eventos.push({ tipo: 'fin_juego', datos })
+    detenerGrabacion()
+      .then(videos => {
+        subirVideosSesion(sesionId, videos).catch(console.warn)
+        mandarEventosSesion(sesionId, eventos).catch(console.warn)
+      })
+      .catch(console.warn)
+  }, [detenerGrabacion])
+
+  useEffect(() => {
+    if (fase === 'completado') terminarSesion()
+  }, [fase, terminarSesion])
+
+  // La sesión y las métricas arrancan con "Comenzar las 3 repeticiones", no con la
+  // práctica ni la calibración (ahí el paciente todavía se está acomodando).
+  const comenzar = useCallback(() => {
+    enviar('comenzar')
+    kinetixAI.reiniciarMetricas()
+    eventosRef.current = []
+    inicioRef.current = performance.now()
     if (!pacienteId) return
     crearSesion(pacienteId, 'flamenco')
       .then(s => {
         sesionIdRef.current = s.id
-        // pequeño margen para que el canvas de landmarks y el canvas de
-        // Phaser ya existan (ambos se crean en el mismo montaje inicial).
         setTimeout(() => {
-          recorder.start({
-            landmarksCanvas: camaraCanvasRef.current,
-            gameCanvas: phaserRef.current?.getGameCanvas(),
-          })
+          iniciarGrabacion({ landmarksCanvas: camaraCanvasRef.current, gameCanvas: hudCanvasRef.current })
         }, 500)
       })
       .catch(console.warn)
-  }, [pacienteId])
+  }, [enviar, pacienteId, iniciarGrabacion, camaraCanvasRef])
 
-  useEffect(() => {
-    const handler = async (e) => {
-      if (!sesionIdRef.current) return
-      const sesionId = sesionIdRef.current
-      finalizarSesion(sesionId, { juego: 'flamenco', ...e.detail }, kinetixAI.getMetricasResumen()).catch(console.warn)
+  // Salir antes de tiempo: si ya hubo repeticiones se guardan; si no, no hay nada que guardar
+  const volver = useCallback(() => {
+    if (estadoRef.current.completadas > 0) terminarSesion()
+    navigate('/juego')
+  }, [terminarSesion, navigate])
 
-      eventosRef.current.push({ tipo: 'fin_juego', datos: e.detail })
-      const videos = await recorder.stop()
-      subirVideosSesion(sesionId, videos).catch(console.warn)
-      mandarEventosSesion(sesionId, eventosRef.current).catch(console.warn)
-
-      // Deja ver un instante la pantalla de "¡Tiempo!" del juego y despues
-      // lleva al resultado. La subida de video/eventos sigue en curso arriba
-      // (no se espera), el resultado ya sabe mostrar "no disponible" mientras.
-      setTimeout(() => navigate(`/sesiones/${sesionId}`), 1800)
-    }
-    window.addEventListener('kinetix:flamenco:fin', handler)
-    return () => window.removeEventListener('kinetix:flamenco:fin', handler)
-  }, [])
-
-  // Sincroniza HUD con estado del juego + acumula "repeticion" por cada intento
-  useEffect(() => {
-    const handler = (e) => {
-      const { tiempoRestante, timerActual, mejorTiempo, intentos } = e.detail
-      setTiempoRestante(tiempoRestante)
-      setTimerActual(timerActual)
-      setMejorTiempo(mejorTiempo)
-      setIntentos(intentos)
-      if (intentos > intentosPrevRef.current) {
-        eventosRef.current.push({ tipo: 'repeticion', datos: { numero: intentos } })
-        intentosPrevRef.current = intentos
-      }
-    }
-    window.addEventListener('kinetix:flamenco', handler)
-    return () => window.removeEventListener('kinetix:flamenco', handler)
-  }, [])
-
-  // Feedback cuando la pierna sube/baja
-  useEffect(() => {
-    const handler = (e) => {
-      setPiernaArriba(e.detail.levantada)
-      if (e.detail.levantada) {
-        setInstruccion(s => Math.max(s, 1))
-        eventosRef.current.push({ tipo: 'mensaje', mensaje: '¡Mantené el equilibrio!' })
-      }
-    }
-    window.addEventListener('kinetix:flamenco:pierna', handler)
-    return () => window.removeEventListener('kinetix:flamenco:pierna', handler)
-  }, [])
-
-  const togglePausa = useCallback(() => {
-    if (pausado) window.kinetix?.reanudar?.()
-    else window.kinetix?.pausar?.()
+  const togglePausa = () => {
+    enviar(pausado ? 'reanudar' : 'pausar')
     setPausado(p => !p)
-  }, [pausado])
-
-  const formatTiempo = (seg) => {
-    const m = Math.floor(seg / 60).toString().padStart(2, '0')
-    const s = (seg % 60).toString().padStart(2, '0')
-    return `${m}:${s}`
   }
 
-  const instruccionActual = instruccion < INSTRUCCIONES.length ? INSTRUCCIONES[instruccion] : null
+  const acciones = { comenzar, seguir: () => enviar('seguir'), volver }
+  const tarjeta =
+    fase === 'comenzar' ? TARJETA_COMENZAR
+    : fase === 'descanso' ? TARJETAS_DESCANSO[completadas]
+    : fase === 'completado' ? TARJETA_COMPLETADO
+    : null
+  const consigna = CONSIGNAS[fase] ?? null
+  const progreso =
+    fase === 'levantar' || fase === 'equilibrio' ? `Repetición ${rep} de ${REPETICIONES}`
+    : fase === 'descanso' || fase === 'completado' ? `${completadas} de ${REPETICIONES} completadas`
+    : null
+  const conTiempo = CON_TIEMPO.includes(fase)
+
+  // Lo mismo que se ve en pantalla, en el canvas que se graba
+  useEffect(() => {
+    hudCanvasRef.current.width = tam.w
+    hudCanvasRef.current.height = tam.h
+  }, [tam])
+  useEffect(() => {
+    dibujarHud(hudCanvasRef.current, { consigna, tiempo: conTiempo ? segundos : null, progreso })
+  }, [tam, consigna, conTiempo, segundos, progreso])
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100vh',
-      overflow: 'hidden',
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-    }}>
+    <div className={`relative flex h-dvh flex-col overflow-hidden [font-variation-settings:'opsz'_14] ${fase === 'instrucciones' ? '' : 'bg-[linear-gradient(180deg,#2f8fe8,#7cc4f6)]'}`}>
+      {/* El parque cubre toda la pantalla, también detrás de la barra */}
+      <EscenaParque activa={CON_ESCENA.includes(fase)} onEntro={() => enviar('escenaLista')} />
 
-      {/* Header */}
-      <header style={{
-        height: HEADER_H,
-        background: '#dde3f0',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 16px',
-        flexShrink: 0,
-        zIndex: 30,
-        boxShadow: '0 1px 6px rgba(0,0,0,0.1)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <span style={{ fontWeight: 900, fontSize: 22, background: 'linear-gradient(135deg, #e91e8c, #c2185b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: -0.5 }}>K</span>
-            <span style={{ fontWeight: 800, fontSize: 20, color: '#1a237e', letterSpacing: -0.5 }}>inetix</span>
-          </div>
-          <span style={{ fontSize: 13, color: '#555', fontWeight: 600, marginLeft: 4 }}>— Flamenco Challenge</span>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            onClick={togglePausa}
-            style={{ background: 'linear-gradient(135deg, #e91e8c, #b01060)', color: '#fff', border: 'none', borderRadius: 22, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
-          >
-            {pausado ? '▶ Reanudar' : 'Pausar ⏸'}
-          </button>
-          <button
-            onClick={() => navigate('/juego')}
-            style={{ background: '#1a237e', color: '#fff', border: 'none', borderRadius: 22, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
-          >
-            Salir ↩
-          </button>
-        </div>
-      </header>
+      <BarraSuperior
+        conPausa={fase !== 'instrucciones' && fase !== 'completado'}
+        conSalir={fase !== 'completado'}
+        pausado={pausado}
+        onPausa={togglePausa}
+        onSalir={volver}
+      />
 
       {/* Área de juego */}
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+      <div ref={areaRef} className="relative flex-1 overflow-hidden">
 
-        {/* HUD pills */}
-        <div style={{ position: 'absolute', top: 14, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 10, zIndex: 20, pointerEvents: 'none' }}>
-          <div style={pillStyle}>
-            <span>⏱</span>
-            <span>{formatTiempo(tiempoRestante)}</span>
-          </div>
-          <div style={{
-            ...pillStyle,
-            background: piernaArriba ? 'rgba(34,197,94,0.92)' : 'rgba(255,255,255,0.92)',
-            color: piernaArriba ? '#052e16' : '#1a1a2e',
-            transition: 'background 0.3s, color 0.3s',
-          }}>
-            <span>🦵</span>
-            <span>{piernaArriba ? `${timerActual.toFixed(1)}s` : 'Levantá la pierna'}</span>
-          </div>
-          <div style={pillStyle}>
-            <span>🏆</span>
-            <span>Mejor: {mejorTiempo.toFixed(1)}s</span>
-          </div>
-          <div style={pillStyle}>
-            <span>🔄</span>
-            <span>Intentos: {intentos}</span>
-          </div>
-        </div>
-
-        {/* Banner instrucción */}
-        {instruccionActual && (
-          <div style={{ position: 'absolute', top: 62, left: 16, right: 16, zIndex: 20, pointerEvents: 'none', display: 'flex', justifyContent: 'flex-start' }}>
-            <div style={{ background: 'rgba(255,255,255,0.93)', borderRadius: 28, padding: '11px 20px 11px 12px', display: 'flex', alignItems: 'center', gap: 13, boxShadow: '0 3px 18px rgba(0,0,0,0.14)', maxWidth: 440 }}>
-              <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#1a237e', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 15, flexShrink: 0 }}>
-                {instruccionActual.num}
-              </div>
-              <span style={{ fontWeight: 700, fontSize: 15, color: '#1a237e' }}>{instruccionActual.texto}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Feedback cuando la pierna está arriba */}
-        {piernaArriba && (
-          <div style={{
-            position: 'absolute', top: '28%', left: 0, right: 0,
-            textAlign: 'center', zIndex: 20, pointerEvents: 'none',
-            fontSize: 38, fontWeight: 900, color: '#22c55e',
-            textShadow: '0 2px 14px rgba(0,0,0,0.3)',
-          }}>
-            ¡Mantené el equilibrio!
-          </div>
-        )}
-
-        <PhaserGameFlamenco ref={phaserRef} headerHeight={HEADER_H} />
-
-        {/* Cuerpo del paciente recortado por segmentación, superpuesto sobre el juego */}
+        {/* Cuerpo del paciente recortado por segmentación, sobre el parque */}
         <canvas
           ref={siluetaRef}
-          width={window.innerWidth}
-          height={window.innerHeight - HEADER_H}
+          width={tam.w}
+          height={tam.h}
           style={{ position: 'absolute', inset: 0, zIndex: 15, pointerEvents: 'none' }}
         />
 
-        {/* Vista de la cámara + esqueleto detectado por MediaPipe, en vivo */}
-        <canvas
-          ref={camaraCanvasRef}
-          width={180}
-          height={135}
-          style={{
-            position: 'absolute', bottom: 14, right: 14, zIndex: 20,
-            borderRadius: 12, border: '2px solid rgba(255,255,255,0.85)',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
-          }}
-        />
+        {/* Cámara + esqueleto de MediaPipe, abajo a la izquierda. Es el mismo canvas
+            que se graba en el video de landmarks. */}
+        <div className={`pointer-events-none absolute inset-x-0 bottom-[15px] z-20 mx-auto max-w-[402px] px-[15px] ${fase === 'instrucciones' ? 'invisible' : ''}`}>
+          <canvas
+            ref={camaraCanvasRef}
+            width={180}
+            height={135}
+            aria-hidden="true"
+            className="block h-[99px] w-[133px] rounded-[10px] border border-[#e3e3e3] shadow-[0_1.966px_1.966px_rgba(0,0,0,0.25)]"
+          />
+        </div>
+
+        {conTiempo && <PastillaTiempo segundos={segundos} />}
+        {progreso && <PastillaProgreso texto={progreso} />}
+        {consigna && <ConsignaCentrada texto={consigna} />}
+
+        {fase === 'calibracion' && (
+          <GuiaSilueta
+            pausado={pausado}
+            onListo={(vista) => {
+              kinetixAI.fijarVista(vista) // alinea (y si hace falta "aleja") la imagen del paciente con la silueta
+              enviar('calibrado')
+            }}
+          />
+        )}
+
+        {tarjeta && (
+          <TarjetaSesion
+            titulo={tarjeta.titulo}
+            texto={tarjeta.texto}
+            botones={tarjeta.botones.map(({ accion, ...boton }) => ({ ...boton, onClick: acciones[accion] }))}
+          />
+        )}
+        {fase === 'instrucciones' && <AntesDeEmpezarFlamenco onListo={() => enviar('listo')} />}
       </div>
     </div>
   )
