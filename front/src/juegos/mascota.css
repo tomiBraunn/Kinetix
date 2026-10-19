@@ -1,16 +1,24 @@
-/* Mecido suave de la mascota (ver Mascota.jsx). Solo transform: lo resuelve la GPU y no cuesta layout.
-   Gira desde abajo (donde apoya en el agua) para que parezca flotar y no colgar. */
+/* Animaciones de la mascota (ver Mascota.jsx). Solo transform y opacity: las resuelve la GPU y no cuestan layout.
+   El mecido gira desde abajo (donde apoya) para que parezca flotar y no colgar. */
 .mascota {
   transform-origin: 50% 85%;
-  animation: mascota-mecer 3.6s ease-in-out infinite;
+  animation: mascota-mecer 3.6s ease-in-out infinite, mascota-aparece .18s ease-out;
+}
+
+/* Mientras habla late un poquito más rápido (el contenedor, para no pisar el mecido del dibujo) */
+.mascota-habla {
+  transform-origin: 50% 85%;
+  animation: mascota-habla .34s ease-in-out infinite alternate;
 }
 
 @keyframes mascota-mecer {
   0%, 100% { transform: translateY(0) rotate(-1.2deg); }
   50%      { transform: translateY(-5px) rotate(1.2deg); }
 }
+@keyframes mascota-aparece { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mascota-habla { from { transform: scale(1); } to { transform: scale(1.045); } }
 
 /* Accesibilidad: quien pidió menos movimiento la ve quieta */
 @media (prefers-reduced-motion: reduce) {
-  .mascota { animation: none; }
+  .mascota, .mascota-habla { animation: none; }
 }

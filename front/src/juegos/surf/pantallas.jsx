@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from 'react'
 import Logo from '../../components/Logo'
 import { kinetixAI } from '../../ia/KinetixAI'
 import { PUNTOS_SILUETA, evaluar, vistaPara } from '../../ia/calibracion'
+import { hablar } from '../../ia/voz'
+import { MascotaDelGlobo } from '../Mascota'
 import { MENSAJES } from './mensajes'
 import iconoMenu from '../../assets/juegos/surf/menu.svg'
 import iconoPausa from '../../assets/juegos/surf/pausa.svg'
@@ -101,7 +103,8 @@ export function ControlMusica({ volumen, silencio, onVolumen, onSilencio }) {
 }
 
 // ─── Consigna numerada (pasos 1 y 2) ────────────────────────────────────────
-export function Consigna({ num, texto }) {
+// Con `mascota` (un <Mascota>) queda pegada abajo a la izquierda con la cola del globo apuntándole.
+export function Consigna({ num, texto, mascota = null, colaIzq }) {
   return (
     <div role="status" className="pointer-events-none absolute inset-x-[26px] top-[84px] z-20 mx-auto flex min-h-[67px] max-w-[350px] items-center gap-[9.5px] rounded-[22px] border-[1.475px] border-primary bg-[#fffbfb] py-2 pl-[12.5px] pr-3.5 shadow-[0_1.966px_1.966px_rgba(0,0,0,0.25)]">
       <span className="relative grid h-[29.494px] w-[28.511px] shrink-0 place-items-center text-[18px] font-bold text-white">
@@ -109,6 +112,7 @@ export function Consigna({ num, texto }) {
         <span className="relative">{num}</span>
       </span>
       <p className="text-[18px] font-bold leading-[22px] text-primary-dark">{texto}</p>
+      {mascota && <MascotaDelGlobo colaIzq={colaIzq}>{mascota}</MascotaDelGlobo>}
     </div>
   )
 }
@@ -136,6 +140,7 @@ const PISTAS = {
   derecha: 'Correte un poco hacia tu derecha',
   cerca: 'Alejate un poco',
   lejos: 'Acercate un poco',
+  rodillas: 'No te veo las rodillas: alejate un poco o apuntá la cámara más abajo',
   ok: '¡Muy bien! Quedate quieto un momento',
 }
 const INICIAL = { detectados: Array(PUNTOS_SILUETA.length).fill(false), pista: 'nucleo' }
@@ -146,12 +151,19 @@ const promedio = (ms) => {
   return { sx: prom('sx'), sy: prom('sy'), hx: prom('hx'), hy: prom('hy') }
 }
 
-export function GuiaSilueta({ pausado, onListo }) {
+// `requiere`: qué tiene que verse además del tronco ('torso' | 'rodillas'; ver ia/calibracion.js → evaluar)
+export function GuiaSilueta({ pausado, onListo, requiere = 'torso' }) {
   const guiaRef = useRef(null)
   const listoRef = useRef(onListo)
   const [estado, setEstado] = useState(INICIAL)
 
   useEffect(() => { listoRef.current = onListo })
+
+  // La voz dice cada pista nueva. De lejos no se lee el cartel; sinInterrumpir: una pista que cambia
+  // seguido no pisa la consigna de la página mientras se la está leyendo.
+  useEffect(() => {
+    if (!pausado) hablar(PISTAS[estado.pista], { sinInterrumpir: true })
+  }, [estado.pista, pausado])
 
   useEffect(() => {
     if (pausado) return
@@ -171,7 +183,7 @@ export function GuiaSilueta({ pausado, onListo }) {
       const area = { w: a.width, h: a.height }
       const base = kinetixAI.encuadreBase()
 
-      const ev = evaluar(lms, base, guia, area)
+      const ev = evaluar(lms, base, guia, area, requiere)
       setEstado((e) => (e.pista === ev.pista && e.detectados.join() === ev.detectados.join() ? e : { detectados: ev.detectados, pista: ev.pista }))
 
       if (ev.pista !== 'ok') { desde = null; muestras = []; return }
@@ -185,7 +197,7 @@ export function GuiaSilueta({ pausado, onListo }) {
     }, 100)
 
     return () => clearInterval(id)
-  }, [pausado])
+  }, [pausado, requiere])
 
   return (
     <>
@@ -213,7 +225,8 @@ export function GuiaSilueta({ pausado, onListo }) {
           />
         ))}
       </div>
-      <p role="status" className="pointer-events-none absolute inset-x-0 top-[160px] z-20 mx-auto w-fit max-w-[calc(100%-52px)] rounded-full bg-white/90 px-4 py-1.5 text-center text-[15px] font-bold text-primary-dark shadow-[0_1.966px_1.966px_rgba(0,0,0,0.25)]">
+      {/* A la derecha y debajo del globo: a la izquierda queda la mascota */}
+      <p role="status" className="pointer-events-none absolute right-[26px] top-[176px] z-20 w-fit max-w-[min(250px,calc(100%-150px))] rounded-full bg-white/90 px-4 py-1.5 text-center text-[15px] font-bold text-primary-dark shadow-[0_1.966px_1.966px_rgba(0,0,0,0.25)]">
         {PISTAS[estado.pista]}
       </p>
     </>
@@ -223,7 +236,7 @@ export function GuiaSilueta({ pausado, onListo }) {
 // ─── Antes de empezar ───────────────────────────────────────────────────────
 const PASOS = [
   ['Prepará el espacio', 'Dejá espacio libre para moverte y colocá la cámara frente a vos.'],
-  ['Ubicate en la silueta', 'Alejate hasta que se vea todo tu cuerpo. Quedate quieto dentro de la silueta de puntos.'],
+  ['Ubicate en la silueta', 'Alejate hasta que se te vea de la cabeza a la cintura. Quedate quieto dentro de la silueta de puntos.'],
   ['Seguí las consignas', 'El juego te va a indicar qué pez tocar. Mové los brazos para alcanzarlo y volvé al centro.'],
 ]
 

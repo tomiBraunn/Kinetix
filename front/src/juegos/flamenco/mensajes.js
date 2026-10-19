@@ -18,9 +18,11 @@ const FIJAS = {
 
 /**
  * Consigna de la fase (la tarjeta de comenzar/descanso/completado no lleva consigna).
- * @param aviso  lo que ve la cámara y conviene decirle: 'otra' (levantó la otra pierna) | 'subir' (le falta altura) | null
+ * @param aviso  lo que ve la cámara y conviene decirle: 'otra' (levantó la otra pierna) | 'subir' (le falta altura) |
+ *               'rodillas' (no se le ven las rodillas, así que no hay cómo detectar la pierna) | null
  */
 export function consigna(fase, paso, aviso = null) {
+  if (aviso === 'rodillas' && (fase === 'levantar' || fase === 'practica-levantar')) return 'No te veo las rodillas: alejate un poco o apuntá la cámara más abajo.'
   if (fase !== 'levantar' && fase !== 'equilibrio') return FIJAS[fase] ?? null
   const { pierna, posicion } = PASOS[paso]
   const lado = LADO[pierna]
@@ -54,7 +56,8 @@ export function tarjetaDescanso(completadas, saltado = false) {
     : completadas === 1 ? '¡Muy bien, completaste el primer desafío!' : `¡Ya completaste ${CARDINAL[completadas]} desafíos!`
   return {
     titulo: saltado ? '¡Sin problema!' : `¡${ORDINAL[completadas]} desafío completado!`,
-    texto: `${logro}\n\nApoyá los dos pies y descansá. Cuando estés listo, ${ultimo ? 'vamos con el último' : 'seguí jugando'}. A continuación: ${describir(PASOS[completadas])}.`,
+    // El paso siguiente arranca solo (ver ESPERA_SIGUIENTE_S en FlamencoPage): el texto avisa en vez de pedir que se toque
+    texto: `${logro}\n\nApoyá los dos pies y descansá. En unos segundos ${ultimo ? 'vamos con el último' : 'seguimos'}. A continuación: ${describir(PASOS[completadas])}.`,
     botones: completadas === 1 ? [{ ...SEGUIR, accion: 'seguir' }, { ...VOLVER_MENU, accion: 'volver' }] : [{ ...SEGUIR, accion: 'seguir' }],
   }
 }

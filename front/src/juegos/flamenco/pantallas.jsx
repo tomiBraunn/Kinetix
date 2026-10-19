@@ -4,9 +4,8 @@
 //   del juego (qué pieza se muestra en cada fase) vive en la página, no acá.
 import { useId } from 'react'
 import { AntesDeEmpezar } from '../surf/pantallas'
-import Mascota from '../Mascota'
+import Mascota, { MascotaDelGlobo } from '../Mascota'
 import iconoReloj from '../../assets/juegos/surf/reloj.svg'
-import flamingoMascota from '../../assets/juegos/mascotas/flamingo.svg'
 
 // Las y de Figma cuentan la barra superior (48px): el área de juego arranca en y=48, así que
 // todos los `top` de acá son la y del frame menos 48. Con pantalla más ancha que el frame
@@ -53,21 +52,38 @@ export function PastillaProgreso({ texto }) {
 // Como la Consigna del Surf pero sin el círculo numerado: el texto va centrado y ocupa 314px
 // (18px de margen desde el borde externo: 17 de padding + 1 de borde, que el navegador
 // redondea desde los 1.475 del diseño).
-export function ConsignaCentrada({ texto }) {
+// Con `mascota` (un <Mascota>) queda pegada abajo a la izquierda con la cola del globo apuntándole.
+export function ConsignaCentrada({ texto, mascota = null }) {
   return (
     <div role="status" className="pointer-events-none absolute inset-x-[26px] top-[84px] z-20 mx-auto flex min-h-[67px] max-w-[350px] items-center justify-center rounded-[22px] border-[1.475px] border-primary bg-[#fffbfb] px-[17px] py-2 shadow-[0_1.966px_1.966px_rgba(0,0,0,0.25)]">
       <p className="w-full text-center text-[18px] font-bold leading-[22px] text-primary-dark">{texto}</p>
+      {mascota && <MascotaDelGlobo>{mascota}</MascotaDelGlobo>}
+    </div>
+  )
+}
+
+// ─── Mascota sobre la tarjeta ───────────────────────────────────────────────
+// En comenzar / descanso / completado no hay consigna: la mascota se asoma sobre el borde de la tarjeta
+// (mismo cálculo de altura que TarjetaSesion), por encima de ella.
+export function MascotaSobreTarjeta({ children }) {
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute left-[34px] z-[41]"
+      style={{ top: 'max(8px, calc(max(60px, min(217px, 100% - 480px)) - 108px))' }}
+    >
+      {children}
     </div>
   )
 }
 
 // ─── Saltar un paso ─────────────────────────────────────────────────────────
 // Salida para quien no llega a la posición "alto" (la más exigente): nadie tiene que forzarse a
-// algo que no puede ni quedarse sin cómo seguir. No está en el Figma: va debajo de la consigna y
-// Mia tiene que darle forma.
+// algo que no puede ni quedarse sin cómo seguir. No está en el Figma: va debajo de la consigna, a la
+// derecha (a la izquierda está la mascota), y Mia tiene que darle forma.
 export function BotonSaltar({ onClick }) {
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-[160px] z-20 mx-auto flex max-w-[402px] justify-center">
+    <div className="pointer-events-none absolute inset-x-0 top-[176px] z-20 mx-auto flex max-w-[402px] justify-end pr-[26px]">
       <button
         type="button"
         onClick={onClick}
@@ -106,8 +122,9 @@ export function TarjetaSesion({ titulo, texto, botones = [] }) {
       <h2 id={idTitulo} className="text-[28px] font-bold leading-9">{titulo}</h2>
       {/* pre-line: el "\n\n" del texto es el párrafo en blanco del diseño */}
       <p className="whitespace-pre-line text-[18px] leading-[23px]">{texto}</p>
-      {botones.map(({ texto: etiqueta, onClick, variante = 'principal' }) => (
-        <button key={etiqueta} type="button" onClick={onClick} className={VARIANTES[variante] ?? VARIANTES.principal}>
+      {/* key por posición: la etiqueta puede cambiar cada segundo (cuenta regresiva) y no tiene que remontar el botón */}
+      {botones.map(({ texto: etiqueta, onClick, variante = 'principal' }, i) => (
+        <button key={i} type="button" onClick={onClick} className={VARIANTES[variante] ?? VARIANTES.principal}>
           {etiqueta}
         </button>
       ))}
@@ -119,11 +136,11 @@ export function TarjetaSesion({ titulo, texto, botones = [] }) {
 // Mismo layout que el del Surf (832:47 es igual a 837:672); solo cambian los pasos.
 const PASOS = [
   ['Prepará el espacio', 'Dejá espacio libre para moverte y colocá la cámara frente a vos.'],
-  ['Ubicate en la silueta', 'Alejate hasta que se vea todo tu cuerpo. Quedate quieto dentro de la silueta de puntos.'],
+  ['Ubicate en la silueta', 'Alejate hasta que se te vea de la cabeza a las rodillas. Quedate quieto dentro de la silueta de puntos.'],
   ['Seguí las consignas', 'El juego te va a pedir que levantes cada pierna y mantengas el equilibrio. Seguí las indicaciones en pantalla.'],
 ]
 
 // La mascota es más alta que ancha (352×460): con 95px de ancho entra en el espacio libre de abajo sin scroll
 export function AntesDeEmpezarFlamenco({ onListo }) {
-  return <AntesDeEmpezar onListo={onListo} pasos={PASOS} mascota={<Mascota src={flamingoMascota} className="w-[95px]" />} />
+  return <AntesDeEmpezar onListo={onListo} pasos={PASOS} mascota={<Mascota especie="flamingo" className="w-[95px]" />} />
 }

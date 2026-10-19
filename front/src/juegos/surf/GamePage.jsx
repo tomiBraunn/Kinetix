@@ -10,12 +10,23 @@ import { usePoseAI } from '../../ia/usePoseAI'
 import { kinetixAI } from '../../ia/KinetixAI'
 import { useSessionRecorder } from '../../ia/useSessionRecorder'
 import { crearSesion, finalizarSesion, subirVideosSesion, mandarEventosSesion } from '../../lib/sesiones.ts'
+import { hablar, callar, desbloquear, useVoz } from '../../ia/voz'
 import Mascota from '../Mascota'
+import BotonVoz from '../BotonVoz'
 import musica from '../../assets/juegos/surf/musica-fondo.mp3'
-import pezMascota from '../../assets/juegos/mascotas/pez.svg'
 
 const HEADER_H = 48
 const VOLUMEN_INICIAL = 0.4
+const BAJA_MUSICA = 0.3 // mientras la voz habla, la música baja a esta fracción para que se entienda
+const CELEBRA_MS = 900  // cuánto dura la pose de festejo del pez
+
+// Lo que dice la consigna de cada fase: se muestra en pantalla y la voz lo lee
+const CONSIGNAS = {
+  calibracion: 'Ponete en el centro, dentro de la silueta.',
+  preparando: '¡Muy bien! Quedate ahí, ya empezamos.',
+  consigna: 'Tocá los peces con tus manos.',
+}
+const VOZ_COMPLETADO = '¡Desafío completado! ¡Muy bien!'
 
 // Fases del juego (cada una es un frame de Figma, ver pantallas.jsx):
 //   instrucciones → calibracion → preparando → consigna → jugando → completado
@@ -43,6 +54,8 @@ export default function GamePage() {
   const [fase, setFase] = useState('instrucciones')
   const [ronda, setRonda] = useState(1)
   const [puntos, setPuntos] = useState(0)
+  const [celebrando, setCelebrando] = useState(false) // el pez hace la pose de festejo después de cada acierto
+  const celebraTimerRef = useRef(null)
   const [tiempo, setTiempo] = useState(0) // segundos jugados, arranca en 0
   const [mensaje, setMensaje] = useState(null)
   const [pausado, setPausado] = useState(false)
@@ -98,6 +111,10 @@ export default function GamePage() {
     }
     const punto = (e) => {
       eventosRef.current.push({ tipo: 'acierto', mensaje: textoMensaje(e.detail.mensaje) })
+      // El pez celebra un momento con cada acierto
+      setCelebrando(true)
+      clearTimeout(celebraTimerRef.current)
+      celebraTimerRef.current = setTimeout(() => setCelebrando(false), CELEBRA_MS)
     }
     // Guarda resultados al terminar la ronda + sube videos y eventos
     const fin = (e) => {
@@ -146,12 +163,26 @@ export default function GamePage() {
     if (CON_MUSICA.includes(fase) && !pausado) audio.play().catch(() => {})
     else audio.pause()
   }, [fase, pausado])
+  const { hablando } = useVoz()
   useEffect(() => {
     const audio = musicaRef.current
     if (!audio) return
-    audio.volume = volumen
+    audio.volume = hablando ? volumen * BAJA_MUSICA : volumen
     audio.muted = silencio
-  }, [volumen, silencio])
+  }, [volumen, silencio, hablando])
+
+  // Voz: lee la consigna de cada fase (las pistas de la calibración las dice GuiaSilueta). En pausa se calla.
+  useEffect(() => {
+    if (pausado) callar()
+    else if (fase === 'completado') hablar(VOZ_COMPLETADO)
+    else if (CONSIGNAS[fase]) hablar(CONSIGNAS[fase])
+  }, [fase, pausado])
+  useEffect(() => () => callar(), []) // al salir no puede quedar hablando
+  useEffect(() => () => clearTimeout(celebraTimerRef.current), [])
+
+  // El pez: invita a tocar mientras espera el primer pez ("atrapa"), festeja al entrar el mar y con cada acierto
+  const poseDelPez = celebrando || fase === 'preparando' ? 'celebra' : fase === 'consigna' ? 'atrapa' : 'reposo'
+  const pez = (ancho) => <Mascota especie="pez" pose={poseDelPez} habla={hablando} className={ancho} />
 
   // Mover el slider con la música silenciada la vuelve a activar; el botón
   // la reactiva con el volumen de antes (o el inicial si había quedado en 0).
@@ -226,9 +257,11 @@ export default function GamePage() {
           <ControlMusica volumen={volumen} silencio={silencio} onVolumen={cambiarVolumen} onSilencio={alternarSilencio} />
         )}
 
+        {fase !== 'instrucciones' && <BotonVoz posicion="bottom-[61px]" />}
+
         {fase === 'calibracion' && (
           <>
-            <Consigna num={1} texto="Ponete en el centro, dentro de la silueta." />
+            <Consigna num={1} texto={CONSIGNAS.calibracion} mascota={pez('w-[130px]')} colaIzq={39} />
             <GuiaSilueta
               pausado={pausado}
               onListo={(vista) => {
@@ -238,12 +271,16 @@ export default function GamePage() {
             />
           </>
         )}
-        {fase === 'preparando' && <Consigna num="✓" texto="¡Muy bien! Quedate ahí, ya empezamos." />}
-        {fase === 'consigna' && <Consigna num={2} texto="Tocá los peces con tus manos." />}
+        {fase === 'preparando' && <Consigna num="✓" texto={CONSIGNAS.preparando} mascota={pez('w-[130px]')} colaIzq={39} />}
+        {fase === 'consigna' && <Consigna num={2} texto={CONSIGNAS.consigna} mascota={pez('w-[130px]')} colaIzq={39} />}
         {fase === 'jugando' && mensaje && <Mensaje clave={mensaje} />}
+        {/* Jugando no hay consigna: el pez sigue ahí, más chico, por encima del paciente y por debajo de los peces */}
+        {fase === 'jugando' && (
+          <div aria-hidden="true" className="pointer-events-none absolute left-[4px] top-[152px] z-[16]">{pez('w-[100px]')}</div>
+        )}
 
         {fase === 'instrucciones' && (
-          <AntesDeEmpezar onListo={() => setFase('calibracion')} mascota={<Mascota src={pezMascota} className="w-[150px]" />} />
+          <AntesDeEmpezar onListo={() => { desbloquear(); setFase('calibracion') }} mascota={<Mascota especie="pez" className="w-[150px]" />} />
         )}
         {fase === 'completado' && (
           <DesafioCompletado ronda={ronda} onSeguir={seguirJugando} onVolver={() => navigate('/juego')} />

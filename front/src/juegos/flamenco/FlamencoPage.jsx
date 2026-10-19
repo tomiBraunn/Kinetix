@@ -5,7 +5,9 @@ import { useState, useEffect, useRef, useReducer, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import EscenaParque from './EscenaParque'
 import { BarraSuperior, GuiaSilueta } from '../surf/pantallas'
-import { PastillaTiempo, PastillaProgreso, ConsignaCentrada, BotonSaltar, TarjetaSesion, AntesDeEmpezarFlamenco } from './pantallas'
+import { PastillaTiempo, PastillaProgreso, ConsignaCentrada, BotonSaltar, MascotaSobreTarjeta, TarjetaSesion, AntesDeEmpezarFlamenco } from './pantallas'
+import Mascota from '../Mascota'
+import { poseMascota, HITOS_ANIMO_S, FRASES_ANIMO, ANIMO_MS } from './mascota'
 import { PASOS, REPETICIONES, estadoInicial, reducir, segundosSostenidos, resumen } from './logica'
 import { consigna as consignaDe, TARJETA_COMENZAR, tarjetaDescanso, TARJETA_COMPLETADO } from './mensajes'
 import { dibujarHud } from './hud'
@@ -13,9 +15,13 @@ import { usePoseAI } from '../../ia/usePoseAI'
 import { kinetixAI } from '../../ia/KinetixAI'
 import { openCamera, closeCamera } from '../../ia/CameraStream'
 import { useSessionRecorder } from '../../ia/useSessionRecorder'
+import { hablar, callar, desbloquear, useVoz } from '../../ia/voz'
+import BotonVoz from '../BotonVoz'
+import { useCuentaRegresiva } from '../useCuentaRegresiva'
 import { crearSesion, finalizarSesion, subirVideosSesion, mandarEventosSesion } from '../../lib/sesiones.ts'
 
 const HEADER_H = 48
+const ESPERA_SIGUIENTE_S = 5 // descanso entre un paso y el siguiente: pasado ese tiempo sigue solo
 
 // Hasta que el paciente esté bien detectado hay solo un fondo liso; el parque entra después
 const CON_ESCENA = ['preparando', 'practica-levantar', 'practica-equilibrio', 'comenzar', 'levantar', 'equilibrio', 'descanso', 'completado']
@@ -40,6 +46,9 @@ export default function FlamencoPage() {
   const [segundos, setSegundos] = useState(0)
   const [pausado, setPausado] = useState(false)
   const [aviso, setAviso] = useState(null) // lo que ve la cámara y conviene decirle al paciente (ver mensajes.js)
+  const [animoDicho, setAnimo] = useState(null) // frase de ánimo que dice la mascota mientras el paciente sostiene (ver mascota.js)
+  const animoTimerRef = useRef(null)
+  const segundoPrevioRef = useRef(0)
   const { fase, paso, completadas } = estado
   const estadoRef = useRef(estado)
   useEffect(() => { estadoRef.current = estado })
@@ -95,13 +104,28 @@ export default function FlamencoPage() {
     const id = setInterval(() => {
       const ahora = performance.now()
       const e = estadoRef.current
-      setSegundos(Math.floor(segundosSostenidos(e, ahora)))
+      const s = Math.floor(segundosSostenidos(e, ahora))
+      setSegundos(s)
+      // Ánimo: al cruzar los 5, 10 y 20 s la mascota lo dice (globo y voz). Se detecta acá y no en un
+      // efecto sobre `segundos`: es un evento puntual, no estado derivado. El ref evita repetirlo al reanudar.
+      const i = HITOS_ANIMO_S.indexOf(s)
+      if (e.fase === 'equilibrio' && s !== segundoPrevioRef.current && i !== -1) {
+        setAnimo(FRASES_ANIMO[i])
+        hablar(FRASES_ANIMO[i])
+        clearTimeout(animoTimerRef.current)
+        animoTimerRef.current = setTimeout(() => setAnimo(null), ANIMO_MS)
+      }
+      segundoPrevioRef.current = s
       dispatch({ tipo: 'tick', ahora })
       const p = kinetixAI.pierna
       if (e.fase === 'equilibrio' && p?.altura != null) dispatch({ tipo: 'altura', ahora, valor: p.altura })
       // El aviso solo sale si se sostiene medio segundo: así el texto no parpadea con cada frame dudoso
-      const quiere = e.fase === 'levantar' && p
-        ? (p.otra ? 'otra' : PASOS[e.paso].posicion === 'alto' && p.arriba && !p.cumple ? 'subir' : null)
+      // Solo mientras espera que levante la pierna. Sin la rodilla a la vista no hay cómo detectarla:
+      // se lo dice en vez de dejarlo esperando sin explicación.
+      const esperando = e.fase === 'levantar' || e.fase === 'practica-levantar'
+      const quiere = !esperando || !p ? null
+        : p.altura == null ? 'rodillas'
+        : e.fase === 'levantar' ? (p.otra ? 'otra' : PASOS[e.paso].posicion === 'alto' && p.arriba && !p.cumple ? 'subir' : null)
         : null
       racha = quiere === racha.tipo ? { tipo: quiere, n: racha.n + 1 } : { tipo: quiere, n: 1 }
       setAviso(racha.n >= 5 ? quiere : null)
@@ -213,14 +237,35 @@ export default function FlamencoPage() {
     : null
   const conTiempo = CON_TIEMPO.includes(fase)
 
+  // Voz: dice la consigna o, cuando hay una tarjeta, su texto (sin el rótulo del juego). En pausa se calla.
+  const { hablando } = useVoz()
+  const textoVoz = consigna ?? (tarjeta ? `${tarjeta.titulo}. ${tarjeta.texto}`.replace(/\s*\n+\s*/g, ' ') : null)
+  useEffect(() => {
+    if (pausado) callar()
+    else if (textoVoz) hablar(textoVoz)
+  }, [textoVoz, pausado])
+  useEffect(() => () => callar(), []) // al salir no puede quedar hablando
+
+  // El ánimo solo se muestra en el equilibrio: el temporizador que lo apaga (en un ref, el pulso lo
+  // reinicia a cada hito) puede vencer ya en otra fase y no hay que arrastrar la frase al paso siguiente.
+  const animo = fase === 'equilibrio' ? animoDicho : null
+  useEffect(() => () => clearTimeout(animoTimerRef.current), [])
+
+  // Entre un paso y el siguiente: 5 s de descanso y sigue solo, sin que el paciente tenga que tocar la pantalla.
+  // La cuenta espera a que la voz termine de leer la tarjeta y se congela en pausa; el botón la salta.
+  const cuenta = useCuentaRegresiva(fase === 'descanso' && !pausado && !hablando, ESPERA_SIGUIENTE_S, completadas, () => enviar('seguir'))
+
   // Lo mismo que se ve en pantalla, en el canvas que se graba
   useEffect(() => {
     hudCanvasRef.current.width = tam.w
     hudCanvasRef.current.height = tam.h
   }, [tam])
   useEffect(() => {
-    dibujarHud(hudCanvasRef.current, { consigna, tiempo: conTiempo ? segundos : null, progreso })
-  }, [tam, consigna, conTiempo, segundos, progreso])
+    dibujarHud(hudCanvasRef.current, { consigna: animo ?? consigna, tiempo: conTiempo ? segundos : null, progreso })
+  }, [tam, consigna, animo, conTiempo, segundos, progreso])
+
+  // La mascota: pose según el momento. Debajo del globo en el juego y asomada sobre la tarjeta en los descansos.
+  const pose = poseMascota({ fase, paso, aviso, animo: !!animo })
 
   return (
     <div className={`relative flex h-dvh flex-col overflow-hidden [font-variation-settings:'opsz'_14] ${fase === 'instrucciones' ? '' : 'bg-[linear-gradient(180deg,#2f8fe8,#7cc4f6)]'}`}>
@@ -260,12 +305,15 @@ export default function FlamencoPage() {
 
         {conTiempo && <PastillaTiempo segundos={segundos} />}
         {progreso && <PastillaProgreso texto={progreso} />}
-        {consigna && <ConsignaCentrada texto={consigna} />}
+        {consigna && (
+          <ConsignaCentrada texto={animo ?? consigna} mascota={<Mascota especie="flamingo" pose={pose} habla={hablando} className="w-[112px]" />} />
+        )}
         {enPaso && PASOS[paso].posicion === 'alto' && <BotonSaltar onClick={() => enviar('saltar')} />}
 
         {fase === 'calibracion' && (
           <GuiaSilueta
             pausado={pausado}
+            requiere="rodillas"
             onListo={(vista) => {
               kinetixAI.fijarVista(vista) // alinea (y si hace falta "aleja") la imagen del paciente con la silueta
               enviar('calibrado')
@@ -277,10 +325,20 @@ export default function FlamencoPage() {
           <TarjetaSesion
             titulo={tarjeta.titulo}
             texto={tarjeta.texto}
-            botones={tarjeta.botones.map(({ accion, ...boton }) => ({ ...boton, onClick: acciones[accion] }))}
+            botones={tarjeta.botones.map(({ accion, texto, ...boton }) => ({
+              ...boton,
+              texto: accion === 'seguir' && fase === 'descanso' ? `${texto} (${cuenta})` : texto,
+              onClick: acciones[accion],
+            }))}
           />
         )}
-        {fase === 'instrucciones' && <AntesDeEmpezarFlamenco onListo={() => enviar('listo')} />}
+        {tarjeta && (
+          <MascotaSobreTarjeta>
+            <Mascota especie="flamingo" pose={pose} habla={hablando} className="w-[98px]" />
+          </MascotaSobreTarjeta>
+        )}
+        {fase !== 'instrucciones' && <BotonVoz />}
+        {fase === 'instrucciones' && <AntesDeEmpezarFlamenco onListo={() => { desbloquear(); enviar('listo') }} />}
       </div>
     </div>
   )
