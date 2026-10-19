@@ -21,6 +21,9 @@ const LM = {
   TOBILLO_DER: 28,
 }
 
+// Vista sin alejar: el video centrado y a escala 1 (ver KinetixAI._encuadre)
+const VISTA_BASE = { s: 1, px: 0.5, py: 0.5, qx: 0.5, qy: 0.5 }
+
 // Evita disparar el mismo evento dos veces en el mismo objeto antes de que Phaser lo elimine
 const _cooldown = new Set()
 function sinCooldown(id, ms = 700) {
@@ -45,6 +48,7 @@ class KinetixAI {
     this.video = null
     this._rafId = null
     this._lastTs = -1
+    this.ultimosLandmarks = null
     this._piernaLevantada = false
     this._piernaCnt = 0   // frames consecutivos con pierna arriba/abajo
     this._canvasW = window.innerWidth
@@ -103,19 +107,28 @@ class KinetixAI {
     this.running = true
     this._piernaLevantada = false
     this._piernaCnt = 0
+    this.reiniciarMetricas()
+    this.reiniciarVista()
+    _cooldown.clear()
+    console.log(`[KinetixAI] Detectando poses → juego: ${gameMode} canvas: ${this._canvasW}x${this._canvasH}`)
+    this._loop()
+  }
+
+  // Descarta lo acumulado hasta ahora para las métricas de la sesión. El Surf
+  // lo llama cuando arranca el juego de verdad, así no cuentan los segundos de
+  // instrucciones y calibración (el paciente todavía se está acomodando).
+  reiniciarMetricas() {
     this._muestrasCadera = []
     this._muestrasAngulo = []
     this._muestrasTronco = []
     this._frames = { izq: 0, der: 0 }
     this._trayManos = { izq: [], der: [] }
     this._eficiencias = []
-    _cooldown.clear()
-    console.log(`[KinetixAI] Detectando poses → juego: ${gameMode} canvas: ${this._canvasW}x${this._canvasH}`)
-    this._loop()
   }
 
   stop() {
     this.running = false
+    this.ultimosLandmarks = null
     if (this._rafId) cancelAnimationFrame(this._rafId)
     this._rafId = null
   }
@@ -129,6 +142,7 @@ class KinetixAI {
         const result = this.landmarker.detectForVideo(this.video, now)
         const landmarks = result.landmarks[0] ?? null
         const mask = result.segmentationMasks?.[0] ?? null
+        this.ultimosLandmarks = landmarks // la calibración del Surf los lee desde React
         if (landmarks) this._interpret(landmarks)
         if (this.overlayCtx) this._drawOverlay(landmarks)
         if (this.siluetaCtx) this._drawSilueta(mask, landmarks)
@@ -211,17 +225,10 @@ class KinetixAI {
     }
     this._maskCtx.putImageData(this._maskImageData, 0, 0)
 
-    // El video de fondo se muestra con object-fit: cover (conserva la
-    // proporción y recorta los bordes). La silueta tiene que usar exactamente
-    // el mismo encuadre; si se estira el frame al tamaño del canvas queda
-    // deformada y desalineada respecto de la persona real.
-    const vw = this.video.videoWidth || mw
-    const vh = this.video.videoHeight || mh
-    const escala = Math.max(w / vw, h / vh)
-    const dw = vw * escala
-    const dh = vh * escala
-    const dx = (w - dw) / 2
-    const dy = (h - dh) / 2
+    // La silueta se encuadra como object-fit: cover (conserva la proporción y
+    // recorta los bordes); si se estira el frame al tamaño del canvas queda
+    // deformada. Ver _encuadre().
+    const { dx, dy, dw, dh } = this._encuadre(w, h, this.video.videoWidth || mw, this.video.videoHeight || mh)
 
     ctx.save()
     // Mismo espejo que el resto de los overlays (el video se ve como espejo)
@@ -233,15 +240,118 @@ class KinetixAI {
     ctx.globalCompositeOperation = 'source-in'
     ctx.drawImage(this.video, dx, dy, dw, dh)
     ctx.restore()
+
+    // Con la vista alejada el borde de abajo del video puede quedar a mitad de
+    // pantalla (el cuerpo "se corta" ahí): se desvanece en el agua en vez de
+    // terminar en una línea recta.
+    const fin = dy + dh
+    if (this._vistaA && fin < h - 2) {
+      const fundido = Math.min(dh * 0.12, 90)
+      const g = ctx.createLinearGradient(0, fin - fundido, 0, fin)
+      g.addColorStop(0, 'rgba(0,0,0,1)')
+      g.addColorStop(1, 'rgba(0,0,0,0)')
+      ctx.globalCompositeOperation = 'destination-in'
+      ctx.fillStyle = g
+      ctx.fillRect(0, 0, w, h)
+      ctx.globalCompositeOperation = 'source-over'
+    }
+  }
+
+  // Encuadre base del video: object-fit: cover dentro de un canvas w×h (se
+  // agranda hasta cubrir y se recorta el sobrante). Con la misma proporción
+  // da (0,0,w,h).
+  _encuadreBase(w, h, vw = this.video?.videoWidth, vh = this.video?.videoHeight) {
+    if (!vw || !vh) return { dx: 0, dy: 0, dw: w, dh: h }
+    const escala = Math.max(w / vw, h / vh)
+    const dw = vw * escala
+    const dh = vh * escala
+    return { dx: (w - dw) / 2, dy: (h - dh) / 2, dw, dh }
+  }
+
+  // Rectángulo donde cae el frame del video, con la "vista" aplicada si hay
+  // una. Es lo que ve el paciente: lo usan la silueta, los toques y la
+  // calibración, así las tres coinciden.
+  _encuadre(w, h, vw, vh) {
+    const base = this._encuadreBase(w, h, vw, vh)
+    const v = this._vistaAhora()
+    if (!v) return base
+    // La vista dice: el punto (px,py) del video —normalizado— va a la posición
+    // (qx,qy) de la pantalla —como fracción de ancho y alto—, con el video a
+    // escala `s` respecto del encuadre base. (X va espejada, como el video.)
+    const dw = base.dw * v.s
+    const dh = base.dh * v.s
+    return { dx: w * (1 - v.qx) - v.px * dw, dy: h * v.qy - v.py * dh, dw, dh }
+  }
+
+  // ─── Vista: "alejar" al paciente ──────────────────────────────────────────
+  // Si el paciente está cerca de la cámara su cuerpo sale enorme y el juego pide
+  // demasiado espacio. En vez de pedirle que se aleje, se achica y se centra su
+  // imagen (ver calibracion.js → vistaPara). Fuera del video queda transparente,
+  // así que el paciente se ve más chico "parado en el mar".
+  _vistaAhora() {
+    if (!this._vistaA) return null
+    const t = Math.min(1, (performance.now() - this._vistaT0) / this._vistaMs)
+    const e = t * t * (3 - 2 * t) // arranque y llegada suaves
+    const de = this._vistaDe
+    const a = this._vistaA
+    const mezcla = (k) => de[k] + (a[k] - de[k]) * e
+    return { s: mezcla('s'), px: mezcla('px'), py: mezcla('py'), qx: mezcla('qx'), qy: mezcla('qy') }
+  }
+
+  fijarVista(vista, ms = 900) {
+    this._vistaDe = this._vistaAhora() ?? VISTA_BASE
+    this._vistaA = vista
+    this._vistaT0 = performance.now()
+    this._vistaMs = ms
+  }
+
+  reiniciarVista() {
+    this._vistaA = null
+  }
+
+  // Encuadre base del video en el área de juego actual, sin la vista (la
+  // calibración lo necesita para medir al paciente).
+  encuadreBase() {
+    const { w, h } = this._tam()
+    return this._encuadreBase(w, h)
+  }
+
+  // Rectángulo de pantalla (en píxeles del área de juego) donde hay cámara. Con
+  // la vista alejada es más chico que el área: los objetivos (peces) tienen que
+  // caer ahí adentro para que el paciente los pueda alcanzar.
+  areaVideo() {
+    const { w, h } = this._tam()
+    const { dx, dy, dw, dh } = this._encuadre(w, h)
+    return { x0: w - dx - dw, x1: w - dx, y0: dy, y1: dy + dh }
+  }
+
+  // Tamaño actual del área de juego en píxeles. Si hay canvas de silueta se usa
+  // el suyo, que la página mantiene al tamaño real del área aunque la ventana
+  // cambie; _canvasW/_canvasH quedan de respaldo (los fija start() una sola vez).
+  _tam() {
+    return { w: this.siluetaCanvas?.width || this._canvasW, h: this.siluetaCanvas?.height || this._canvasH }
+  }
+
+  // Landmark normalizado del video → píxel del canvas del juego (en espejo,
+  // igual que se ve en pantalla). Inversa de _pxToNorm().
+  aPantalla(lm) {
+    const { w, h } = this._tam()
+    const { dx, dy, dw, dh } = this._encuadre(w, h)
+    return { x: w - (dx + lm.x * dw), y: dy + lm.y * dh }
   }
 
   // Convierte posición Phaser (píxeles) → normalizado [0,1] en espacio del video.
   // Invierte X porque el video se muestra en espejo (scaleX(-1)).
   _pxToNorm(px, py) {
-    return {
-      x: 1 - px / this._canvasW,
-      y: py / this._canvasH,
-    }
+    const { w, h } = this._tam()
+    const { dx, dy, dw, dh } = this._encuadre(w, h)
+    return { x: (w - px - dx) / dw, y: (py - dy) / dh }
+  }
+
+  // Radio en píxeles → radio en unidades normalizadas del video.
+  _radioNorm(px) {
+    const { w, h } = this._tam()
+    return px / this._encuadre(w, h).dw
   }
 
   _dist(a, b) {
@@ -420,8 +530,7 @@ class KinetixAI {
       case 'surf': {
         const peces = window.kinetixPeces ?? []
         for (const pez of peces) {
-          // radio en normalizado (radio en px / ancho canvas)
-          const radioNorm = (pez.radio * 1.8) / this._canvasW
+          const radioNorm = this._radioNorm(pez.radio * 1.8)
           const norm = this._pxToNorm(pez.x, pez.y)
           const lado = this._manoQueToca(manoIzq, manoDer, norm, radioNorm)
           if (lado && sinCooldown(pez.id)) {
@@ -475,7 +584,7 @@ class KinetixAI {
       case 'estrellas': {
         const estrellas = window.kinetixEstrellas ?? []
         for (const est of estrellas) {
-          const radioNorm = (est.radio * 1.8) / this._canvasW
+          const radioNorm = this._radioNorm(est.radio * 1.8)
           const norm = this._pxToNorm(est.x, est.y)
           const lado = this._manoQueToca(manoIzq, manoDer, norm, radioNorm)
           if (lado && sinCooldown(est.id)) {

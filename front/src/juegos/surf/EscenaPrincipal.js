@@ -1,43 +1,62 @@
 import Phaser from 'phaser'
 import { reiniciarReaccion, objetivoAparece, objetivoTocado } from '../../ia/reaccion'
+import { kinetixAI } from '../../ia/KinetixAI'
+import { FELICITACIONES } from './mensajes'
+import pecesUrl from '../../assets/juegos/surf/peces.png'
 
 const NUM_PECES = 4
 const DURACION_JUEGO = 30
+const ESTANCADO_S = 6      // segundos sin atrapar nada → "¡No te rindas!"
+const MENSAJE_MS = 3000    // cuánto se muestra cada felicitación
 
-// Paleta de peces — variedad de colores en vez de un solo pez repetido
-const COLORES_PEZ = [0xff8a3d, 0xffc93d, 0x3ddbb8, 0xa78bfa, 0xf472b6]
+// La hoja de peces (Figma 833:442) es un PNG de 2×2 peces. Cada recorte es
+// [x0, y0, x1, y1] como fracción del PNG, así no depende de su resolución.
+const RECORTES = {
+  naranja:  [0.1155, 0.0625, 0.4489, 0.5170],
+  amarillo: [0.6079, 0.1023, 0.9110, 0.4545],
+  verde:    [0.1345, 0.5512, 0.4299, 0.8921],
+  violeta:  [0.6269, 0.5511, 0.9110, 0.8977],
+}
+const NOMBRES_PEZ = Object.keys(RECORTES)
 
-const PEZ_W = 78
-const PEZ_H = 46
+// Cada pez se redibuja a este ancho (px) al cargar: reducir el PNG original de
+// ~465 px a ~50 directo en la GPU lo deja dentado (Phaser no hace mipmaps con
+// texturas que no son potencia de 2, como esta de 1536×1024).
+const ANCHO_TEXTURA = 192
+// Ancho en pantalla (px). En el diseño los peces van de 37 a 79 px (los hay
+// lejanos y cercanos); acá un rango parecido, algo más grande porque hay que
+// verlos y tocarlos.
+const ANCHO_MIN = 44
+const ANCHO_MAX = 72
+const AMPLITUD_VERTICAL = 14   // cuánto sube y baja cada pez (px, hacia cada lado)
 
 export default class EscenaPrincipal extends Phaser.Scene {
   constructor() {
     super({ key: 'EscenaPrincipal' })
   }
 
-  preload() {}
+  preload() {
+    this.load.image('peces', pecesUrl)
+  }
 
   create() {
-    const { width, height } = this.scale
+    if (this.textures.exists('peces')) {
+      const hoja = this.textures.get('peces').getSourceImage()
+      for (const [nombre, [x0, y0, x1, y1]] of Object.entries(RECORTES)) {
+        const sx = x0 * hoja.width, sy = y0 * hoja.height
+        const sw = (x1 - x0) * hoja.width, sh = (y1 - y0) * hoja.height
+        const lienzo = this.textures.createCanvas(nombre, ANCHO_TEXTURA, Math.round((ANCHO_TEXTURA * sh) / sw))
+        lienzo.context.imageSmoothingQuality = 'high'
+        lienzo.context.drawImage(hoja, sx, sy, sw, sh, 0, 0, lienzo.width, lienzo.height)
+        lienzo.refresh()
+      }
+      this.textures.remove('peces')
+    }
 
-    reiniciarReaccion()
     this.peces = []
-    this.puntos = 0
-    this.tiempoRestante = DURACION_JUEGO
-    this.instruccion = 0
-    this.jugando = false
+    this._resetear()
 
-    // Fondo de mar dibujado a mano (degradé + burbujas) — sin depender de
-    // ninguna imagen externa, así nunca queda en blanco.
-    this._dibujarFondo(width, height)
-
-    // Tabla de surf encima del fondo
-    this._dibujarTabla(width, height)
-
-    // Countdown 3-2-1 y luego inicia
-    this._countdown(width, height)
-
-    // Contrato con la IA
+    // Contrato con la IA y con GamePage
     window.kinetix = window.kinetix || {}
     window.kinetix.onStickerTocado = (id) => {
       const pez = this.peces.find(p => p.id === id)
@@ -50,123 +69,9 @@ export default class EscenaPrincipal extends Phaser.Scene {
       this.scene.resume()
       this.jugando = true
     }
-  }
-
-  _dibujarFondo(width, height) {
-    const gfx = this.add.graphics().setDepth(0)
-
-    // Degradé vertical simulando el mar (claro arriba, más profundo abajo)
-    const franjas = 24
-    for (let i = 0; i < franjas; i++) {
-      const t = i / (franjas - 1)
-      const color = Phaser.Display.Color.Interpolate.ColorWithColor(
-        Phaser.Display.Color.ValueToColor(0x7fd8e8),
-        Phaser.Display.Color.ValueToColor(0x2b6fb0),
-        franjas - 1,
-        i,
-      )
-      gfx.fillStyle(Phaser.Display.Color.GetColor(color.r, color.g, color.b), 1)
-      gfx.fillRect(0, (height / franjas) * i, width, height / franjas + 1)
-    }
-
-    // Burbujas decorativas
-    for (let i = 0; i < 14; i++) {
-      const x = Phaser.Math.Between(0, width)
-      const y = Phaser.Math.Between(0, height * 0.85)
-      const r = Phaser.Math.Between(3, 9)
-      gfx.fillStyle(0xffffff, 0.18)
-      gfx.fillCircle(x, y, r)
-    }
-  }
-
-  _dibujarPez(gfx, w, h, color) {
-    const r = h / 2
-    // Cuerpo
-    gfx.fillStyle(color, 1)
-    gfx.fillEllipse(0, 0, w - r, h)
-    // Cola
-    gfx.fillTriangle(w / 2 - r * 0.6, 0, w / 2 + r * 0.7, -h * 0.55, w / 2 + r * 0.7, h * 0.55)
-    // Panza clara
-    gfx.fillStyle(0xffffff, 0.35)
-    gfx.fillEllipse(-r * 0.3, h * 0.12, w * 0.55, h * 0.4)
-    // Ojo
-    gfx.fillStyle(0xffffff, 1)
-    gfx.fillCircle(-w * 0.22, -h * 0.08, r * 0.22)
-    gfx.fillStyle(0x1a1a2e, 1)
-    gfx.fillCircle(-w * 0.2, -h * 0.08, r * 0.11)
-  }
-
-  _dibujarTabla(width, height) {
-    const gfx = this.add.graphics().setDepth(1)
-    const bx = width / 2
-    const by = height * 0.93
-    gfx.fillStyle(0xe8d8a8)
-    gfx.fillEllipse(bx, by, 230, 52)
-    gfx.fillStyle(0x5dd8d0)
-    gfx.fillEllipse(bx, by, 190, 32)
-    gfx.lineStyle(3, 0xc8a830)
-    gfx.strokeEllipse(bx, by, 230, 52)
-  }
-
-  _countdown(width, height) {
-    const overlay = this.add.graphics().setDepth(10)
-    overlay.fillStyle(0x000000, 0.3)
-    overlay.fillRect(0, 0, width, height)
-
-    const txt = this.add.text(width / 2, height / 2, '3', {
-      fontSize: '130px',
-      color: '#ffffff',
-      fontStyle: 'bold',
-      stroke: '#000000',
-      strokeThickness: 10,
-    }).setOrigin(0.5).setDepth(11)
-
-    ;['3', '2', '1', '¡Ya!'].forEach((n, i) => {
-      this.time.delayedCall(i * 1000, () => {
-        txt.setText(n)
-        this.tweens.add({
-          targets: txt,
-          scale: { from: 1.4, to: 1 },
-          duration: 380,
-          ease: 'Bounce.easeOut',
-        })
-      })
-    })
-
-    // A los 3.5s destruye el overlay e inicia el juego
-    this.time.delayedCall(3500, () => {
-      this.tweens.add({
-        targets: [txt, overlay],
-        alpha: 0,
-        duration: 300,
-        onComplete: () => {
-          txt.destroy()
-          overlay.destroy()
-          this._iniciarJuego()
-        },
-      })
-    })
-  }
-
-  _iniciarJuego() {
-    this.jugando = true
-
-    for (let i = 0; i < NUM_PECES; i++) {
-      this.spawnearPez()
-    }
-
-    this.time.addEvent({
-      delay: 1000,
-      repeat: DURACION_JUEGO - 1,
-      callback: this._descontarTiempo,
-      callbackScope: this,
-    })
-
-    this._despacharEstado()
-
-    // Fases de instrucción para el HUD de React
-    this.time.delayedCall(4000, () => { this.instruccion = 1; this._despacharEstado() })
-    this.time.delayedCall(9000, () => { this.instruccion = 2; this._despacharEstado() })
+    // Termina la calibración: aparece el primer pez ("Tocá los peces con tus
+    // manos"). Se puede llamar de nuevo para otra ronda.
+    window.kinetix.empezar = () => this._empezar()
 
     // Tecla T = simula toque de IA (testing)
     this.input.keyboard.on('keydown-T', () => {
@@ -174,24 +79,72 @@ export default class EscenaPrincipal extends Phaser.Scene {
     })
   }
 
+  _resetear() {
+    this.relojTiempo?.remove()
+    this.ocultarMensaje?.remove()
+    for (const p of this.peces) {
+      this.tweens.killTweensOf(p.img)
+      p.img.destroy()
+    }
+    this.peces = []
+    reiniciarReaccion()
+    this.puntos = 0
+    this.tiempo = 0              // segundos jugados (0 → DURACION_JUEGO)
+    this.cronometrando = false   // el reloj arranca al atrapar el primer pez
+    this.jugando = false
+    this.mensaje = null
+    this.sinAcierto = 0
+    this._despacharEstado()
+  }
+
+  _empezar() {
+    this._resetear()
+    this.jugando = true
+    this.spawnearPez()
+  }
+
+  _arrancarCronometro() {
+    this.cronometrando = true
+    // El pez de la consigna ya se está reemplazando solo (ver tocarPez)
+    for (let i = 1; i < NUM_PECES; i++) this.spawnearPez()
+    this.relojTiempo = this.time.addEvent({
+      delay: 1000,
+      repeat: DURACION_JUEGO - 1,
+      callback: this._descontarTiempo,
+      callbackScope: this,
+    })
+  }
+
   spawnearPez() {
     const { width, height } = this.scale
-    const margen = 90
-    const x = Phaser.Math.Between(margen, width - margen)
-    const y = Phaser.Math.Between(height * 0.1, height * 0.68)
+    const margen = 50
+    // Los peces tienen que caer donde hay cámara: con la vista "alejada" esa zona es
+    // más chica que la pantalla, y fuera de ella el paciente no los podría alcanzar.
+    const cam = kinetixAI.areaVideo()
+    const camAncho = cam.x1 - cam.x0
+    const camAlto = cam.y1 - cam.y0
+    let xMin = Math.max(margen, cam.x0 + camAncho * 0.08)
+    let xMax = Math.min(width - margen, cam.x1 - camAncho * 0.08)
+    if (xMax - xMin < 100) { xMin = margen; xMax = width - margen }
+    // Debajo de los carteles de arriba (cuenta + mensaje) y por encima de la tabla
+    let yMin = Math.max(height * 0.24, cam.y0 + camAlto * 0.08)
+    let yMax = Math.min(height * 0.66, cam.y1 - camAlto * 0.08)
+    if (yMax - yMin < 60) { yMin = height * 0.24; yMax = height * 0.66 }
 
-    const color = Phaser.Utils.Array.GetRandom(COLORES_PEZ)
-    const img = this.add.graphics().setDepth(2)
-    this._dibujarPez(img, PEZ_W, PEZ_H, color)
-    img.x = x
-    img.y = y
-    if (Math.random() > 0.5) img.scaleX = -1
+    const x = Phaser.Math.Between(xMin, xMax)
+    const y = Phaser.Math.Between(yMin, yMax)
 
-    // Hitbox explícito en coordenadas locales (origen al centro)
-    img.setInteractive(
-      new Phaser.Geom.Rectangle(-PEZ_W / 2, -PEZ_H / 2, PEZ_W, PEZ_H),
-      Phaser.Geom.Rectangle.Contains,
-    )
+    // Nada de lado a lado: recorre entre el 20% y el 45% del ancho disponible, hacia donde haya lugar
+    const span = xMax - xMin
+    const recorrido = Phaser.Math.Between(span * 0.2, span * 0.45)
+    const dir = x + recorrido <= xMax && (x - recorrido < xMin || Math.random() < 0.5) ? 1 : -1
+    const velocidad = span * Phaser.Math.FloatBetween(0.10, 0.17) // px/s: cruzar el ancho lleva ~6–10 s
+
+    const img = this.add.image(x, y - AMPLITUD_VERTICAL, Phaser.Utils.Array.GetRandom(NOMBRES_PEZ))
+      .setDepth(2)
+      .setScale(Phaser.Math.Between(ANCHO_MIN, ANCHO_MAX) / ANCHO_TEXTURA)
+      .setFlipX(dir > 0) // el dibujo mira a la izquierda: se da vuelta para mirar hacia donde nada
+      .setInteractive()
 
     const pez = {
       id: `pez_${Date.now()}_${Phaser.Math.Between(0, 99999)}`,
@@ -201,10 +154,22 @@ export default class EscenaPrincipal extends Phaser.Scene {
 
     img.on('pointerdown', () => this.tocarPez(pez))
 
+    // Va y vuelve (frenando suave en cada punta) y se da vuelta al cambiar de sentido
     this.tweens.add({
       targets: img,
-      y: y - 14,
-      duration: 850 + Math.random() * 450,
+      x: x + dir * recorrido,
+      duration: (recorrido / velocidad) * 1000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+      onYoyo: () => img.toggleFlipX(),
+      onRepeat: () => img.toggleFlipX(),
+    })
+    // y sube y baja un poco, a otro ritmo para que no se vea sincronizado
+    this.tweens.add({
+      targets: img,
+      y: y + AMPLITUD_VERTICAL,
+      duration: 850 + Math.random() * 650,
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut',
@@ -223,13 +188,12 @@ export default class EscenaPrincipal extends Phaser.Scene {
     this.puntos++
     objetivoTocado(pez.id)
 
-    window.dispatchEvent(new CustomEvent('kinetix:surf:punto'))
-    this._despacharEstado()
+    if (!this.cronometrando) this._arrancarCronometro()
+    this.sinAcierto = 0
+    const mensaje = FELICITACIONES[(this.puntos - 1) % FELICITACIONES.length]
+    this._mostrarMensaje(mensaje, true)
 
-    if (this.instruccion < 2) {
-      this.instruccion = 2
-      this._despacharEstado()
-    }
+    window.dispatchEvent(new CustomEvent('kinetix:surf:punto', { detail: { mensaje } }))
 
     this.tweens.killTweensOf(pez.img)
     this.tweens.add({
@@ -245,18 +209,33 @@ export default class EscenaPrincipal extends Phaser.Scene {
     })
   }
 
-  _descontarTiempo() {
-    this.tiempoRestante--
+  _mostrarMensaje(clave, temporal) {
+    this.ocultarMensaje?.remove()
+    this.mensaje = clave
+    if (temporal) {
+      this.ocultarMensaje = this.time.delayedCall(MENSAJE_MS, () => {
+        this.mensaje = null
+        this._despacharEstado()
+      })
+    }
     this._despacharEstado()
-    if (this.tiempoRestante <= 0) this._finJuego()
+  }
+
+  _descontarTiempo() {
+    this.tiempo++
+    this.sinAcierto++
+    if (this.sinAcierto >= ESTANCADO_S && this.mensaje !== 'norindas') this._mostrarMensaje('norindas', false)
+    this._despacharEstado()
+    if (this.tiempo >= DURACION_JUEGO) this._finJuego()
   }
 
   _despacharEstado() {
     window.dispatchEvent(new CustomEvent('kinetix:surf', {
       detail: {
         puntos: this.puntos,
-        tiempoRestante: this.tiempoRestante,
-        instruccionActual: this.instruccion,
+        tiempo: this.tiempo,
+        cronometrando: this.cronometrando,
+        mensaje: this.mensaje,
       },
     }))
   }
@@ -266,26 +245,6 @@ export default class EscenaPrincipal extends Phaser.Scene {
     window.dispatchEvent(new CustomEvent('kinetix:surf:fin', {
       detail: { puntos: this.puntos, duracion_segundos: DURACION_JUEGO },
     }))
-    const { width, height } = this.scale
-
-    const overlay = this.add.graphics().setDepth(20)
-    overlay.fillStyle(0x000000, 0.62)
-    overlay.fillRect(0, 0, width, height)
-
-    this.add.text(width / 2, height / 2 - 40, '¡Tiempo!', {
-      fontSize: '56px',
-      color: '#ffffff',
-      fontStyle: 'bold',
-      stroke: '#000000',
-      strokeThickness: 6,
-    }).setOrigin(0.5).setDepth(21)
-
-    this.add.text(width / 2, height / 2 + 30, `Peces atrapados: ${this.puntos}`, {
-      fontSize: '32px',
-      color: '#ffdd44',
-      stroke: '#000000',
-      strokeThickness: 4,
-    }).setOrigin(0.5).setDepth(21)
   }
 
   update() {

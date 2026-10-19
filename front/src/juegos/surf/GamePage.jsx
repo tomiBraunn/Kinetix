@@ -1,32 +1,31 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import PhaserGame from './PhaserGame'
+import Escena from './Escena'
+import {
+  BarraSuperior, Contadores, ControlMusica, Consigna, Mensaje, GuiaSilueta, AntesDeEmpezar, DesafioCompletado,
+} from './pantallas'
+import { textoMensaje } from './mensajes'
 import { usePoseAI } from '../../ia/usePoseAI'
 import { kinetixAI } from '../../ia/KinetixAI'
 import { useSessionRecorder } from '../../ia/useSessionRecorder'
 import { crearSesion, finalizarSesion, subirVideosSesion, mandarEventosSesion } from '../../lib/sesiones.ts'
+import musica from '../../assets/juegos/surf/musica-fondo.mp3'
 
-const HEADER_H = 58
+const HEADER_H = 48
+const VOLUMEN_INICIAL = 0.4
 
-const INSTRUCCIONES = [
-  { num: 1, texto: 'Parate sobre la tabla de surf' },
-  { num: 2, texto: 'Tocá los peces con tus manos.' },
-]
-
-const pillStyle = {
-  background: 'rgba(255,255,255,0.92)',
-  borderRadius: 22,
-  padding: '7px 16px',
-  display: 'flex',
-  alignItems: 'center',
-  gap: 7,
-  fontSize: 15,
-  fontWeight: 600,
-  color: '#1a1a2e',
-  boxShadow: '0 2px 10px rgba(0,0,0,0.18)',
-  backdropFilter: 'blur(6px)',
-  fontFamily: 'system-ui, sans-serif',
-}
+// Fases del juego (cada una es un frame de Figma, ver pantallas.jsx):
+//   instrucciones → calibracion → preparando → consigna → jugando → completado
+// - calibracion: sobre un fondo liso, hasta que el paciente esté bien detectado y en el medio.
+// - preparando: entran el fondo (fade de 5 s), las olas y la tabla; recién después empieza el juego.
+// y desde completado "Seguir jugando" vuelve a consigna (otra ronda, otra sesión).
+const CON_PAUSA = ['calibracion', 'preparando', 'consigna', 'jugando']
+// La música suena en las mismas fases en que se puede pausar (arranca con el
+// clic en "Estoy listo": el navegador no deja reproducir audio sin un gesto).
+const CON_MUSICA = CON_PAUSA
+// El mar y el cielo no aparecen hasta que el paciente está bien detectado
+const CON_ESCENA = ['preparando', 'consigna', 'jugando', 'completado']
 
 export default function GamePage() {
   const navigate = useNavigate()
@@ -34,24 +33,36 @@ export default function GamePage() {
   const pacienteId = params.get('pacienteId')
   const sesionIdRef = useRef(null)
   const phaserRef   = useRef(null)
+  const musicaRef   = useRef(null)
   const eventosRef  = useRef([])
+  const cierreRef   = useRef(Promise.resolve()) // guardado de la ronda anterior
   const recorder = useSessionRecorder()
 
+  const [fase, setFase] = useState('instrucciones')
+  const [ronda, setRonda] = useState(1)
   const [puntos, setPuntos] = useState(0)
-  const [tiempo, setTiempo] = useState(30)
+  const [tiempo, setTiempo] = useState(0) // segundos jugados, arranca en 0
+  const [mensaje, setMensaje] = useState(null)
   const [pausado, setPausado] = useState(false)
-  const [instruccion, setInstruccion] = useState(0)
-  const [feedbackKey, setFeedbackKey] = useState(0)
-  const [mostrarFeedback, setMostrarFeedback] = useState(false)
+  // Tamaño real del área de juego. Los canvas (silueta, Phaser) se dimensionan
+  // con esto y no con window.innerHeight una sola vez al abrir: si la ventana
+  // cambia (zoom, pantalla completa, barras del navegador) quedaban más chicos
+  // que el área y cortaban el cuerpo con una línea recta.
+  const areaRef = useRef(null)
+  const [tam, setTam] = useState({ w: window.innerWidth, h: window.innerHeight - HEADER_H })
+  const [volumen, setVolumen] = useState(VOLUMEN_INICIAL)
+  const [silencio, setSilencio] = useState(false)
 
   // Arranca MediaPipe Pose con las dimensiones correctas del canvas de surf
   const { canvasRef: camaraCanvasRef, siluetaRef } = usePoseAI('surf', !pausado, HEADER_H)
 
-  // Crea sesión al montar (solo si hay paciente seleccionado) + arranca la
-  // grabación de los 3 videos
-  useEffect(() => {
+  // Crea la sesión (solo si hay paciente seleccionado) + arranca la grabación
+  // de los 3 videos. Espera a que termine de guardarse la ronda anterior
+  // porque comparten el grabador.
+  const iniciarSesion = () => {
     if (!pacienteId) return
-    crearSesion(pacienteId, 'surf')
+    cierreRef.current
+      .then(() => crearSesion(pacienteId, 'surf'))
       .then(s => {
         sesionIdRef.current = s.id
         setTimeout(() => {
@@ -62,47 +73,97 @@ export default function GamePage() {
         }, 500)
       })
       .catch(console.warn)
-  }, [pacienteId])
+  }
 
-  // Guarda resultados al terminar el juego + sube videos y eventos
+  // La sesión y las métricas arrancan con el juego, no con las instrucciones
+  // ni la calibración (ahí el paciente todavía se está acomodando).
   useEffect(() => {
-    const handler = async (e) => {
-      if (!sesionIdRef.current) return
+    if (fase !== 'consigna') return
+    kinetixAI.reiniciarMetricas()
+    window.kinetix?.empezar?.()
+    iniciarSesion()
+  }, [fase])
+
+  // Eventos de la escena de Phaser
+  useEffect(() => {
+    const estado = (e) => {
+      const d = e.detail
+      setPuntos(d.puntos)
+      setTiempo(d.tiempo)
+      setMensaje(d.mensaje)
+      // Al atrapar el primer pez deja de ser consigna y empieza el reloj
+      if (d.cronometrando) setFase(f => (f === 'consigna' ? 'jugando' : f))
+    }
+    const punto = (e) => {
+      eventosRef.current.push({ tipo: 'acierto', mensaje: textoMensaje(e.detail.mensaje) })
+    }
+    // Guarda resultados al terminar la ronda + sube videos y eventos
+    const fin = (e) => {
+      setFase('completado')
       const sesionId = sesionIdRef.current
+      const eventos = eventosRef.current
+      sesionIdRef.current = null
+      eventosRef.current = []
+      if (!sesionId) return
+
       finalizarSesion(sesionId, { juego: 'surf', ...e.detail }, kinetixAI.getMetricasResumen()).catch(console.warn)
-
-      eventosRef.current.push({ tipo: 'fin_juego', datos: e.detail })
-      const videos = await recorder.stop()
-      subirVideosSesion(sesionId, videos).catch(console.warn)
-      mandarEventosSesion(sesionId, eventosRef.current).catch(console.warn)
-
-      setTimeout(() => navigate(`/sesiones/${sesionId}`), 1800)
+      eventos.push({ tipo: 'fin_juego', datos: e.detail })
+      cierreRef.current = recorder.stop()
+        .then(videos => {
+          subirVideosSesion(sesionId, videos).catch(console.warn)
+          mandarEventosSesion(sesionId, eventos).catch(console.warn)
+        })
+        .catch(console.warn)
     }
-    window.addEventListener('kinetix:surf:fin', handler)
-    return () => window.removeEventListener('kinetix:surf:fin', handler)
+
+    window.addEventListener('kinetix:surf', estado)
+    window.addEventListener('kinetix:surf:punto', punto)
+    window.addEventListener('kinetix:surf:fin', fin)
+    return () => {
+      window.removeEventListener('kinetix:surf', estado)
+      window.removeEventListener('kinetix:surf:punto', punto)
+      window.removeEventListener('kinetix:surf:fin', fin)
+    }
   }, [])
 
   useEffect(() => {
-    const handler = (e) => {
-      const { puntos, tiempoRestante, instruccionActual } = e.detail
-      setPuntos(puntos)
-      setTiempo(tiempoRestante)
-      if (instruccionActual !== undefined) setInstruccion(instruccionActual)
-    }
-    window.addEventListener('kinetix:surf', handler)
-    return () => window.removeEventListener('kinetix:surf', handler)
+    const observador = new ResizeObserver(([e]) => {
+      const w = Math.round(e.contentRect.width)
+      const h = Math.round(e.contentRect.height)
+      setTam(t => (t.w === w && t.h === h ? t : { w, h }))
+    })
+    observador.observe(areaRef.current)
+    return () => observador.disconnect()
   }, [])
+  useEffect(() => { phaserRef.current?.redimensionar(tam.w, tam.h) }, [tam])
 
+  // Música de fondo: suena mientras se juega, se calla al pausar y al terminar la ronda
   useEffect(() => {
-    const handler = () => {
-      setMostrarFeedback(true)
-      setFeedbackKey(k => k + 1)
-      eventosRef.current.push({ tipo: 'acierto', mensaje: '¡Muy bien!' })
-      const t = setTimeout(() => setMostrarFeedback(false), 1300)
-      return () => clearTimeout(t)
-    }
-    window.addEventListener('kinetix:surf:punto', handler)
-    return () => window.removeEventListener('kinetix:surf:punto', handler)
+    const audio = musicaRef.current
+    if (!audio) return
+    if (CON_MUSICA.includes(fase) && !pausado) audio.play().catch(() => {})
+    else audio.pause()
+  }, [fase, pausado])
+  useEffect(() => {
+    const audio = musicaRef.current
+    if (!audio) return
+    audio.volume = volumen
+    audio.muted = silencio
+  }, [volumen, silencio])
+
+  // Mover el slider con la música silenciada la vuelve a activar; el botón
+  // la reactiva con el volumen de antes (o el inicial si había quedado en 0).
+  const cambiarVolumen = (v) => {
+    setVolumen(v)
+    setSilencio(v === 0)
+  }
+  const alternarSilencio = () => {
+    if (silencio && volumen === 0) setVolumen(VOLUMEN_INICIAL)
+    setSilencio(s => !s)
+  }
+  useEffect(() => {
+    const audio = musicaRef.current
+    return () => audio?.pause() // al salir del juego no puede quedar sonando
   }, [])
 
   const togglePausa = useCallback(() => {
@@ -111,112 +172,78 @@ export default function GamePage() {
     setPausado(p => !p)
   }, [pausado])
 
-  const formatTiempo = (seg) => {
-    const m = Math.floor(seg / 60).toString().padStart(2, '0')
-    const s = (seg % 60).toString().padStart(2, '0')
-    return `${m}:${s}`
+  const seguirJugando = () => {
+    setRonda(r => r + 1)
+    setFase('consigna')
   }
 
-  const instruccionActual = instruccion < 2 ? INSTRUCCIONES[instruccion] : null
-
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100vh',
-      overflow: 'hidden',
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-    }}>
+    <div className={`relative flex h-dvh flex-col overflow-hidden [font-variation-settings:'opsz'_14] ${fase === 'instrucciones' ? '' : 'bg-[linear-gradient(180deg,#141a63,#2b319c)]'}`}>
+      {/* Cielo, nubes, olas y tabla (animados): cubren toda la pantalla, también detrás de la barra.
+          Hasta que el paciente esté bien detectado hay solo un fondo liso; cuando termina de entrar
+          todo, arranca el juego. */}
+      <Escena activa={CON_ESCENA.includes(fase)} onEntro={() => setFase(f => (f === 'preparando' ? 'consigna' : f))} />
+      <audio ref={musicaRef} src={musica} loop preload="auto" />
 
-      {/* Header */}
-      <header style={{
-        height: HEADER_H,
-        background: '#dde3f0',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 16px',
-        flexShrink: 0,
-        zIndex: 30,
-        boxShadow: '0 1px 6px rgba(0,0,0,0.1)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 24, color: '#1a237e', padding: '4px 6px', lineHeight: 1 }}>
-            ☰
-          </button>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <span style={{ fontWeight: 900, fontSize: 22, background: 'linear-gradient(135deg, #e91e8c, #c2185b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: -0.5 }}>K</span>
-            <span style={{ fontWeight: 800, fontSize: 20, color: '#1a237e', letterSpacing: -0.5 }}>inetix</span>
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={togglePausa} style={{ background: 'linear-gradient(135deg, #e91e8c, #b01060)', color: '#fff', border: 'none', borderRadius: 22, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-            {pausado ? '▶ Reanudar' : 'Pausar ⏸'}
-          </button>
-          <button onClick={() => navigate('/juego')} style={{ background: '#1a237e', color: '#fff', border: 'none', borderRadius: 22, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-            Salir ↩
-          </button>
-        </div>
-      </header>
+      <BarraSuperior
+        conPausa={CON_PAUSA.includes(fase)}
+        conSalir={fase !== 'completado'}
+        pausado={pausado}
+        onPausa={togglePausa}
+        onSalir={() => navigate('/juego')}
+      />
 
       {/* Área de juego */}
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+      <div ref={areaRef} className="relative flex-1 overflow-hidden">
 
-        {/* HUD pills */}
-        <div style={{ position: 'absolute', top: 14, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 10, zIndex: 20, pointerEvents: 'none' }}>
-          <div style={pillStyle}><span>🐟</span><span>Peces: {puntos}</span></div>
-          <div style={pillStyle}><span>⏱</span><span>Tiempo: {formatTiempo(tiempo)}</span></div>
-        </div>
-
-        {/* Banner instrucción */}
-        {instruccionActual && (
-          <div style={{ position: 'absolute', top: 62, left: 16, right: 16, zIndex: 20, pointerEvents: 'none', display: 'flex', justifyContent: 'flex-start' }}>
-            <div style={{ background: 'rgba(255,255,255,0.93)', borderRadius: 28, padding: '11px 20px 11px 12px', display: 'flex', alignItems: 'center', gap: 13, boxShadow: '0 3px 18px rgba(0,0,0,0.14)', maxWidth: 420 }}>
-              <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#1a237e', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 15, flexShrink: 0 }}>
-                {instruccionActual.num}
-              </div>
-              <span style={{ fontWeight: 700, fontSize: 15, color: '#1a237e' }}>{instruccionActual.texto}</span>
-            </div>
-          </div>
-        )}
-
-        {/* ¡Muy bien! */}
-        {mostrarFeedback && (
-          <div key={feedbackKey} style={{ position: 'absolute', top: '25%', left: 0, right: 0, textAlign: 'center', zIndex: 20, pointerEvents: 'none', fontSize: 40, fontWeight: 900, color: '#2e7d32', textShadow: '0 2px 12px rgba(0,0,0,0.25)', animation: 'feedbackUp 1.3s ease-out forwards' }}>
-            ¡Muy bien!
-          </div>
-        )}
-
+        {/* Peces (canvas de Phaser, transparente) */}
         <PhaserGame ref={phaserRef} headerHeight={HEADER_H} />
 
-        {/* Cuerpo del paciente recortado por segmentación, superpuesto sobre el juego */}
+        {/* Cuerpo del paciente recortado por segmentación, sobre el mar */}
         <canvas
           ref={siluetaRef}
-          width={window.innerWidth}
-          height={window.innerHeight - HEADER_H}
+          width={tam.w}
+          height={tam.h}
           style={{ position: 'absolute', inset: 0, zIndex: 15, pointerEvents: 'none' }}
         />
 
-        {/* Vista de la cámara + esqueleto detectado por MediaPipe, en vivo */}
+        {/* Cámara + esqueleto de MediaPipe. El diseño no la muestra, pero la
+            grabación del video de landmarks necesita que el canvas se siga
+            dibujando, así que queda invisible en vez de sacarla. */}
         <canvas
           ref={camaraCanvasRef}
           width={180}
           height={135}
-          style={{
-            position: 'absolute', bottom: 14, right: 14, zIndex: 20,
-            borderRadius: 12, border: '2px solid rgba(255,255,255,0.85)',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
-          }}
+          aria-hidden="true"
+          style={{ position: 'absolute', bottom: 14, right: 14, opacity: 0, pointerEvents: 'none' }}
         />
-      </div>
 
-      <style>{`
-        @keyframes feedbackUp {
-          0%   { opacity: 1; transform: translateY(0) scale(1); }
-          20%  { opacity: 1; transform: translateY(-8px) scale(1.08); }
-          100% { opacity: 0; transform: translateY(-40px) scale(0.95); }
-        }
-      `}</style>
+        {fase !== 'instrucciones' && <Contadores puntos={puntos} tiempo={tiempo} />}
+        {CON_MUSICA.includes(fase) && (
+          <ControlMusica volumen={volumen} silencio={silencio} onVolumen={cambiarVolumen} onSilencio={alternarSilencio} />
+        )}
+
+        {fase === 'calibracion' && (
+          <>
+            <Consigna num={1} texto="Ponete en el centro, dentro de la silueta." />
+            <GuiaSilueta
+              pausado={pausado}
+              onListo={(vista) => {
+                kinetixAI.fijarVista(vista) // alinea (y si hace falta "aleja") la imagen del paciente con la silueta
+                setFase('preparando')
+              }}
+            />
+          </>
+        )}
+        {fase === 'preparando' && <Consigna num="✓" texto="¡Muy bien! Quedate ahí, ya empezamos." />}
+        {fase === 'consigna' && <Consigna num={2} texto="Tocá los peces con tus manos." />}
+        {fase === 'jugando' && mensaje && <Mensaje clave={mensaje} />}
+
+        {fase === 'instrucciones' && <AntesDeEmpezar onListo={() => setFase('calibracion')} />}
+        {fase === 'completado' && (
+          <DesafioCompletado ronda={ronda} onSeguir={seguirJugando} onVolver={() => navigate('/juego')} />
+        )}
+      </div>
     </div>
   )
 }

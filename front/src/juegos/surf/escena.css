@@ -1,0 +1,54 @@
+/* Escena animada del Surf (ver Escena.jsx).
+   Entrada, en este orden: fondo (fade de 5 s) → olas → tabla → nubes. Después, movimiento suave y continuo.
+   Si se cambian los tiempos, actualizar también ENTRADA_MS en Escena.jsx (cuándo arranca el juego).
+   Solo se animan transform y opacity (los resuelve la GPU, no cuestan layout). */
+
+.escena { container-type: size; }
+
+/* Antes de arrancar todo está oculto; al activarse corre la secuencia de entrada. */
+.escena .capa { opacity: 0; }
+.escena.activa .capa            { animation: aparecer 5s ease-in-out both; }                                      /* fondo (cielo)   0 → 5 s */
+.escena.activa .capa.mar        { animation: subir-mar 1s cubic-bezier(.2, .8, .3, 1) 5s both; }                  /* olas            5 s */
+.escena.activa .capa.tabla      { animation: subir-tabla .9s cubic-bezier(.2, 1.3, .4, 1) 6s both; }              /* tabla           6 s */
+.escena.activa .capa.nube       { animation: var(--entrada) 1.3s ease-out calc(7s + var(--i) * .15s) both; }      /* nubes           7 s + escalonadas */
+
+/* Movimiento continuo (en elementos interiores, para no pisar la animación de entrada) */
+.escena.activa .marea    { animation: marea 5.5s ease-in-out 6s infinite; }
+.escena.activa .ola      { animation: ondular 4.4s ease-in-out infinite; animation-delay: calc(var(--i) * -0.17s); }
+.escena.activa .balanceo { animation: balanceo 3.6s ease-in-out 6.9s infinite; }
+.escena.activa .deriva     { animation: deriva 12s ease-in-out infinite; animation-delay: calc(var(--i) * -3s); }
+.escena.activa .deriva-izq { animation: deriva-izq 14s ease-in-out infinite; animation-delay: calc(var(--i) * -3s); }
+.escena.activa .deriva-der { animation: deriva-der 14s ease-in-out infinite; animation-delay: calc(var(--i) * -3s); }
+
+/* Las olas son tiras horizontales del mar que se corren un poco, desfasadas: el agua "ondula".
+   Cada tira se estira 1 px sobre la siguiente (y se compensa con el margen): sin ese solape,
+   las alturas fraccionarias dejan finas costuras que dejan ver el fondo. */
+.escena .mar { container-type: size; }   /* 100cqh = alto real del mar */
+.escena .ola {
+  height: calc(100cqh / var(--n) + 1px);
+  margin-bottom: -1px;
+  background-image: var(--img);
+  background-size: 100% 100cqh;
+  background-position: 0 calc(var(--i) * -100cqh / var(--n));
+}
+
+@keyframes aparecer      { from { opacity: 0 } to { opacity: 1 } }
+@keyframes subir-mar     { from { opacity: 0; transform: translateY(7%) } to { opacity: 1; transform: none } }
+@keyframes subir-tabla   { from { opacity: 0; transform: translateY(80%) scale(.85) } to { opacity: 1; transform: none } }
+@keyframes entrar-izq    { from { opacity: 0; transform: translateX(-70%) } to { opacity: 1; transform: none } }
+@keyframes entrar-der    { from { opacity: 0; transform: translateX(70%) } to { opacity: 1; transform: none } }
+@keyframes entrar-centro { from { opacity: 0; transform: translateY(20%) scale(.7) } to { opacity: 1; transform: none } }
+
+@keyframes marea      { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-1.1%) } }
+@keyframes ondular    { 0%, 100% { transform: translateX(-3px) } 50% { transform: translateX(3px) } }
+@keyframes balanceo   { 0%, 100% { transform: rotate(-1.6deg) } 50% { transform: rotate(1.6deg) translateY(1.5%) } }
+/* Las nubes pegadas a un borde de la imagen solo se corren hacia afuera: si no, se vería el corte del borde. */
+@keyframes deriva     { 0%, 100% { transform: translateX(-5%) } 50% { transform: translateX(5%) } }
+@keyframes deriva-izq { 0%, 100% { transform: translateX(0) }   50% { transform: translateX(-5%) } }
+@keyframes deriva-der { 0%, 100% { transform: translateX(0) }   50% { transform: translateX(5%) } }
+
+/* Accesibilidad: quien pidió menos movimiento ve la escena completa y quieta. */
+@media (prefers-reduced-motion: reduce) {
+  .escena .capa { opacity: 1 !important; }
+  .escena * { animation: none !important; }
+}

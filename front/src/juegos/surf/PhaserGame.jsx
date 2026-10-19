@@ -3,21 +3,24 @@ import Phaser from 'phaser'
 import EscenaPrincipal from './EscenaPrincipal'
 import { openCamera, closeCamera } from '../../ia/CameraStream'
 
+// Solo el canvas de Phaser (los peces, transparente). El fondo de mar y la tabla
+// los pone GamePage, y el paciente aparece recortado en su propio canvas (silueta).
+// No se muestra el video de la cámara: la silueta se ve sobre el mar.
 const PhaserGame = forwardRef(function PhaserGame({ headerHeight = 0 }, ref) {
   const contenedorRef = useRef(null)
-  const videoRef      = useRef(null)
   const gameRef       = useRef(null)
 
   useImperativeHandle(ref, () => ({
     getGameCanvas: () => gameRef.current?.canvas ?? null,
+    // El canvas de Phaser tiene que seguir el tamaño del área si la ventana cambia
+    redimensionar: (w, h) => gameRef.current?.scale.resize(w, h),
   }), [])
 
   useEffect(() => {
     if (gameRef.current) return
 
-    openCamera()
-      .then(stream => { if (videoRef.current) videoRef.current.srcObject = stream })
-      .catch(err => console.warn('Cámara no disponible:', err))
+    // Abre la cámara; usePoseAI y la grabación toman el stream compartido
+    openCamera().catch(err => console.warn('Cámara no disponible:', err))
 
     gameRef.current = new Phaser.Game({
       type: Phaser.AUTO,
@@ -35,25 +38,7 @@ const PhaserGame = forwardRef(function PhaserGame({ headerHeight = 0 }, ref) {
     }
   }, [])
 
-  return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: '#1a6eaa' }}>
-      <video
-        ref={videoRef}
-        autoPlay playsInline muted
-        style={{
-          position: 'absolute', top: 0, left: 0,
-          width: '100%', height: '100%',
-          objectFit: 'cover',
-          transform: 'scaleX(-1)',
-          zIndex: 0,
-        }}
-      />
-      <div
-        ref={contenedorRef}
-        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1 }}
-      />
-    </div>
-  )
+  return <div ref={contenedorRef} className="absolute inset-0 z-[1]" />
 })
 
 export default PhaserGame
