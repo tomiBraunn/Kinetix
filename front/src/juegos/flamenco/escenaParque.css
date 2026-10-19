@@ -34,73 +34,12 @@
 @keyframes parque-pop           { from { opacity: 0; transform: scale(.6) } to { opacity: 1; transform: none } }
 
 /* Las capas miden lo mismo que el marco, así que los % son del marco entero (no del objeto dibujado).
-   Las que están pegadas a un borde de la imagen solo se corren hacia afuera: si no, se vería el corte. */
+   Las que están pegadas a un borde de la imagen solo se corren hacia afuera: si no, se vería el corte.
+   Las nubes siguen un poco por detrás de los árboles (ver las capas), así que el corrimiento no deja un recorte. */
 @keyframes parque-deriva     { 0%, 100% { transform: translateX(-2.4%) } 50% { transform: translateX(2.4%) } }
 @keyframes parque-deriva-izq { 0%, 100% { transform: translateX(0) }     50% { transform: translateX(-2.4%) } }
 @keyframes parque-deriva-der { 0%, 100% { transform: translateX(0) }     50% { transform: translateX(2.4%) } }
 @keyframes parque-mecer      { 0%, 100% { transform: rotate(-1.4deg) }   50% { transform: rotate(1.4deg) } }
-
-/* ── Reemplazo CSS (se usa solo mientras no haya capas reales; ver REEMPLAZO en EscenaParque.jsx) ──
-   Cada dibujo ocupa su capa entera y se posiciona con % del alto/ancho de la pantalla. Los tamaños
-   de las nubes van en cqmin (la medida menor de la escena) para que no se deformen en una compu. */
-
-/* Cielo celeste vivo arriba que se aclara hacia el horizonte (~55 % del alto), con un brillo de sol.
-   Sigue por detrás del césped, así que los bordes redondeados de las colinas dejan ver el cielo. */
-.parque .cielo-css {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 82% 6%, rgba(255, 255, 255, .45), rgba(255, 255, 255, 0) 20%),
-    linear-gradient(180deg, #1c8cf0 0%, #48aefb 28%, #8fd4ff 46%, #d2f0ff 58%);
-}
-
-.parque .nube-css {
-  --w: 46cqmin;
-  position: absolute;
-  left: 4%;
-  top: 29%;   /* por debajo del banner de la consigna, que tapa esa franja */
-  width: var(--w);
-  height: calc(var(--w) * .22);
-  border-radius: 999px;
-  background: #fff;
-  opacity: .95;   /* en el div, no en cada pieza: las tres se funden en una sola nube */
-}
-.parque .nube-css::before,
-.parque .nube-css::after {
-  content: '';
-  position: absolute;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: #fff;
-}
-.parque .nube-css::before { left: 14%; bottom: 35%; width: 34%; }
-.parque .nube-css::after  { left: 40%; bottom: 20%; width: 42%; }
-.parque .nube-css-2 { --w: 32cqmin; left: auto; right: 3%; top: 41%; }
-
-/* Césped: dos colinas con el borde superior redondeado, una más clara al fondo y otra al frente.
-   El horizonte queda entre el 52 % y el 58 % del alto. */
-.parque .cesped-css { position: absolute; inset: 0; }
-.parque .cesped-css::before,
-.parque .cesped-css::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  box-shadow: inset 0 3px 0 rgba(255, 255, 255, .3);   /* un reborde de luz que sigue la curva */
-}
-.parque .cesped-css::before {
-  left: -30%;
-  right: -25%;
-  top: 52%;
-  border-radius: 50% 50% 0 0 / 14% 14% 0 0;
-  background: linear-gradient(180deg, #a3ec6c 0%, #70d84e 100%);
-}
-.parque .cesped-css::after {
-  left: -40%;
-  right: -5%;
-  top: 57%;
-  border-radius: 50% 50% 0 0 / 12% 12% 0 0;
-  background: linear-gradient(180deg, #84e052 0%, #47c441 45%, #2ba43a 100%);
-}
 
 /* Accesibilidad: quien pidió menos movimiento ve la escena completa y quieta (cuando se activa). */
 @media (prefers-reduced-motion: reduce) {
