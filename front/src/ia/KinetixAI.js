@@ -161,10 +161,22 @@ class KinetixAI {
     const w = this.overlayCanvas.width
     const h = this.overlayCanvas.height
 
+    // El cuerpo entero queda dentro del cuadro sin estirar el video: si la proporción
+    // no coincide sobran franjas a los costados (se pintan del color de fondo).
+    const vw = this.video.videoWidth || w
+    const vh = this.video.videoHeight || h
+    const escala = Math.min(w / vw, h / vh)
+    const dw = vw * escala
+    const dh = vh * escala
+    const dx = (w - dw) / 2
+    const dy = (h - dh) / 2
+
     ctx.save()
     ctx.translate(w, 0)
     ctx.scale(-1, 1)
-    ctx.drawImage(this.video, 0, 0, w, h)
+    ctx.fillStyle = '#0F1387'
+    ctx.fillRect(0, 0, w, h)
+    ctx.drawImage(this.video, dx, dy, dw, dh)
 
     if (landmarks) {
       ctx.strokeStyle = '#34D399'
@@ -174,15 +186,15 @@ class KinetixAI {
         const p2 = landmarks[b]
         if (!p1 || !p2) continue
         ctx.beginPath()
-        ctx.moveTo(p1.x * w, p1.y * h)
-        ctx.lineTo(p2.x * w, p2.y * h)
+        ctx.moveTo(dx + p1.x * dw, dy + p1.y * dh)
+        ctx.lineTo(dx + p2.x * dw, dy + p2.y * dh)
         ctx.stroke()
       }
       ctx.fillStyle = '#F472B6'
       for (const lm of landmarks) {
         if ((lm.visibility ?? 1) < 0.3) continue
         ctx.beginPath()
-        ctx.arc(lm.x * w, lm.y * h, 3, 0, Math.PI * 2)
+        ctx.arc(dx + lm.x * dw, dy + lm.y * dh, 3, 0, Math.PI * 2)
         ctx.fill()
       }
     }

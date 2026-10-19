@@ -207,16 +207,17 @@ export default function GamePage() {
           style={{ position: 'absolute', inset: 0, zIndex: 15, pointerEvents: 'none' }}
         />
 
-        {/* Cámara + esqueleto de MediaPipe. El diseño no la muestra, pero la
-            grabación del video de landmarks necesita que el canvas se siga
-            dibujando, así que queda invisible en vez de sacarla. */}
-        <canvas
-          ref={camaraCanvasRef}
-          width={180}
-          height={135}
-          aria-hidden="true"
-          style={{ position: 'absolute', bottom: 14, right: 14, opacity: 0, pointerEvents: 'none' }}
-        />
+        {/* Cámara + esqueleto de MediaPipe, abajo a la izquierda. Es el mismo canvas
+            que se graba en el video de landmarks. */}
+        <div className={`pointer-events-none absolute inset-x-0 bottom-[15px] z-20 mx-auto max-w-[402px] px-[15px] ${fase === 'instrucciones' ? 'invisible' : ''}`}>
+          <canvas
+            ref={camaraCanvasRef}
+            width={180}
+            height={135}
+            aria-hidden="true"
+            className="block h-[99px] w-[133px] rounded-[10px] border border-[#e3e3e3] shadow-[0_1.966px_1.966px_rgba(0,0,0,0.25)]"
+          />
+        </div>
 
         {fase !== 'instrucciones' && <Contadores puntos={puntos} tiempo={tiempo} />}
         {CON_MUSICA.includes(fase) && (

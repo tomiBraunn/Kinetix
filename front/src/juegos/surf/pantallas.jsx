@@ -68,14 +68,15 @@ export function Contadores({ puntos, tiempo }) {
 }
 
 // ─── Volumen de la música ───────────────────────────────────────────────────
-// Abajo a la izquierda, con el mismo estilo de pastilla que los contadores
-// (el diseño de Figma no trae este control). Silenciado, el slider queda en 0
-// pero se acuerda del volumen anterior para cuando se vuelve a activar.
+// Abajo a la derecha (abajo a la izquierda está el esqueleto de la detección), con el
+// mismo estilo de pastilla que los contadores (el diseño de Figma no trae este control).
+// Silenciado, el slider queda en 0 pero se acuerda del volumen anterior para cuando se
+// vuelve a activar.
 export function ControlMusica({ volumen, silencio, onVolumen, onSilencio }) {
   const nivel = silencio ? 0 : volumen
   const icono = nivel === 0 ? 'volume_off' : nivel < 0.5 ? 'volume_down' : 'volume_up'
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-[15px] z-20 mx-auto max-w-[402px] px-[15px]">
+    <div className="pointer-events-none absolute inset-x-0 bottom-[15px] z-20 mx-auto flex max-w-[402px] justify-end px-[15px]">
       <div className="pointer-events-auto flex h-[38px] w-fit items-center gap-1 rounded-[10px] border border-[#e3e3e3] bg-[rgba(228,226,235,0.75)] pl-1 pr-3 shadow-[0_1.966px_1.966px_rgba(0,0,0,0.25)]">
         <button
           onClick={onSilencio}

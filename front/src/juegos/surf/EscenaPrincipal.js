@@ -4,7 +4,7 @@ import { kinetixAI } from '../../ia/KinetixAI'
 import { FELICITACIONES } from './mensajes'
 import pecesUrl from '../../assets/juegos/surf/peces.png'
 
-const NUM_PECES = 4
+const NUM_PECES = 2
 const DURACION_JUEGO = 30
 const ESTANCADO_S = 6      // segundos sin atrapar nada → "¡No te rindas!"
 const MENSAJE_MS = 3000    // cuánto se muestra cada felicitación

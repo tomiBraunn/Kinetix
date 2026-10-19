@@ -6,6 +6,7 @@ import { openCamera, closeCamera } from '../../ia/CameraStream'
 // Solo el canvas de Phaser (los peces, transparente). El fondo de mar y la tabla
 // los pone GamePage, y el paciente aparece recortado en su propio canvas (silueta).
 // No se muestra el video de la cámara: la silueta se ve sobre el mar.
+// Va por encima de la silueta: los peces quedan delante de la persona.
 const PhaserGame = forwardRef(function PhaserGame({ headerHeight = 0 }, ref) {
   const contenedorRef = useRef(null)
   const gameRef       = useRef(null)
@@ -38,7 +39,7 @@ const PhaserGame = forwardRef(function PhaserGame({ headerHeight = 0 }, ref) {
     }
   }, [])
 
-  return <div ref={contenedorRef} className="absolute inset-0 z-[1]" />
+  return <div ref={contenedorRef} className="absolute inset-0 z-[17]" />
 })
 
 export default PhaserGame
