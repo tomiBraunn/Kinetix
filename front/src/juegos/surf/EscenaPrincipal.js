@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import { reiniciarReaccion, objetivoAparece, objetivoTocado } from '../../ia/reaccion'
 import { kinetixAI } from '../../ia/KinetixAI'
 import { FELICITACIONES } from './mensajes'
+import { cuerpoEnPantalla, elegirPunto, recorridoAlejandose } from './aparicion'
 import pecesUrl from '../../assets/juegos/surf/peces.png'
 
 const NUM_PECES = 2
@@ -131,13 +132,17 @@ export default class EscenaPrincipal extends Phaser.Scene {
     let yMax = Math.min(height * 0.66, cam.y1 - camAlto * 0.08)
     if (yMax - yMin < 60) { yMin = height * 0.24; yMax = height * 0.66 }
 
-    const x = Phaser.Math.Between(xMin, xMax)
-    const y = Phaser.Math.Between(yMin, yMax)
+    // A una distancia mínima del cuerpo (ver aparicion.js): antes caían encima del pecho del paciente y
+    // los tocaba sin estirar el brazo. Sin el tronco a la vista (la IA no lo ve) queda como siempre.
+    const cuerpo = cuerpoEnPantalla(kinetixAI.ultimosLandmarks, (lm) => kinetixAI.aPantalla(lm))
+    const { x, y } = elegirPunto({ xMin, xMax, yMin, yMax }, cuerpo)
 
-    // Nada de lado a lado: recorre entre el 20% y el 45% del ancho disponible, hacia donde haya lugar
+    // Nada de lado a lado: recorre entre el 20% y el 45% del ancho disponible. Con cuerpo, hacia afuera (así
+    // va y vuelve sin pasar nunca más cerca de lo que apareció); sin cuerpo, hacia donde haya lugar.
     const span = xMax - xMin
-    const recorrido = Phaser.Math.Between(span * 0.2, span * 0.45)
-    const dir = x + recorrido <= xMax && (x - recorrido < xMin || Math.random() < 0.5) ? 1 : -1
+    let recorrido = Phaser.Math.Between(span * 0.2, span * 0.45)
+    let dir = x + recorrido <= xMax && (x - recorrido < xMin || Math.random() < 0.5) ? 1 : -1
+    if (cuerpo) ({ dir, recorrido } = recorridoAlejandose(x, cuerpo, xMin, xMax, recorrido))
     const velocidad = span * Phaser.Math.FloatBetween(0.10, 0.17) // px/s: cruzar el ancho lleva ~6–10 s
 
     const img = this.add.image(x, y - AMPLITUD_VERTICAL, Phaser.Utils.Array.GetRandom(NOMBRES_PEZ))
