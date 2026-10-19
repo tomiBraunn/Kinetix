@@ -18,16 +18,22 @@ export function usePoseAI(gameMode, enabled = true, headerH = 0) {
   const canvasRef = useRef(null)
   const siluetaRef = useRef(null)
   const pausadaRef = useRef(false) // venía de una pausa: al reanudar se conserva lo acumulado
+  const corrioRef = useRef(false)  // ya detectó alguna vez: el primer arranque no es una reanudación
 
   useEffect(() => {
     if (!enabled) {
       kinetixAI.stop()
-      pausadaRef.current = true
+      // Solo es "pausa" si ya había arrancado: antes de la primera vez (instrucciones) hay que empezar de
+      // cero, porque el singleton trae la vista y las métricas del juego anterior.
+      pausadaRef.current = corrioRef.current
+      // Mientras no detecta (instrucciones, pausa) se adelanta la carga del modelo, que tarda
+      kinetixAI.init().catch(() => { /* si falla, start() lo vuelve a intentar y avisa */ })
       return
     }
 
     const reanudando = pausadaRef.current
     pausadaRef.current = false
+    corrioRef.current = true
     const canvasW = window.innerWidth
     const canvasH = window.innerHeight - headerH
 

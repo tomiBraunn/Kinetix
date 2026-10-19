@@ -7,12 +7,14 @@ import {
 } from './pantallas'
 import { textoMensaje } from './mensajes'
 import { usePoseAI } from '../../ia/usePoseAI'
+import { useColumnaTV } from '../columnaTV'
 import { kinetixAI } from '../../ia/KinetixAI'
 import { useSessionRecorder } from '../../ia/useSessionRecorder'
 import { crearSesion, finalizarSesion, subirVideosSesion, mandarEventosSesion } from '../../lib/sesiones.ts'
 import { hablar, callar, desbloquear, useVoz } from '../../ia/voz'
 import Mascota from '../Mascota'
 import BotonVoz from '../BotonVoz'
+import BotonGirarCamara from '../BotonGirarCamara'
 import musica from '../../assets/juegos/surf/musica-fondo.mp3'
 
 const HEADER_H = 48
@@ -64,12 +66,14 @@ export default function GamePage() {
   // cambia (zoom, pantalla completa, barras del navegador) quedaban más chicos
   // que el área y cortaban el cuerpo con una línea recta.
   const areaRef = useRef(null)
+  const estiloArea = useColumnaTV(HEADER_H) // en una pantalla apaisada (TV) el área es una columna agrandada
   const [tam, setTam] = useState({ w: window.innerWidth, h: window.innerHeight - HEADER_H })
   const [volumen, setVolumen] = useState(VOLUMEN_INICIAL)
   const [silencio, setSilencio] = useState(false)
 
   // Arranca MediaPipe Pose con las dimensiones correctas del canvas de surf
-  const { canvasRef: camaraCanvasRef, siluetaRef } = usePoseAI('surf', !pausado, HEADER_H)
+  // En "Antes de empezar" no hay nada que detectar: se ahorra el análisis (el modelo se va cargando igual)
+  const { canvasRef: camaraCanvasRef, siluetaRef } = usePoseAI('surf', !pausado && fase !== 'instrucciones', HEADER_H)
 
   // Crea la sesión (solo si hay paciente seleccionado) + arranca la grabación
   // de los 3 videos. Espera a que termine de guardarse la ronda anterior
@@ -227,7 +231,7 @@ export default function GamePage() {
       />
 
       {/* Área de juego */}
-      <div ref={areaRef} className="relative flex-1 overflow-hidden">
+      <div ref={areaRef} style={estiloArea} className="relative flex-1 overflow-hidden">
 
         {/* Peces (canvas de Phaser, transparente) */}
         <PhaserGame ref={phaserRef} headerHeight={HEADER_H} />
@@ -257,7 +261,7 @@ export default function GamePage() {
           <ControlMusica volumen={volumen} silencio={silencio} onVolumen={cambiarVolumen} onSilencio={alternarSilencio} />
         )}
 
-        {fase !== 'instrucciones' && <BotonVoz posicion="bottom-[61px]" />}
+        {fase !== 'instrucciones' && <BotonVoz posicion="bottom-[61px]">{fase === 'calibracion' && <BotonGirarCamara />}</BotonVoz>}
 
         {fase === 'calibracion' && (
           <>

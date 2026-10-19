@@ -2,6 +2,7 @@ import { PoseLandmarker, FilesetResolver } from '@mediapipe/tasks-vision'
 import { tiempoReaccionMediana } from './reaccion'
 import { eficienciaDeTrayecto, coordinacionScore } from './trayectoria'
 import { medirPiernas, evaluarPierna } from './piernas'
+import { leerRotacion } from './rotacion'
 
 const WASM_URL  = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm'
 const MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task'
@@ -21,6 +22,10 @@ const LM = {
   TOBILLO_IZQ: 27,
   TOBILLO_DER: 28,
 }
+
+// Separación mínima entre dos análisis. Un poco menos que un cuadro a 30 fps (33 ms) para no perder
+// ninguno por el redondeo de requestAnimationFrame.
+const INTERVALO_MIN_MS = 30
 
 // Vista sin alejar: el video centrado y a escala 1 (ver KinetixAI._encuadre)
 const VISTA_BASE = { s: 1, px: 0.5, py: 0.5, qx: 0.5, qy: 0.5 }
@@ -49,6 +54,9 @@ class KinetixAI {
     this.video = null
     this._rafId = null
     this._lastTs = -1
+    this._rotacion = 0     // grados que se gira la imagen de la cámara (ver rotacion.js)
+    this._rotCanvas = null // copia girada del video, solo si _rotacion != 0
+    this._fuente = null    // lo que se analizó y dibujó en el último cuadro: el video o su copia girada
     this.ultimosLandmarks = null
     this._piernaLevantada = false
     this._piernaCnt = 0   // frames consecutivos con pierna arriba/abajo
@@ -67,8 +75,15 @@ class KinetixAI {
     this._eficiencias = []      // eficiencia (0–1) del trayecto de cada toque (coordinación)
   }
 
-  async init() {
-    if (this.landmarker) return
+  // Una sola carga aunque se pida varias veces: el hook la adelanta mientras el paciente lee las
+  // instrucciones y start() la vuelve a pedir; sin esto se bajaría y armaría el modelo dos veces.
+  init() {
+    if (this.landmarker) return Promise.resolve()
+    this._cargando ??= this._cargar().finally(() => { this._cargando = null })
+    return this._cargando
+  }
+
+  async _cargar() {
     console.log('[KinetixAI] Cargando modelo MediaPipe...')
 
     const vision = await FilesetResolver.forVisionTasks(WASM_URL)
@@ -112,6 +127,8 @@ class KinetixAI {
     this.siluetaCanvas = siluetaCanvas ?? null
     this.siluetaCtx = siluetaCanvas?.getContext('2d') ?? null
     this.running = true
+    this._lastTs = -1
+    this._rotacion = leerRotacion()
     if (!reanudando) {
       this._piernaLevantada = false
       this._piernaCnt = 0
@@ -170,10 +187,14 @@ class KinetixAI {
   _loop() {
     if (!this.running) return
     const now = performance.now()
-    if (now !== this._lastTs && this.video?.readyState >= 2) {
+    // La cámara entrega ~30 cuadros/s pero requestAnimationFrame corre a 60 (o 120): sin este tope se
+    // analizaba el mismo cuadro dos veces, con silueta y overlay incluidos. No se compara el
+    // `currentTime` del video porque en un stream en vivo no avanza igual en todos los navegadores.
+    if (now - this._lastTs >= INTERVALO_MIN_MS && this.video?.readyState >= 2) {
       this._lastTs = now
       try {
-        const result = this.landmarker.detectForVideo(this.video, now)
+        const fuente = this._fuente = this._fuenteActual()
+        const result = this.landmarker.detectForVideo(fuente, now)
         const landmarks = result.landmarks[0] ?? null
         const mask = result.segmentationMasks?.[0] ?? null
         this.ultimosLandmarks = landmarks // la calibración del Surf los lee desde React
@@ -188,6 +209,44 @@ class KinetixAI {
     this._rafId = requestAnimationFrame(() => this._loop())
   }
 
+  // ─── Cámara girada ────────────────────────────────────────────────────────
+  // Con la cámara de costado el paciente llega acostado en la imagen. Se gira el cuadro antes de analizarlo
+  // y todo lo demás (silueta, overlay, calibración, toques) trabaja con la imagen ya parada.
+  get rotacion() {
+    return this._rotacion
+  }
+
+  fijarRotacion(grados) {
+    this._rotacion = grados
+  }
+
+  // Tamaño de la imagen que se analiza (la del video, o su copia girada: con 90°/270° se cruzan).
+  _dimsFuente() {
+    const vw = this.video?.videoWidth
+    const vh = this.video?.videoHeight
+    return this._rotacion % 180 ? { vw: vh, vh: vw } : { vw, vh }
+  }
+
+  _fuenteActual() {
+    return this._rotacion ? this._girada(this.video, this.video.videoWidth, this.video.videoHeight) : this.video
+  }
+
+  // Copia de `origen` (vw×vh) girada `_rotacion` grados en sentido horario, en un canvas reusado.
+  _girada(origen, vw, vh) {
+    const g = this._rotacion
+    const [w, h] = g % 180 ? [vh, vw] : [vw, vh]
+    this._rotCanvas ??= document.createElement('canvas')
+    const c = this._rotCanvas
+    if (c.width !== w || c.height !== h) { c.width = w; c.height = h }
+    const ctx = c.getContext('2d')
+    ctx.save()
+    ctx.translate(w / 2, h / 2)
+    ctx.rotate((g * Math.PI) / 180)
+    ctx.drawImage(origen, -vw / 2, -vh / 2, vw, vh)
+    ctx.restore()
+    return c
+  }
+
   // Dibuja el video de la cámara (en espejo) + los landmarks detectados sobre
   // el canvas de overlay — para que la detección sea visible en pantalla/video.
   _drawOverlay(landmarks) {
@@ -197,8 +256,9 @@ class KinetixAI {
 
     // El cuerpo entero queda dentro del cuadro sin estirar el video: si la proporción
     // no coincide sobran franjas a los costados (se pintan del color de fondo).
-    const vw = this.video.videoWidth || w
-    const vh = this.video.videoHeight || h
+    const dims = this._dimsFuente()
+    const vw = dims.vw || w
+    const vh = dims.vh || h
     const escala = Math.min(w / vw, h / vh)
     const dw = vw * escala
     const dh = vh * escala
@@ -210,7 +270,7 @@ class KinetixAI {
     ctx.scale(-1, 1)
     ctx.fillStyle = '#0F1387'
     ctx.fillRect(0, 0, w, h)
-    ctx.drawImage(this.video, dx, dy, dw, dh)
+    ctx.drawImage(this._fuente, dx, dy, dw, dh)
 
     if (landmarks) {
       ctx.strokeStyle = '#34D399'
@@ -274,7 +334,8 @@ class KinetixAI {
     // La silueta se encuadra como object-fit: cover (conserva la proporción y
     // recorta los bordes); si se estira el frame al tamaño del canvas queda
     // deformada. Ver _encuadre().
-    const { dx, dy, dw, dh } = this._encuadre(w, h, this.video.videoWidth || mw, this.video.videoHeight || mh)
+    const dims = this._dimsFuente()
+    const { dx, dy, dw, dh } = this._encuadre(w, h, dims.vw || mw, dims.vh || mh)
 
     ctx.save()
     // Mismo espejo que el resto de los overlays (el video se ve como espejo)
@@ -284,7 +345,7 @@ class KinetixAI {
     // source-in: solo queda lo que se dibuje ahora donde ya había alfa
     // (la silueta) — recorta el video con la forma de la máscara.
     ctx.globalCompositeOperation = 'source-in'
-    ctx.drawImage(this.video, dx, dy, dw, dh)
+    ctx.drawImage(this._fuente, dx, dy, dw, dh)
     ctx.restore()
 
     // Con la vista alejada el borde de abajo del video puede quedar a mitad de
@@ -306,7 +367,7 @@ class KinetixAI {
   // Encuadre base del video: object-fit: cover dentro de un canvas w×h (se
   // agranda hasta cubrir y se recorta el sobrante). Con la misma proporción
   // da (0,0,w,h).
-  _encuadreBase(w, h, vw = this.video?.videoWidth, vh = this.video?.videoHeight) {
+  _encuadreBase(w, h, vw = this._dimsFuente().vw, vh = this._dimsFuente().vh) {
     if (!vw || !vh) return { dx: 0, dy: 0, dw: w, dh: h }
     const escala = Math.max(w / vw, h / vh)
     const dw = vw * escala

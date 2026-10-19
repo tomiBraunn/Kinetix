@@ -179,8 +179,10 @@ export function GuiaSilueta({ pausado, onListo, requiere = 'torso' }) {
       // Guía y área de juego en píxeles del canvas del juego (mismo origen que aPantalla)
       const a = el.offsetParent.getBoundingClientRect()
       const r = el.getBoundingClientRect()
-      const guia = { left: r.left - a.left, top: r.top - a.top, width: r.width, height: r.height }
-      const area = { w: a.width, h: a.height }
+      // En una pantalla apaisada (TV) el área está agrandada con transform: se vuelve a px del canvas
+      const k = r.width / el.offsetWidth || 1
+      const guia = { left: (r.left - a.left) / k, top: (r.top - a.top) / k, width: r.width / k, height: r.height / k }
+      const area = { w: a.width / k, h: a.height / k }
       const base = kinetixAI.encuadreBase()
 
       const ev = evaluar(lms, base, guia, area, requiere)
@@ -204,7 +206,7 @@ export function GuiaSilueta({ pausado, onListo, requiere = 'torso' }) {
       <div
         ref={guiaRef}
         aria-hidden="true"
-        className="pointer-events-none absolute bottom-2 left-1/2 z-[16] aspect-[315/605] h-[min(69.2dvh,150vw)] -translate-x-[45.7%]"
+        className="pointer-events-none absolute bottom-2 left-1/2 z-[16] aspect-[315/605] h-[min(73.2%,150vw)] -translate-x-[45.7%]"
       >
         <div className="absolute inset-[4.17%_13.6%_8.71%_13.6%]">
           <div className="absolute inset-[-0.66%_-1.44%_-0.63%_-1.23%]">

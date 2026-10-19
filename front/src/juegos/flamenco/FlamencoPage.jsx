@@ -12,11 +12,13 @@ import { PASOS, REPETICIONES, estadoInicial, reducir, segundosSostenidos, resume
 import { consigna as consignaDe, TARJETA_COMENZAR, tarjetaDescanso, TARJETA_COMPLETADO } from './mensajes'
 import { dibujarHud } from './hud'
 import { usePoseAI } from '../../ia/usePoseAI'
+import { useColumnaTV } from '../columnaTV'
 import { kinetixAI } from '../../ia/KinetixAI'
 import { openCamera, closeCamera } from '../../ia/CameraStream'
 import { useSessionRecorder } from '../../ia/useSessionRecorder'
 import { hablar, callar, desbloquear, useVoz } from '../../ia/voz'
 import BotonVoz from '../BotonVoz'
+import BotonGirarCamara from '../BotonGirarCamara'
 import { useCuentaRegresiva } from '../useCuentaRegresiva'
 import { crearSesion, finalizarSesion, subirVideosSesion, mandarEventosSesion } from '../../lib/sesiones.ts'
 
@@ -56,8 +58,10 @@ export default function FlamencoPage() {
 
   // Tamaño real del área de juego: los canvas se dimensionan con esto (ver GamePage del Surf)
   const areaRef = useRef(null)
+  const estiloArea = useColumnaTV(HEADER_H) // en una pantalla apaisada (TV) el área es una columna agrandada
   const [tam, setTam] = useState({ w: window.innerWidth, h: window.innerHeight - HEADER_H })
-  const { canvasRef: camaraCanvasRef, siluetaRef } = usePoseAI('flamenco', !pausado, HEADER_H)
+  // En "Antes de empezar" no hay nada que detectar: se ahorra el análisis (el modelo se va cargando igual)
+  const { canvasRef: camaraCanvasRef, siluetaRef } = usePoseAI('flamenco', !pausado && fase !== 'instrucciones', HEADER_H)
   // Canvas fuera de pantalla con la consigna y las pastillas: el grabador lo usa como "gameplay"
   const hudCanvasRef = useRef(null)
   if (hudCanvasRef.current === null) hudCanvasRef.current = document.createElement('canvas')
@@ -281,7 +285,7 @@ export default function FlamencoPage() {
       />
 
       {/* Área de juego */}
-      <div ref={areaRef} className="relative flex-1 overflow-hidden">
+      <div ref={areaRef} style={estiloArea} className="relative flex-1 overflow-hidden">
 
         {/* Cuerpo del paciente recortado por segmentación, sobre el parque */}
         <canvas
@@ -337,7 +341,7 @@ export default function FlamencoPage() {
             <Mascota especie="flamingo" pose={pose} habla={hablando} className="w-[98px]" />
           </MascotaSobreTarjeta>
         )}
-        {fase !== 'instrucciones' && <BotonVoz />}
+        {fase !== 'instrucciones' && <BotonVoz>{fase === 'calibracion' && <BotonGirarCamara />}</BotonVoz>}
         {fase === 'instrucciones' && <AntesDeEmpezarFlamenco onListo={() => { desbloquear(); enviar('listo') }} />}
       </div>
     </div>

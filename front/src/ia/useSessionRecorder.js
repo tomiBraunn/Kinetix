@@ -1,5 +1,6 @@
 import { useCallback, useRef } from 'react'
 import { getStream } from './CameraStream'
+import { kinetixAI } from './KinetixAI'
 
 // Safari/iOS (el motor detrás del WebView de la app mobile) no soporta
 // grabar en WebM — MediaRecorder tira NotSupportedError. mp4/h264 sí anda
@@ -92,16 +93,30 @@ function iniciarGrabaciones(stream, { landmarksCanvas, gameCanvas }, refs) {
     video.play().catch(() => {})
     refs.composeVideoRef.current = video
 
-    const dibujar = () => {
+    // captureStream(30) no usa más de 30 cuadros por segundo: componer a 60 era trabajo tirado
+    let ultimo = 0
+    const dibujar = (ahora) => {
+      refs.composeRafRef.current = requestAnimationFrame(dibujar)
+      if (ahora - ultimo < 30) return
+      ultimo = ahora
       if (video.readyState >= 2) {
         ctx.save()
         ctx.translate(w, 0)
         ctx.scale(-1, 1)
-        ctx.drawImage(video, 0, 0, w, h)
+        // Cámara de costado: el gameplay se graba con el paciente parado, como se ve en pantalla
+        // (el video "crudo" no: es lo que entrega la cámara, tal cual)
+        const g = kinetixAI.rotacion
+        if (g) {
+          const [dw, dh] = g % 180 ? [h, w] : [w, h]
+          ctx.translate(w / 2, h / 2)
+          ctx.rotate((g * Math.PI) / 180)
+          ctx.drawImage(video, -dw / 2, -dh / 2, dw, dh)
+        } else {
+          ctx.drawImage(video, 0, 0, w, h)
+        }
         ctx.restore()
       }
       ctx.drawImage(gameCanvas, 0, 0, w, h)
-      refs.composeRafRef.current = requestAnimationFrame(dibujar)
     }
     refs.composeRafRef.current = requestAnimationFrame(dibujar)
 
