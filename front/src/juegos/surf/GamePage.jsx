@@ -7,7 +7,6 @@ import {
 } from './pantallas'
 import { textoMensaje } from './mensajes'
 import { usePoseAI } from '../../ia/usePoseAI'
-import { useColumnaTV } from '../columnaTV'
 import { kinetixAI } from '../../ia/KinetixAI'
 import { useSessionRecorder } from '../../ia/useSessionRecorder'
 import { crearSesion, finalizarSesion, subirVideosSesion, mandarEventosSesion } from '../../lib/sesiones.ts'
@@ -67,7 +66,6 @@ export default function GamePage() {
   // cambia (zoom, pantalla completa, barras del navegador) quedaban más chicos
   // que el área y cortaban el cuerpo con una línea recta.
   const areaRef = useRef(null)
-  const estiloArea = useColumnaTV(HEADER_H) // en una pantalla apaisada (TV) el área es una columna agrandada
   const [tam, setTam] = useState({ w: window.innerWidth, h: window.innerHeight - HEADER_H })
   const [volumen, setVolumen] = useState(VOLUMEN_INICIAL)
   const [silencio, setSilencio] = useState(false)
@@ -169,6 +167,12 @@ export default function GamePage() {
     else audio.pause()
   }, [fase, pausado])
   const { hablando } = useVoz()
+  // Mientras se calibra se ve la cámara entera (para entender el espacio); recién con el cuerpo bien detectado
+  // pasa al cuerpo recortado sobre el mar
+  useEffect(() => {
+    kinetixAI.fijarCamaraCompleta(fase === 'calibracion')
+    return () => kinetixAI.fijarCamaraCompleta(false)
+  }, [fase])
   useEffect(() => {
     const audio = musicaRef.current
     if (!audio) return
@@ -232,7 +236,7 @@ export default function GamePage() {
       />
 
       {/* Área de juego */}
-      <div ref={areaRef} style={estiloArea} className="relative flex-1 overflow-hidden">
+      <div ref={areaRef} className="relative flex-1 overflow-hidden">
 
         {/* Peces (canvas de Phaser, transparente) */}
         <PhaserGame ref={phaserRef} headerHeight={HEADER_H} />

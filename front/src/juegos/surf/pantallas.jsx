@@ -145,6 +145,11 @@ const PISTAS = {
 }
 const INICIAL = { detectados: Array(PUNTOS_SILUETA.length).fill(false), pista: 'nucleo' }
 const MANTENER_MS = 1500 // quieto y bien detectado durante este tiempo
+// Pantalla apaisada (celular acostado, televisor): el alto es poco y la silueta entera quedaba chica, o sea el
+// paciente se veía chico y los peces —que se miden contra su cuerpo— en un rango diminuto. Ahí la silueta
+// se agranda hasta 130% del alto, desde arriba: entran la cabeza, los hombros, las caderas y las rodillas
+// (lo que piden los juegos) y el paciente se ve el doble de grande. Mismo umbral que EscenaPrincipal (1,2).
+// (Tailwind necesita las clases enteras en el código: por eso la guía repite el media query)
 const PISTA_VOZ_MS = 2500 // una pista tiene que sostenerse tanto para que la voz la diga
 
 const promedio = (ms) => {
@@ -188,10 +193,8 @@ export function GuiaSilueta({ pausado, onListo, requiere = 'torso' }) {
       // Guía y área de juego en píxeles del canvas del juego (mismo origen que aPantalla)
       const a = el.offsetParent.getBoundingClientRect()
       const r = el.getBoundingClientRect()
-      // En una pantalla apaisada (TV) el área está agrandada con transform: se vuelve a px del canvas
-      const k = r.width / el.offsetWidth || 1
-      const guia = { left: (r.left - a.left) / k, top: (r.top - a.top) / k, width: r.width / k, height: r.height / k }
-      const area = { w: a.width / k, h: a.height / k }
+      const guia = { left: r.left - a.left, top: r.top - a.top, width: r.width, height: r.height }
+      const area = { w: a.width, h: a.height }
       const base = kinetixAI.encuadreBase()
 
       const ev = evaluar(lms, base, guia, area, requiere)
@@ -215,7 +218,7 @@ export function GuiaSilueta({ pausado, onListo, requiere = 'torso' }) {
       <div
         ref={guiaRef}
         aria-hidden="true"
-        className="pointer-events-none absolute bottom-2 left-1/2 z-[16] aspect-[315/605] h-[min(73.2%,150vw)] -translate-x-[45.7%]"
+        className="pointer-events-none absolute bottom-2 left-1/2 z-[16] aspect-[315/605] h-[min(73.2%,150vw)] -translate-x-[45.7%] [@media(min-aspect-ratio:6/5)]:bottom-auto [@media(min-aspect-ratio:6/5)]:top-0 [@media(min-aspect-ratio:6/5)]:h-[130%]"
       >
         <div className="absolute inset-[4.17%_13.6%_8.71%_13.6%]">
           <div className="absolute inset-[-0.66%_-1.44%_-0.63%_-1.23%]">

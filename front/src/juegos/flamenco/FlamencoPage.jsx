@@ -12,7 +12,6 @@ import { PASOS, REPETICIONES, estadoInicial, reducir, segundosSostenidos, resume
 import { consigna as consignaDe, TARJETA_COMENZAR, tarjetaDescanso, TARJETA_COMPLETADO } from './mensajes'
 import { dibujarHud } from './hud'
 import { usePoseAI } from '../../ia/usePoseAI'
-import { useColumnaTV } from '../columnaTV'
 import { kinetixAI } from '../../ia/KinetixAI'
 import { openCamera, closeCamera } from '../../ia/CameraStream'
 import { useSessionRecorder } from '../../ia/useSessionRecorder'
@@ -59,7 +58,6 @@ export default function FlamencoPage() {
 
   // Tamaño real del área de juego: los canvas se dimensionan con esto (ver GamePage del Surf)
   const areaRef = useRef(null)
-  const estiloArea = useColumnaTV(HEADER_H) // en una pantalla apaisada (TV) el área es una columna agrandada
   const [tam, setTam] = useState({ w: window.innerWidth, h: window.innerHeight - HEADER_H })
   // En "Antes de empezar" no hay nada que detectar: se ahorra el análisis (el modelo se va cargando igual)
   const { canvasRef: camaraCanvasRef, siluetaRef } = usePoseAI('flamenco', !pausado && fase !== 'instrucciones', HEADER_H)
@@ -250,6 +248,12 @@ export default function FlamencoPage() {
     else if (textoVoz) hablar(textoVoz)
   }, [textoVoz, pausado])
   useEffect(() => () => callar(), []) // al salir no puede quedar hablando
+  // Mientras se calibra se ve la cámara entera (para entender el espacio); recién con el cuerpo bien detectado
+  // pasa al cuerpo recortado sobre el parque
+  useEffect(() => {
+    kinetixAI.fijarCamaraCompleta(fase === 'calibracion')
+    return () => kinetixAI.fijarCamaraCompleta(false)
+  }, [fase])
 
   // El ánimo solo se muestra en el equilibrio: el temporizador que lo apaga (en un ref, el pulso lo
   // reinicia a cada hito) puede vencer ya en otra fase y no hay que arrastrar la frase al paso siguiente.
@@ -286,7 +290,7 @@ export default function FlamencoPage() {
       />
 
       {/* Área de juego */}
-      <div ref={areaRef} style={estiloArea} className="relative flex-1 overflow-hidden">
+      <div ref={areaRef} className="relative flex-1 overflow-hidden">
 
         {/* Cuerpo del paciente recortado por segmentación, sobre el parque */}
         <canvas

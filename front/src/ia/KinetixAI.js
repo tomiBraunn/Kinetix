@@ -57,6 +57,7 @@ class KinetixAI {
     this._rotacion = 0     // grados que se gira la imagen de la cámara (ver rotacion.js)
     this._rotCanvas = null // copia girada del video, solo si _rotacion != 0
     this._fuente = null    // lo que se analizó y dibujó en el último cuadro: el video o su copia girada
+    this.camaraCompleta = false // ver fijarCamaraCompleta
     this.ultimosLandmarks = null
     this._piernaLevantada = false
     this._piernaCnt = 0   // frames consecutivos con pierna arriba/abajo
@@ -209,6 +210,12 @@ class KinetixAI {
     this._rafId = requestAnimationFrame(() => this._loop())
   }
 
+  // Mientras el paciente se acomoda (calibración) se ve la cámara entera en vez de su cuerpo recortado sobre el
+  // fondo del juego: así entiende el espacio que tiene. Con el cuerpo bien detectado se pasa al recorte.
+  fijarCamaraCompleta(activa) {
+    this.camaraCompleta = activa
+  }
+
   // ─── Cámara girada ────────────────────────────────────────────────────────
   // Con la cámara de costado el paciente llega acostado en la imagen. Se gira el cuadro antes de analizarlo
   // y todo lo demás (silueta, overlay, calibración, toques) trabaja con la imagen ya parada.
@@ -312,6 +319,17 @@ class KinetixAI {
     const w = this.siluetaCanvas.width
     const h = this.siluetaCanvas.height
     ctx.clearRect(0, 0, w, h)
+    if (this.camaraCompleta) {
+      // El video entero, en espejo y con el mismo encuadre que tendría el recorte
+      const d = this._dimsFuente()
+      const e = this._encuadre(w, h, d.vw || w, d.vh || h)
+      ctx.save()
+      ctx.translate(w, 0)
+      ctx.scale(-1, 1)
+      ctx.drawImage(this._fuente, e.dx, e.dy, e.dw, e.dh)
+      ctx.restore()
+      return
+    }
     if (!mask) return
 
     const mw = mask.width
