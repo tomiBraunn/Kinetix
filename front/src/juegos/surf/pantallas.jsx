@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import Logo from '../../components/Logo'
 import { kinetixAI } from '../../ia/KinetixAI'
 import { PUNTOS_SILUETA, evaluar, vistaPara } from '../../ia/calibracion'
-import { hablar } from '../../ia/voz'
+import { hablar, callar } from '../../ia/voz'
 import { MascotaDelGlobo } from '../Mascota'
 import { MENSAJES } from './mensajes'
 import iconoMenu from '../../assets/juegos/surf/menu.svg'
@@ -257,6 +257,11 @@ const PASOS = [
 // `pasos` es opcional: el Flamenco reusa esta pantalla con los suyos. `mascota` también: va
 // debajo del botón, en el espacio libre que deja el diseño (no está en el Figma de trabajo).
 export function AntesDeEmpezar({ onListo, pasos = PASOS, mascota = null }) {
+  // La voz lee todo lo que se ve. Al salir se calla: la consigna de la calibración la reemplaza.
+  useEffect(() => {
+    hablar(`¿Cómo se juega? Primero preparate. Después, el juego te va a indicar qué movimiento hacer. ${pasos.map(([titulo, texto], i) => `${i + 1}. ${titulo}. ${texto}`).join(' ')}`)
+    return callar
+  }, [pasos])
   return (
     <div className="absolute inset-0 z-40 overflow-y-auto bg-[rgba(240,242,255,0.96)] text-primary-dark">
       <div className="mx-auto flex max-w-[402px] flex-col gap-5 px-[26px] pb-8 pt-10">
@@ -293,6 +298,7 @@ export function DesafioCompletado({ ronda, onSeguir, onVolver }) {
   const ordinal = ORDINALES[ronda - 1]
   const titulo = ordinal ? `¡${ordinal[0].toUpperCase()}${ordinal.slice(1)} desafío completado!` : '¡Desafío completado!'
   const detalle = ordinal ? `Completaste el ${ordinal} desafío de Surf.` : 'Completaste otro desafío de Surf.'
+  useEffect(() => { hablar(`${titulo} ¡Buen trabajo! ${detalle} ¿Querés seguir jugando?`) }, [titulo, detalle])
 
   return (
     <div role="dialog" aria-modal="true" aria-label={titulo} className="absolute inset-0 z-40 flex items-center justify-center bg-[rgba(13,31,92,0.5)] px-[30px]">

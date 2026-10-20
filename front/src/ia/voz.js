@@ -78,6 +78,7 @@ export function callar() {
   if (!sintesis) return
   sintesis.cancel()
   actual = null
+  ultimo = { texto: '', t: 0 } // si se calló a propósito (pausa, cambio de pantalla), lo mismo se puede volver a decir
   publicar({ hablando: false })
 }
 

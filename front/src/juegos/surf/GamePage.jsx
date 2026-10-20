@@ -28,7 +28,6 @@ const CONSIGNAS = {
   preparando: '¡Muy bien! Quedate ahí, ya empezamos.',
   consigna: 'Tocá los peces con tus manos.',
 }
-const VOZ_COMPLETADO = '¡Desafío completado! ¡Muy bien!'
 
 // Fases del juego (cada una es un frame de Figma, ver pantallas.jsx):
 //   instrucciones → calibracion → preparando → consigna → jugando → completado
@@ -183,9 +182,13 @@ export default function GamePage() {
   // Voz: lee la consigna de cada fase (las pistas de la calibración las dice GuiaSilueta). En pausa se calla.
   useEffect(() => {
     if (pausado) callar()
-    else if (fase === 'completado') hablar(VOZ_COMPLETADO)
     else if (CONSIGNAS[fase]) hablar(CONSIGNAS[fase])
   }, [fase, pausado])
+  // Los mensajes de ánimo que aparecen jugando ("¡Excelente!", "¡Pasaste al nivel 2!") también se leen. El
+  // desafío completado y "Antes de empezar" se leen solos (ver pantallas.jsx).
+  useEffect(() => {
+    if (fase === 'jugando' && mensaje && !pausado) hablar(textoMensaje(mensaje))
+  }, [mensaje, fase, pausado])
   useEffect(() => () => callar(), []) // al salir no puede quedar hablando
   useEffect(() => () => clearTimeout(celebraTimerRef.current), [])
 
