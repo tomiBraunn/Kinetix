@@ -2,10 +2,10 @@ import Phaser from 'phaser'
 import { reiniciarReaccion, objetivoAparece, objetivoTocado } from '../../ia/reaccion'
 import { kinetixAI } from '../../ia/KinetixAI'
 import { FELICITACIONES } from './mensajes'
-import { cuerpoEnPantalla, elegirPunto, recorridoAlejandose } from './aparicion'
+import { cuerpoEnPantalla, elegirPunto, recorridoAlejandose, zonaAlcance } from './aparicion'
+import { nivelPara, parametrosDe } from './dificultad'
 import pecesUrl from '../../assets/juegos/surf/peces.png'
 
-const NUM_PECES = 2
 const DURACION_JUEGO = 30
 const ESTANCADO_S = 6      // segundos sin atrapar nada → "¡No te rindas!"
 const MENSAJE_MS = 3000    // cuánto se muestra cada felicitación
@@ -30,6 +30,8 @@ const ANCHO_TEXTURA = 192
 const ANCHO_MIN = 44
 const ANCHO_MAX = 72
 const AMPLITUD_VERTICAL = 14   // cuánto sube y baja cada pez (px, hacia cada lado)
+const TRONCO_REF = 170         // largo de tronco (px) de un paciente en un celular en vertical, si no se lo ve
+const VELOCIDAD_TRONCOS = 0.25 // troncos por segundo a velocidad 1: lo que antes eran ~40 px/s en el celular
 
 export default class EscenaPrincipal extends Phaser.Scene {
   constructor() {
@@ -95,7 +97,21 @@ export default class EscenaPrincipal extends Phaser.Scene {
     this.jugando = false
     this.mensaje = null
     this.sinAcierto = 0
+    this.nivel = 0               // nivel de dificultad alcanzado (0 = el más fácil, ver dificultad.js)
     this._despacharEstado()
+  }
+
+  // Los peces, los recorridos y las distancias se agrandan con la pantalla (un televisor se mira de lejos y
+  // es mucho más grande), pero nunca por debajo de lo de un celular en vertical.
+  _escalaPantalla() {
+    const { width, height } = this.scale
+    return Math.min(2.2, Math.max(1, Math.min(width, height) / 400))
+  }
+
+  // Mantiene en el agua tantos peces como pide el nivel de dificultad
+  _rellenarPeces() {
+    const { pecesALaVez } = parametrosDe(nivelPara(this.puntos))
+    while (this.peces.length < pecesALaVez) this.spawnearPez()
   }
 
   _empezar() {
@@ -107,7 +123,6 @@ export default class EscenaPrincipal extends Phaser.Scene {
   _arrancarCronometro() {
     this.cronometrando = true
     // El pez de la consigna ya se está reemplazando solo (ver tocarPez)
-    for (let i = 1; i < NUM_PECES; i++) this.spawnearPez()
     this.relojTiempo = this.time.addEvent({
       delay: 1000,
       repeat: DURACION_JUEGO - 1,
@@ -118,6 +133,9 @@ export default class EscenaPrincipal extends Phaser.Scene {
 
   spawnearPez() {
     const { width, height } = this.scale
+    const nivel = parametrosDe(nivelPara(this.puntos))
+    const escala = this._escalaPantalla()
+    const apaisada = width > height * 1.2
     const margen = 50
     // Los peces tienen que caer donde hay cámara: con la vista "alejada" esa zona es
     // más chica que la pantalla, y fuera de ella el paciente no los podría alcanzar.
@@ -127,34 +145,48 @@ export default class EscenaPrincipal extends Phaser.Scene {
     let xMin = Math.max(margen, cam.x0 + camAncho * 0.08)
     let xMax = Math.min(width - margen, cam.x1 - camAncho * 0.08)
     if (xMax - xMin < 100) { xMin = margen; xMax = width - margen }
-    // Debajo de los carteles de arriba (cuenta + mensaje) y por encima de la tabla
-    let yMin = Math.max(height * 0.24, cam.y0 + camAlto * 0.08)
-    let yMax = Math.min(height * 0.66, cam.y1 - camAlto * 0.08)
-    if (yMax - yMin < 60) { yMin = height * 0.24; yMax = height * 0.66 }
+    // Debajo de los carteles de arriba y por encima de la tabla. Apaisada el alto es poco: los carteles
+    // son una columna en el centro (se esquivan abajo) y el resto del alto se usa.
+    const arriba = height * (apaisada ? 0.12 : 0.24)
+    const abajo = height * (apaisada ? 0.85 : 0.66)
+    let yMin = Math.max(arriba, cam.y0 + camAlto * 0.08)
+    let yMax = Math.min(abajo, cam.y1 - camAlto * 0.08)
+    if (yMax - yMin < 60) { yMin = arriba; yMax = abajo }
+    // Carteles (columna central de 402 px): arriba solo apaisada (en vertical ya queda por encima de la
+    // zona) y abajo siempre, donde están la cámara chica y los botones.
+    const cx = width / 2
+    const evitar = [{ x0: cx - 205, x1: cx + 205, y0: height - 125, y1: height }]
+    if (apaisada) evitar.push({ x0: cx - 205, x1: cx + 205, y0: 0, y1: 215 })
+    // ...y que no se pise con los que ya están nadando (dos peces uno encima del otro parecen uno solo)
+    for (const o of this.peces) evitar.push({ x0: o.img.x - 80 * escala, x1: o.img.x + 80 * escala, y0: o.img.y - 55 * escala, y1: o.img.y + 55 * escala })
 
-    // A una distancia mínima del cuerpo (ver aparicion.js): antes caían encima del pecho del paciente y
-    // los tocaba sin estirar el brazo. Sin el tronco a la vista (la IA no lo ve) queda como siempre.
-    const cuerpo = cuerpoEnPantalla(kinetixAI.ultimosLandmarks, (lm) => kinetixAI.aPantalla(lm))
-    const { x, y } = elegirPunto({ xMin, xMax, yMin, yMax }, cuerpo)
+    // Entre una distancia mínima y una máxima al cuerpo (ver aparicion.js): antes caían encima del pecho del
+    // paciente (se tocaban sin estirar el brazo) o donde el brazo no llega. Los dos límites suben con el
+    // nivel (ver dificultad.js). Sin el tronco a la vista (la IA no lo ve) queda como siempre.
+    const cuerpo = cuerpoEnPantalla(kinetixAI.ultimosLandmarks, (lm) => kinetixAI.aPantalla(lm), nivel.distMin, nivel.alcance)
+    const zona = zonaAlcance({ xMin, xMax, yMin, yMax }, cuerpo)
+    const { x, y } = elegirPunto(zona, cuerpo, Math.random, 40, evitar)
 
-    // Nada de lado a lado: recorre entre el 20% y el 45% del ancho disponible. Con cuerpo, hacia afuera (así
-    // va y vuelve sin pasar nunca más cerca de lo que apareció); sin cuerpo, hacia donde haya lugar.
-    const span = xMax - xMin
-    let recorrido = Phaser.Math.Between(span * 0.2, span * 0.45)
-    let dir = x + recorrido <= xMax && (x - recorrido < xMin || Math.random() < 0.5) ? 1 : -1
-    if (cuerpo) ({ dir, recorrido } = recorridoAlejandose(x, cuerpo, xMin, xMax, recorrido))
-    const velocidad = span * Phaser.Math.FloatBetween(0.10, 0.17) // px/s: cruzar el ancho lleva ~6–10 s
+    // Nada de lado a lado: recorre entre 0,4 y 1 tronco. Con cuerpo, hacia afuera (así va y vuelve sin pasar
+    // nunca más cerca de lo que apareció); sin cuerpo, hacia donde haya lugar.
+    const tronco = cuerpo?.tronco ?? TRONCO_REF * escala
+    let recorrido = Phaser.Math.FloatBetween(tronco * 0.4, tronco * 1.0)
+    let dir = x + recorrido <= zona.xMax && (x - recorrido < zona.xMin || Math.random() < 0.5) ? 1 : -1
+    if (cuerpo) ({ dir, recorrido } = recorridoAlejandose(x, cuerpo, zona.xMin, zona.xMax, recorrido))
+    const velocidad = tronco * VELOCIDAD_TRONCOS * nivel.vel * Phaser.Math.FloatBetween(0.75, 1.25) // px/s
+    const amplitud = AMPLITUD_VERTICAL * escala
+    const ancho = Phaser.Math.Between(ANCHO_MIN, ANCHO_MAX) * escala * nivel.tam
 
-    const img = this.add.image(x, y - AMPLITUD_VERTICAL, Phaser.Utils.Array.GetRandom(NOMBRES_PEZ))
+    const img = this.add.image(x, y - amplitud, Phaser.Utils.Array.GetRandom(NOMBRES_PEZ))
       .setDepth(2)
-      .setScale(Phaser.Math.Between(ANCHO_MIN, ANCHO_MAX) / ANCHO_TEXTURA)
+      .setScale(ancho / ANCHO_TEXTURA)
       .setFlipX(dir > 0) // el dibujo mira a la izquierda: se da vuelta para mirar hacia donde nada
       .setInteractive()
 
     const pez = {
       id: `pez_${Date.now()}_${Phaser.Math.Between(0, 99999)}`,
       img,
-      radio: 42,
+      radio: ancho * 0.72, // lo que se toca crece con el pez (antes 42 px fijos con peces de 44 a 72)
     }
 
     img.on('pointerdown', () => this.tocarPez(pez))
@@ -173,7 +205,7 @@ export default class EscenaPrincipal extends Phaser.Scene {
     // y sube y baja un poco, a otro ritmo para que no se vea sincronizado
     this.tweens.add({
       targets: img,
-      y: y + AMPLITUD_VERTICAL,
+      y: y + amplitud,
       duration: 850 + Math.random() * 650,
       yoyo: true,
       repeat: -1,
@@ -195,7 +227,11 @@ export default class EscenaPrincipal extends Phaser.Scene {
 
     if (!this.cronometrando) this._arrancarCronometro()
     this.sinAcierto = 0
-    const mensaje = FELICITACIONES[(this.puntos - 1) % FELICITACIONES.length]
+    // Al pasar de nivel se avisa en vez de la felicitación de siempre
+    const nivelNuevo = nivelPara(this.puntos)
+    const subio = nivelNuevo > this.nivel
+    this.nivel = nivelNuevo
+    const mensaje = subio ? `nivel${nivelNuevo + 1}` : FELICITACIONES[(this.puntos - 1) % FELICITACIONES.length]
     this._mostrarMensaje(mensaje, true)
 
     window.dispatchEvent(new CustomEvent('kinetix:surf:punto', { detail: { mensaje } }))
@@ -209,7 +245,7 @@ export default class EscenaPrincipal extends Phaser.Scene {
       ease: 'Back.easeIn',
       onComplete: () => {
         pez.img.destroy()
-        if (this.jugando) this.spawnearPez()
+        if (this.jugando) this._rellenarPeces()
       },
     })
   }
@@ -241,6 +277,7 @@ export default class EscenaPrincipal extends Phaser.Scene {
         tiempo: this.tiempo,
         cronometrando: this.cronometrando,
         mensaje: this.mensaje,
+        nivel: this.nivel + 1,
       },
     }))
   }
@@ -248,7 +285,7 @@ export default class EscenaPrincipal extends Phaser.Scene {
   _finJuego() {
     this.jugando = false
     window.dispatchEvent(new CustomEvent('kinetix:surf:fin', {
-      detail: { puntos: this.puntos, duracion_segundos: DURACION_JUEGO },
+      detail: { puntos: this.puntos, duracion_segundos: DURACION_JUEGO, nivel_maximo: this.nivel + 1 },
     }))
   }
 
