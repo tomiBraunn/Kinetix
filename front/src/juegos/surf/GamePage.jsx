@@ -6,6 +6,7 @@ import {
   BarraSuperior, Contadores, ControlMusica, Consigna, Mensaje, GuiaSilueta, AntesDeEmpezar, DesafioCompletado,
 } from './pantallas'
 import { textoMensaje } from './mensajes'
+import { compararRondas } from './analisis'
 import { usePoseAI } from '../../ia/usePoseAI'
 import { kinetixAI } from '../../ia/KinetixAI'
 import { useSessionRecorder } from '../../ia/useSessionRecorder'
@@ -56,6 +57,8 @@ export default function GamePage() {
   const [ronda, setRonda] = useState(1)
   const [puntos, setPuntos] = useState(0)
   const [celebrando, setCelebrando] = useState(false) // el pez hace la pose de festejo después de cada acierto
+  const [analisis, setAnalisis] = useState(null) // lo que analizó la IA en la ronda que terminó, comparado con la anterior
+  const resumenPrevioRef = useRef(null)          // las métricas de la ronda anterior (solo de esta visita)
   const celebraTimerRef = useRef(null)
   const [tiempo, setTiempo] = useState(0) // segundos jugados, arranca en 0
   const [mensaje, setMensaje] = useState(null)
@@ -120,6 +123,10 @@ export default function GamePage() {
     }
     // Guarda resultados al terminar la ronda + sube videos y eventos
     const fin = (e) => {
+      // El análisis se muestra al terminar cada ronda, haya o no sesión guardada
+      const resumen = kinetixAI.getMetricasResumen()
+      setAnalisis(compararRondas(resumen, resumenPrevioRef.current))
+      resumenPrevioRef.current = resumen
       setFase('completado')
       const sesionId = sesionIdRef.current
       const eventos = eventosRef.current
@@ -127,7 +134,7 @@ export default function GamePage() {
       eventosRef.current = []
       if (!sesionId) return
 
-      finalizarSesion(sesionId, { juego: 'surf', ...e.detail }, kinetixAI.getMetricasResumen()).catch(console.warn)
+      finalizarSesion(sesionId, { juego: 'surf', ...e.detail }, resumen).catch(console.warn)
       eventos.push({ tipo: 'fin_juego', datos: e.detail })
       cierreRef.current = recorder.stop()
         .then(videos => {
@@ -296,7 +303,7 @@ export default function GamePage() {
           <AntesDeEmpezar onListo={() => { desbloquear(); setFase('calibracion') }} mascota={<Mascota especie="pez" className="w-[150px]" />} />
         )}
         {fase === 'completado' && (
-          <DesafioCompletado ronda={ronda} onSeguir={seguirJugando} onVolver={() => navigate('/juego')} />
+          <DesafioCompletado ronda={ronda} analisis={analisis} onSeguir={seguirJugando} onVolver={() => navigate('/juego')} />
         )}
       </div>
     </div>

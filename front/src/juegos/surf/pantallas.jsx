@@ -294,15 +294,19 @@ const CONFETI = [ // [left, top, color, grados] dentro de la tarjeta
 ]
 const fuenteInter = { fontFamily: "'Inter', 'DM Sans', sans-serif" }
 
-export function DesafioCompletado({ ronda, onSeguir, onVolver }) {
+// Color de la comparación con la ronda anterior (además del color va la flecha y un texto solo para lectores)
+const COLOR_ESTADO = { mejor: 'text-[#0f8a5f]', peor: 'text-[#b45309]', igual: 'text-[#5e668c]' }
+
+export function DesafioCompletado({ ronda, analisis = null, onSeguir, onVolver }) {
   const ordinal = ORDINALES[ronda - 1]
   const titulo = ordinal ? `¡${ordinal[0].toUpperCase()}${ordinal.slice(1)} desafío completado!` : '¡Desafío completado!'
   const detalle = ordinal ? `Completaste el ${ordinal} desafío de Surf.` : 'Completaste otro desafío de Surf.'
-  useEffect(() => { hablar(`${titulo} ¡Buen trabajo! ${detalle} ¿Querés seguir jugando?`) }, [titulo, detalle])
+  const frase = analisis?.frase ?? ''
+  useEffect(() => { hablar(`${titulo} ¡Buen trabajo! ${detalle} ${frase} ¿Querés seguir jugando?`) }, [titulo, detalle, frase])
 
   return (
-    <div role="dialog" aria-modal="true" aria-label={titulo} className="absolute inset-0 z-40 flex items-center justify-center bg-[rgba(13,31,92,0.5)] px-[30px]">
-      <div className="relative flex w-[342px] max-w-full flex-col items-center rounded-[28px] bg-white px-8 pb-[37px] pt-[34px] shadow-[0_12px_28px_rgba(13,26,77,0.22)]">
+    <div role="dialog" aria-modal="true" aria-label={titulo} className="absolute inset-0 z-40 flex overflow-y-auto bg-[rgba(13,31,92,0.5)] px-[30px] py-4">
+      <div className="relative m-auto flex w-[342px] max-w-full flex-col items-center rounded-[28px] bg-white px-8 pb-[37px] pt-[34px] shadow-[0_12px_28px_rgba(13,26,77,0.22)]">
         {CONFETI.map(([left, top, color, grados]) => (
           <span key={color} aria-hidden="true" className="absolute h-[5px] w-2.5 rounded-[2px]" style={{ left, top, background: color, transform: `rotate(${grados}deg)` }} />
         ))}
@@ -313,6 +317,27 @@ export function DesafioCompletado({ ronda, onSeguir, onVolver }) {
         <p className="mt-[22px] text-center text-[24px] font-bold text-[#1a1f6e]">{titulo}</p>
         <p className="mt-px text-[18px] font-semibold text-[#e82e91]">¡Buen trabajo!</p>
         <p className="mt-1.5 text-center text-[14px] text-[#5e668c]">{detalle}<br />¿Querés seguir jugando?</p>
+        {analisis && (
+          <section aria-label="Análisis de la IA" className="mt-4 w-[278px] max-w-full rounded-2xl bg-[#f3f4fb] px-4 py-3">
+            <p className="text-[12px] font-bold tracking-wide text-[#5e668c]">ANÁLISIS DE LA IA</p>
+            <ul className="mt-2 flex flex-col gap-1.5">
+              {analisis.filas.map((f) => (
+                <li key={f.clave} className="flex items-baseline justify-between gap-2 text-[14px] text-[#1a1f6e]">
+                  <span>{f.etiqueta}</span>
+                  <span className="flex items-baseline gap-2">
+                    <b>{f.texto}</b>
+                    {f.delta && (
+                      <span className={`text-[12px] font-bold ${COLOR_ESTADO[f.estado]}`}>
+                        {f.delta}<span className="sr-only"> ({f.estado})</span>
+                      </span>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-[13px] leading-[18px] text-[#5e668c]">{analisis.frase}</p>
+          </section>
+        )}
         <div className="mt-[17px] flex w-[278px] max-w-full flex-col gap-3 text-[14px] font-semibold" style={fuenteInter}>
           <button data-mano onClick={onSeguir} className="h-[46px] rounded-[15px] bg-[#ff5faa] text-white">Seguir jugando</button>
           <button onClick={onVolver} className="h-[46px] rounded-[15px] border border-[#ff5faa] bg-white text-[#ff5faa]">Volver al menú de juegos</button>
