@@ -17,6 +17,7 @@ import { kinetixAI } from '../../ia/KinetixAI'
 import { openCamera, closeCamera } from '../../ia/CameraStream'
 import { useSessionRecorder } from '../../ia/useSessionRecorder'
 import { hablar, callar, desbloquear, useVoz } from '../../ia/voz'
+import { sonar, desbloquearSonidos } from '../../ia/sonidos'
 import BotonVoz from '../BotonVoz'
 import BotonGirarCamara from '../BotonGirarCamara'
 import CursorMano from '../CursorMano'
@@ -111,12 +112,13 @@ export default function FlamencoPage() {
       const e = estadoRef.current
       const s = Math.floor(segundosSostenidos(e, ahora))
       setSegundos(s)
-      // Ánimo: al cruzar los 5, 10 y 20 s la mascota lo dice (globo y voz). Se detecta acá y no en un
+      // Ánimo: al cruzar los 5, 10 y 20 s la mascota lo dice (globo, voz y campanita). Se detecta acá y no en un
       // efecto sobre `segundos`: es un evento puntual, no estado derivado. El ref evita repetirlo al reanudar.
       const i = HITOS_ANIMO_S.indexOf(s)
       if (e.fase === 'equilibrio' && s !== segundoPrevioRef.current && i !== -1) {
         setAnimo({ frase: FRASES_ANIMO[i], desde: e.desdeMs })
         hablar(FRASES_ANIMO[i])
+        sonar('animo')
         clearTimeout(animoTimerRef.current)
         animoTimerRef.current = setTimeout(() => setAnimo(null), ANIMO_MS)
       }
@@ -150,12 +152,20 @@ export default function FlamencoPage() {
   useEffect(() => {
     if (fase !== 'equilibrio') return
     eventosRef.current.push({ tipo: 'mensaje', mensaje: consignaDe('equilibrio', estadoRef.current.paso, estadoRef.current.pasos) })
+    sonar('punto') // la cámara ya la tiene detectada: se lo hace saber
   }, [fase])
   useEffect(() => {
     if (completadas === 0) return
     const { pierna, posicion, objetivo_segundos, segundos: tiempo, altura_max, saltado } = estadoRef.current.resultados[completadas - 1]
     eventosRef.current.push({ tipo: 'repeticion', datos: { numero: completadas, pierna, posicion, objetivo_segundos, tiempo_segundos: tiempo, altura_max, saltado } })
+    // Una repetición cumplida suena a premio; la última, a fanfarria. Una saltada ("me cuesta") no suena a nada.
+    if (estadoRef.current.fase === 'completado') sonar('fin')
+    else if (!saltado) sonar('subida')
   }, [completadas])
+  // Bajó la pierna antes de los 10 s: un aviso suave (el texto y la voz le dicen cuánto aguantó y que pruebe de nuevo)
+  useEffect(() => {
+    if (estado.corto != null) sonar('aviso')
+  }, [estado.corto])
 
   // Cierra la sesión: guarda resultados y sube videos y eventos. Sirve tanto para el
   // desafío completo como para cuando se vuelve al menú después de alguna repetición.
@@ -365,6 +375,7 @@ export default function FlamencoPage() {
         {fase === 'instrucciones' && (
           <AntesDeEmpezarFlamenco onListo={() => {
             desbloquear()
+            desbloquearSonidos()
             // Lo que el kinesiólogo eligió en esta misma pantalla (ver SelectorRutina)
             dispatch({ tipo: 'listo', ahora: performance.now(), valor: leerRutina('flamenco') })
           }} />

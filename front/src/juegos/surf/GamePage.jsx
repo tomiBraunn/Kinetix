@@ -14,6 +14,7 @@ import { kinetixAI } from '../../ia/KinetixAI'
 import { useSessionRecorder } from '../../ia/useSessionRecorder'
 import { crearSesion, finalizarSesion, subirVideosSesion, mandarEventosSesion } from '../../lib/sesiones.ts'
 import { hablar, callar, desbloquear, useVoz } from '../../ia/voz'
+import { sonar, desbloquearSonidos, silenciarEfectos } from '../../ia/sonidos'
 import SelectorRutina from '../SelectorRutina'
 import Mascota from '../Mascota'
 import BotonVoz from '../BotonVoz'
@@ -149,6 +150,7 @@ export default function GamePage() {
     }
     const punto = (e) => {
       eventosRef.current.push({ tipo: 'acierto', mensaje: textoMensaje(e.detail.mensaje) })
+      sonar(e.detail.mensaje.startsWith('nivel') ? 'subida' : 'punto') // pasar de nivel suena distinto que atrapar un pez
       // El pez celebra un momento con cada acierto
       setCelebrando(true)
       clearTimeout(celebraTimerRef.current)
@@ -158,6 +160,7 @@ export default function GamePage() {
     const fin = (e) => {
       // El análisis se muestra al terminar cada ronda, haya o no sesión guardada
       const resumen = { ...kinetixAI.getMetricasResumen(), alertas_movimiento: alertasRef.current }
+      sonar('fin')
       setAviso(null)
       setAnalisis(compararRondas(resumen, resumenPrevioRef.current))
       resumenPrevioRef.current = resumen
@@ -220,6 +223,11 @@ export default function GamePage() {
     audio.volume = hablando ? volumen * BAJA_MUSICA : volumen
     audio.muted = silencio
   }, [volumen, silencio, hablando])
+  // Los efectos de sonido siguen al botón de la música; al salir no puede quedar silenciado para el juego que viene
+  useEffect(() => {
+    silenciarEfectos(silencio)
+    return () => silenciarEfectos(false)
+  }, [silencio])
 
   // Voz: lee la consigna de cada fase (las pistas de la calibración las dice GuiaSilueta). En pausa se calla.
   useEffect(() => {
@@ -232,7 +240,9 @@ export default function GamePage() {
     if (fase === 'jugando' && mensaje && !pausado) hablar(textoMensaje(mensaje))
   }, [mensaje, fase, pausado])
   useEffect(() => {
-    if (aviso && !pausado) hablar(textoMensaje(aviso))
+    if (!aviso || pausado) return
+    hablar(textoMensaje(aviso))
+    sonar(aviso === 'alerta' ? 'aviso' : 'animo') // la alerta es un tono suave y bajo; el "muy bien", una campanita
   }, [aviso, pausado])
   useEffect(() => () => callar(), []) // al salir no puede quedar hablando
   useEffect(() => () => clearTimeout(celebraTimerRef.current), [])
@@ -339,7 +349,7 @@ export default function GamePage() {
         )}
 
         {fase === 'instrucciones' && (
-          <AntesDeEmpezar onListo={() => { desbloquear(); setFase('calibracion') }} extra={<><SelectorRutina juego="surf" /><SelectorZona /></>} mascota={<Mascota especie="pez" className="w-[150px]" />} />
+          <AntesDeEmpezar onListo={() => { desbloquear(); desbloquearSonidos(); setFase('calibracion') }} extra={<><SelectorRutina juego="surf" /><SelectorZona /></>} mascota={<Mascota especie="pez" className="w-[150px]" />} />
         )}
         {fase === 'completado' && (
           <DesafioCompletado ronda={ronda} analisis={analisis} onSeguir={seguirJugando} onVolver={() => navigate('/juego')}

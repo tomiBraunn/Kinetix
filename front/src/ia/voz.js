@@ -82,6 +82,9 @@ export function callar() {
   publicar({ hablando: false })
 }
 
+/** Los efectos de sonido (ver sonidos.js) siguen a la voz: si está silenciada, también ellos. */
+export const vozSilenciada = () => silenciada
+
 export function alternarSilencio() {
   silenciada = !silenciada
   try { localStorage.setItem(CLAVE, silenciada ? '1' : '0') } catch { /* sin almacenamiento: queda en memoria */ }
