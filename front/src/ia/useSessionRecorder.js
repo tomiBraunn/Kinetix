@@ -13,9 +13,10 @@ const MIME_CANDIDATOS = [
   'video/mp4',
 ]
 
-function mimeSoportado() {
-  if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) return null
-  return MIME_CANDIDATOS.find((t) => MediaRecorder.isTypeSupported(t)) ?? null
+// Todos los formatos que este navegador dice soportar, en orden de preferencia
+function mimesSoportados() {
+  if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) return []
+  return MIME_CANDIDATOS.filter((t) => MediaRecorder.isTypeSupported(t))
 }
 
 // El backend valida el Content-Type exacto del archivo subido ('video/webm'
@@ -25,26 +26,34 @@ function mimeBase(mimeType) {
   return mimeType.split(';')[0]
 }
 
+// Que un formato figure como soportado no asegura que arranque (isTypeSupported solo mira el códec, y
+// start() puede fallar con "error starting the MediaRecorder" según el aparato o el momento): se prueba
+// cada formato, primero con el bitrate acotado y después sin él, hasta que uno arranque.
 function grabar(stream) {
   if (!stream) return null
-  const mimeType = mimeSoportado()
-  if (!mimeType) {
+  const mimes = mimesSoportados()
+  if (mimes.length === 0) {
     console.warn('[useSessionRecorder] este navegador no soporta grabar video en ningun formato')
     return null
   }
-  try {
-    const chunks = []
+  for (const mimeType of mimes) {
     // Bitrate acotado: en un celular hay 3 encoders a la vez (más MediaPipe y Phaser)
     // y con el bitrate por defecto alguno puede quedar sin datos.
-    const rec = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 1_500_000 })
-    rec.onerror = (e) => console.warn('[useSessionRecorder] error de MediaRecorder:', e.error ?? e)
-    rec.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data) }
-    rec.start()
-    return { rec, chunks, mimeType: mimeBase(mimeType) }
-  } catch (e) {
-    console.warn('[useSessionRecorder] no se pudo iniciar la grabación:', e)
-    return null
+    for (const opciones of [{ mimeType, videoBitsPerSecond: 1_500_000 }, { mimeType }]) {
+      try {
+        const chunks = []
+        const rec = new MediaRecorder(stream, opciones)
+        rec.onerror = (e) => console.warn('[useSessionRecorder] error de MediaRecorder:', e.error ?? e)
+        rec.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data) }
+        rec.start()
+        return { rec, chunks, mimeType: mimeBase(mimeType) }
+      } catch (e) {
+        console.warn(`[useSessionRecorder] ${mimeType}${opciones.videoBitsPerSecond ? ' con bitrate acotado' : ''} no arrancó:`, e.message ?? e)
+      }
+    }
   }
+  console.warn('[useSessionRecorder] no se pudo iniciar la grabación en ningún formato')
+  return null
 }
 
 function detenerYArmarBlob(entry) {
@@ -64,7 +73,14 @@ const ESPERA_INTERVALO_MS = 300
 // solo de los refs que se le pasan explícitamente.
 function iniciarGrabaciones(stream, { landmarksCanvas, gameCanvas }, refs) {
   refs.crudoRef.current = grabar(stream)
-  if (!refs.crudoRef.current) console.warn('[useSessionRecorder] no se pudo grabar el video crudo')
+  if (!refs.crudoRef.current) {
+    // La cámara recién abierta a veces todavía no entrega cuadros y el primer start() falla: se reintenta una vez
+    console.warn('[useSessionRecorder] no se pudo grabar el video crudo, se reintenta en 1,5 s')
+    refs.reintentoRef.current = setTimeout(() => {
+      refs.crudoRef.current = grabar(stream)
+      if (!refs.crudoRef.current) console.warn('[useSessionRecorder] no se pudo grabar el video crudo')
+    }, 1500)
+  }
 
   if (landmarksCanvas) {
     try {
@@ -147,6 +163,7 @@ export function useSessionRecorder() {
   const composeRafRef = useRef(null)
   const composeVideoRef = useRef(null)
   const esperaRef = useRef(null)
+  const reintentoRef = useRef(null) // reintento diferido del video crudo (ver iniciarGrabaciones)
 
   const start = useCallback((args) => {
     // getStream() puede devolver null todavía si openCamera() no terminó (el
@@ -164,7 +181,7 @@ export function useSessionRecorder() {
         return
       }
       console.log(`[useSessionRecorder] stream listo (esperó ${msEsperados}ms), arrancando grabación`)
-      iniciarGrabaciones(stream, args, { crudoRef, landmarksRef, gameplayRef, composeRafRef, composeVideoRef })
+      iniciarGrabaciones(stream, args, { crudoRef, landmarksRef, gameplayRef, composeRafRef, composeVideoRef, reintentoRef })
     }
     intentar(0)
   }, [])
@@ -172,6 +189,7 @@ export function useSessionRecorder() {
   const stop = useCallback(async () => {
     if (esperaRef.current) clearTimeout(esperaRef.current)
     esperaRef.current = null
+    clearTimeout(reintentoRef.current)
     if (composeRafRef.current) cancelAnimationFrame(composeRafRef.current)
     composeRafRef.current = null
     if (composeVideoRef.current) {
