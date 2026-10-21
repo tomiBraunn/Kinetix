@@ -9,6 +9,10 @@ import pecesUrl from '../../assets/juegos/surf/peces.png'
 const DURACION_JUEGO = 30
 const ESTANCADO_S = 6      // segundos sin atrapar nada → "¡No te rindas!"
 const MENSAJE_MS = 3000    // cuánto se muestra cada felicitación
+// Entre un pez y el siguiente pasa un rato (ms): el que reemplaza a uno atrapado tarda en aparecer y,
+// cuando faltan varios (al subir de nivel), entran de a uno. Sin esto aparecían todos juntos y de golpe.
+const RETRASO_PEZ_MS = [500, 900]
+const ENTRE_PECES_MS = [700, 1100]
 
 // La hoja de peces (Figma 833:442) es un PNG de 2×2 peces. Cada recorte es
 // [x0, y0, x1, y1] como fracción del PNG, así no depende de su resolución.
@@ -85,6 +89,8 @@ export default class EscenaPrincipal extends Phaser.Scene {
   _resetear() {
     this.relojTiempo?.remove()
     this.ocultarMensaje?.remove()
+    this._apariciones?.forEach((e) => e.remove())
+    this._apariciones = []
     for (const p of this.peces) {
       this.tweens.killTweensOf(p.img)
       p.img.destroy()
@@ -108,10 +114,19 @@ export default class EscenaPrincipal extends Phaser.Scene {
     return Math.min(2.2, Math.max(1, Math.min(width, height) / 400))
   }
 
-  // Mantiene en el agua tantos peces como pide el nivel de dificultad
+  // Mantiene en el agua tantos peces como pide el nivel de dificultad, pero de a uno y con un retraso entre
+  // cada aparición (ver RETRASO_PEZ_MS). Los que ya están programados cuentan como presentes.
   _rellenarPeces() {
     const { pecesALaVez } = parametrosDe(nivelPara(this.puntos))
-    while (this.peces.length < pecesALaVez) this.spawnearPez()
+    let espera = 0
+    for (let n = this.peces.length + this._apariciones.length; n < pecesALaVez; n++) {
+      espera += espera === 0 ? Phaser.Math.Between(...RETRASO_PEZ_MS) : Phaser.Math.Between(...ENTRE_PECES_MS)
+      const evento = this.time.delayedCall(espera, () => {
+        this._apariciones = this._apariciones.filter((e) => e !== evento)
+        if (this.jugando) this.spawnearPez()
+      })
+      this._apariciones.push(evento)
+    }
   }
 
   _empezar() {
