@@ -8,11 +8,13 @@
 //   rango           grados entre el brazo más flexionado y el más estirado, más es mejor
 //   coordinación    0–100, más alto es mejor (qué tan directo fue el camino de la mano a cada pez)
 //   reacción        segundos desde que aparece el pez hasta que se lo toca, menos es mejor
+//   alertas         cuántas veces movió de más los pies o la cadera (solo tronco y brazos), menos es mejor
 const METRICAS = [
   { clave: 'estabilidad_score', etiqueta: 'Estabilidad', sufijo: '/100', mejorSi: 'alto', igual: 2, decimales: 0 },
   { clave: 'rango_movimiento_max', etiqueta: 'Rango de movimiento', sufijo: '°', mejorSi: 'alto', igual: 3, decimales: 0 },
   { clave: 'coordinacion', etiqueta: 'Coordinación', sufijo: '/100', mejorSi: 'alto', igual: 2, decimales: 0 },
   { clave: 'tiempo_reaccion_s', etiqueta: 'Tiempo de reacción', sufijo: ' s', mejorSi: 'bajo', igual: 0.1, decimales: 1 },
+  { clave: 'alertas_movimiento', etiqueta: 'Alertas de movimiento', nombre: 'el control de los pies', sufijo: '', mejorSi: 'bajo', igual: 1.5, decimales: 0 },
 ]
 
 const hay = (v) => typeof v === 'number' && Number.isFinite(v)
@@ -30,7 +32,7 @@ export function compararRondas(actual, previa) {
   const filas = METRICAS.map((m) => {
     const v = actual?.[m.clave]
     const p = previa?.[m.clave]
-    const fila = { clave: m.clave, etiqueta: m.etiqueta, texto: hay(v) ? `${numero(v, m.decimales)}${m.sufijo}` : '—', estado: null, delta: '' }
+    const fila = { clave: m.clave, etiqueta: m.etiqueta, nombre: m.nombre ?? m.etiqueta.toLowerCase(), texto: hay(v) ? `${numero(v, m.decimales)}${m.sufijo}` : '—', estado: null, delta: '' }
     if (!hay(v) || !hay(p)) return fila
     const d = v - p
     if (Math.abs(d) < m.igual) return { ...fila, estado: 'igual', delta: '= igual' }
@@ -45,7 +47,7 @@ export function compararRondas(actual, previa) {
 function fraseDe(filas, hayPrevia) {
   if (filas.every((f) => f.texto === '—')) return 'No hubo datos suficientes para analizar esta ronda.'
   if (!hayPrevia) return 'Primera ronda analizada. En la próxima la comparamos con esta.'
-  const nombres = (estado) => filas.filter((f) => f.estado === estado).map((f) => f.etiqueta.toLowerCase())
+  const nombres = (estado) => filas.filter((f) => f.estado === estado).map((f) => f.nombre)
   const lista = (a) => (a.length > 1 ? `${a.slice(0, -1).join(', ')} y ${a.at(-1)}` : a[0])
   const mejor = nombres('mejor'), peor = nombres('peor')
   if (mejor.length && !peor.length) return `Mejoraste en ${lista(mejor)} respecto de la ronda anterior.`

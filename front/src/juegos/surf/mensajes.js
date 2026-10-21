@@ -1,10 +1,17 @@
 // Mensajes de ánimo del Surf (Figma 833:442, 833:364, 833:292, 833:403).
 // Cada uno es [antes, resaltado, después]; el resaltado va en cursiva rosa.
 export const MENSAJES = {
+  bienhecho: ['¡', 'Bien hecho', '!'],
+  seguiasi:  ['¡', 'Seguí así', '!'],
   muybien:   ['¡Lo estás haciendo ', 'muy bien', '!'],
   excelente: ['¡', 'Excelente', '!'],
   mejor:     ['¡', 'Cada vez mejor', '!'],
+  asi:       ['¡Así se ', 'hace', '!'],
   norindas:  ['¡', 'No te rindas', '!'],
+  // Los pone la IA (movimiento.js), no la escena: cuando lleva un rato haciéndolo bien, y cuando mueve de más
+  // los pies o la cadera (el juego se juega solo con el tronco y los brazos)
+  postura:   ['¡Muy bien! ', 'Seguí así', ', con los pies quietos'],
+  alerta:    ['¡Cuidado! ', 'No muevas los pies', '. Alcanzá con el tronco y los brazos.'],
   // Al subir la dificultad (ver dificultad.js): el número es el nivel al que llegó
   nivel2:    ['¡Pasaste al ', 'nivel 2', '!'],
   nivel3:    ['¡Pasaste al ', 'nivel 3', '!'],
@@ -13,6 +20,6 @@ export const MENSAJES = {
 
 // Los que se dicen al atrapar un pez, en orden y en ciclo. "norindas" es aparte:
 // sale cuando pasa un rato sin atrapar nada.
-export const FELICITACIONES = ['muybien', 'excelente', 'mejor']
+export const FELICITACIONES = ['bienhecho', 'seguiasi', 'muybien', 'excelente', 'asi', 'mejor']
 
 export const textoMensaje = (clave) => MENSAJES[clave]?.join('') ?? ''

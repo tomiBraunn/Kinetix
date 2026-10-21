@@ -9,6 +9,7 @@ import { hablar, callar } from '../../ia/voz'
 import { estiloSobreBotonApp } from '../../lib/appMovil'
 import { MascotaDelGlobo } from '../Mascota'
 import { MENSAJES } from './mensajes'
+import { LIMITES, PASOS_ZONA, leerZona, guardarZona, normalizarZona } from './curva'
 import iconoMenu from '../../assets/juegos/surf/menu.svg'
 import iconoPausa from '../../assets/juegos/surf/pausa.svg'
 import iconoSalir from '../../assets/juegos/surf/salir.svg'
@@ -119,13 +120,15 @@ export function Consigna({ num, texto, mascota = null, colaIzq }) {
 }
 
 // ─── Mensajes de ánimo durante el juego (la escena elige cuál: mensajes.js) ──
+// La alerta de movimiento (clave "alerta") es más larga: puede ocupar dos líneas y lleva otro color
 export function Mensaje({ clave }) {
   const [antes, resaltado, despues] = MENSAJES[clave]
+  const alerta = clave === 'alerta'
   return (
-    <div role="status" className="pointer-events-none absolute inset-x-0 top-[106px] z-20 flex justify-center px-[26px]">
-      <p className="flex h-[38px] w-[319px] max-w-full items-center justify-center whitespace-nowrap rounded-[16px] border-b-4 border-[rgba(190,24,93,0.2)] bg-white/90 pt-1 text-[18px] font-bold tracking-[-0.45px] text-[#0e111f] shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1)] backdrop-blur-[4px]">
+    <div role={alerta ? 'alert' : 'status'} className="pointer-events-none absolute inset-x-0 top-[106px] z-20 flex justify-center px-[26px]">
+      <p className={`flex w-[319px] max-w-full items-center justify-center rounded-[16px] border-b-4 bg-white/90 text-[18px] font-bold tracking-[-0.45px] text-[#0e111f] shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1)] backdrop-blur-[4px] ${alerta ? 'min-h-[38px] whitespace-normal border-[rgba(217,119,6,0.45)] px-3 py-2 text-center leading-[22px]' : 'h-[38px] whitespace-nowrap border-[rgba(190,24,93,0.2)] pt-1'}`}>
         {/* en un span: como hijos sueltos del flex, el espacio final de `antes` se pierde */}
-        <span>{antes}<em className="font-bold italic text-[#d6065c]">{resaltado}</em>{despues}</span>
+        <span>{antes}<em className={`font-bold italic ${alerta ? 'text-[#b45309]' : 'text-[#d6065c]'}`}>{resaltado}</em>{despues}</span>
       </p>
     </div>
   )
@@ -148,8 +151,8 @@ const INICIAL = { detectados: Array(PUNTOS_SILUETA.length).fill(false), pista: '
 const MANTENER_MS = 1500 // quieto y bien detectado durante este tiempo
 // Pantalla apaisada (celular acostado, televisor): el alto es poco y la silueta entera quedaba chica, o sea el
 // paciente se veía chico y los peces —que se miden contra su cuerpo— en un rango diminuto. Ahí la silueta
-// se agranda hasta 130% del alto, desde arriba: entran la cabeza, los hombros, las caderas y las rodillas
-// (lo que piden los juegos) y el paciente se ve el doble de grande. Mismo umbral que EscenaPrincipal (1,2).
+// se agranda hasta 130% del alto, bajada un 12% para dejar arriba lugar a los contadores y a los peces: entran
+// la cabeza, los hombros, las caderas y las rodillas (lo que piden los juegos) y el paciente se ve el doble de grande. Mismo umbral que EscenaPrincipal (1,2).
 // (Tailwind necesita las clases enteras en el código: por eso la guía repite el media query)
 const PISTA_VOZ_MS = 2500 // una pista tiene que sostenerse tanto para que la voz la diga
 
@@ -219,7 +222,7 @@ export function GuiaSilueta({ pausado, onListo, requiere = 'torso' }) {
       <div
         ref={guiaRef}
         aria-hidden="true"
-        className="pointer-events-none absolute bottom-2 left-1/2 z-[16] aspect-[315/605] h-[min(73.2%,150vw)] -translate-x-[45.7%] [@media(min-aspect-ratio:6/5)]:bottom-auto [@media(min-aspect-ratio:6/5)]:top-0 [@media(min-aspect-ratio:6/5)]:h-[130%]"
+        className="pointer-events-none absolute bottom-2 left-1/2 z-[16] aspect-[315/605] h-[min(73.2%,150vw)] -translate-x-[45.7%] [@media(min-aspect-ratio:6/5)]:bottom-auto [@media(min-aspect-ratio:6/5)]:top-[12%] [@media(min-aspect-ratio:6/5)]:h-[130%]"
       >
         <div className="absolute inset-[4.17%_13.6%_8.71%_13.6%]">
           <div className="absolute inset-[-0.66%_-1.44%_-0.63%_-1.23%]">
@@ -257,7 +260,7 @@ const PASOS = [
 
 // `pasos` es opcional: el Flamenco reusa esta pantalla con los suyos. `mascota` también: va
 // debajo del botón, en el espacio libre que deja el diseño (no está en el Figma de trabajo).
-export function AntesDeEmpezar({ onListo, pasos = PASOS, mascota = null }) {
+export function AntesDeEmpezar({ onListo, pasos = PASOS, mascota = null, extra = null }) {
   // La voz lee todo lo que se ve. Al salir se calla: la consigna de la calibración la reemplaza.
   useEffect(() => {
     hablar(`¿Cómo se juega? Primero preparate. Después, el juego te va a indicar qué movimiento hacer. ${pasos.map(([titulo, texto], i) => `${i + 1}. ${titulo}. ${texto}`).join(' ')}`)
@@ -279,11 +282,74 @@ export function AntesDeEmpezar({ onListo, pasos = PASOS, mascota = null }) {
             </div>
           </div>
         ))}
+        {extra}
         <button onClick={onListo} className="h-[54px] rounded-[27px] bg-[#b11c6c] text-[18px] font-bold text-white">
           Estoy listo
         </button>
         {mascota && <div className="flex justify-center">{mascota}</div>}
       </div>
+    </div>
+  )
+}
+
+// ─── Zona donde aparecen los peces ──────────────────────────────────────────
+// Los peces nadan por una curva sobre el paciente (ver aparicion.js). El kinesiólogo elige de antemano el alto y el
+// ancho de esa zona; cada pez sale en un punto al azar de ella, o sea a todas las alturas que abarque. Queda
+// guardada en el equipo (curva.js). El dibujo muestra la zona vista de frente, con el paciente abajo.
+function VistaZona({ zona }) {
+  const E = 80 // px del dibujo por largo de tronco
+  const cx = 120
+  const cy = 138 // los hombros
+  const punto = (r, grados) => {
+    const a = (grados * Math.PI) / 180
+    return [cx + r * E * Math.sin(a), cy - r * E * Math.cos(a)]
+  }
+  const [ox1, oy1] = punto(zona.altoMax, -zona.ancho)
+  const [ox2, oy2] = punto(zona.altoMax, zona.ancho)
+  const [ix2, iy2] = punto(zona.altoMin, zona.ancho)
+  const [ix1, iy1] = punto(zona.altoMin, -zona.ancho)
+  const R = zona.altoMax * E
+  const r = zona.altoMin * E
+  const d = `M ${ox1} ${oy1} A ${R} ${R} 0 0 1 ${ox2} ${oy2} L ${ix2} ${iy2} A ${r} ${r} 0 0 0 ${ix1} ${iy1} Z`
+  return (
+    <svg viewBox="0 0 240 150" className="mt-3 w-full rounded-[12px] bg-[#f3f4fb]" aria-hidden="true">
+      <path d={d} fill="rgba(177,28,108,0.18)" stroke="#b11c6c" strokeWidth="2" strokeLinejoin="round" />
+      <circle cx={cx} cy={cy - 20} r="10" fill="#2b319c" />
+      <line x1={cx - 20} y1={cy} x2={cx + 20} y2={cy} stroke="#2b319c" strokeWidth="7" strokeLinecap="round" />
+      <line x1={cx} y1={cy} x2={cx} y2="150" stroke="#2b319c" strokeWidth="7" />
+    </svg>
+  )
+}
+
+function Deslizador({ etiqueta, valor, texto, min, max, paso, onCambio }) {
+  return (
+    <label className="mt-3 block">
+      <span className="flex items-baseline justify-between text-[15px] font-bold">{etiqueta}<span className="font-black text-[#b11c6c]">{texto}</span></span>
+      <input type="range" min={min} max={max} step={paso} value={valor} onChange={(e) => onCambio(Number(e.target.value))} className="mt-1 w-full accent-[#b11c6c]" />
+    </label>
+  )
+}
+
+export function SelectorZona() {
+  const [zona, setZona] = useState(leerZona)
+  const cambiar = (cambios) => {
+    const nueva = normalizarZona({ ...zona, ...cambios })
+    setZona(nueva)
+    guardarZona(nueva)
+  }
+  const coma = (n) => String(n).replace('.', ',')
+  return (
+    <div role="group" aria-label="Zona donde aparecen los peces" className="rounded-[18px] bg-white p-4">
+      <p className="text-[18px] font-bold leading-[23px]">Zona donde aparecen los peces</p>
+      <p className="mt-1 text-[15px] leading-5">Sobre el paciente. Cada pez sale en un punto al azar de esta zona: una zona amplia usa todas las alturas.</p>
+      <VistaZona zona={zona} />
+      <Deslizador etiqueta="Alto mínimo" valor={zona.altoMin} texto={coma(zona.altoMin)} min={LIMITES.alto[0]} max={LIMITES.alto[1]} paso={PASOS_ZONA.alto}
+        onCambio={(v) => cambiar({ altoMin: Math.min(v, zona.altoMax) })} />
+      <Deslizador etiqueta="Alto máximo" valor={zona.altoMax} texto={coma(zona.altoMax)} min={LIMITES.alto[0]} max={LIMITES.alto[1]} paso={PASOS_ZONA.alto}
+        onCambio={(v) => cambiar({ altoMax: Math.max(v, zona.altoMin) })} />
+      <Deslizador etiqueta="Ancho (a cada lado)" valor={zona.ancho} texto={`±${zona.ancho}°`} min={LIMITES.ancho[0]} max={LIMITES.ancho[1]} paso={PASOS_ZONA.ancho}
+        onCambio={(v) => cambiar({ ancho: v })} />
+      <p className="mt-2 text-[13px] leading-[18px] text-[#5e668c]">El alto se mide en largos de tronco sobre los hombros: más alto pide levantar más los brazos; más ancho, inclinar más el tronco.</p>
     </div>
   )
 }

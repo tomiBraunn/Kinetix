@@ -3,6 +3,7 @@ import { tiempoReaccionMediana } from './reaccion'
 import { eficienciaDeTrayecto, coordinacionScore } from './trayectoria'
 import { medirPiernas, evaluarPierna } from './piernas'
 import { leerRotacion } from './rotacion'
+import { medirCuerpo, promediarBase, desplazamiento } from './movimiento'
 
 const WASM_URL  = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm'
 const MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task'
@@ -26,6 +27,9 @@ const LM = {
 // Separación mínima entre dos análisis. Un poco menos que un cuadro a 30 fps (33 ms) para no perder
 // ninguno por el redondeo de requestAnimationFrame.
 const INTERVALO_MIN_MS = 30
+
+// Cuántos cuadros se promedian al empezar la ronda para saber dónde está parado el paciente (~0,4 s)
+const CUADROS_BASE = 12
 
 // Vista sin alejar: el video centrado y a escala 1 (ver KinetixAI._encuadre)
 const VISTA_BASE = { s: 1, px: 0.5, py: 0.5, qx: 0.5, qy: 0.5 }
@@ -72,6 +76,9 @@ class KinetixAI {
     this._muestrasAngulo = []   // ángulo de rodilla o codo, cada frame (rango de movimiento)
     this._muestrasTronco = []   // inclinación del torso respecto de la vertical, en grados
     this._frames = { izq: 0, der: 0 } // frames con cada pierna levantada (Flamenco)
+    this._baseMov = null        // dónde está parado el paciente al empezar la ronda (ver fijarLineaBase)
+    this._muestrasBase = null   // cuadros que se van juntando para esa base
+    this._desp = null           // cuánto se apartó de ahí en el último cuadro (ver movimiento.js)
     this._trayManos = { izq: [], der: [] } // camino de cada muñeca desde el último toque
     this._eficiencias = []      // eficiencia (0–1) del trayecto de cada toque (coordinación)
   }
@@ -146,6 +153,20 @@ class KinetixAI {
   // Descarta lo acumulado hasta ahora para las métricas de la sesión. El Surf
   // lo llama cuando arranca el juego de verdad, así no cuentan los segundos de
   // instrucciones y calibración (el paciente todavía se está acomodando).
+  // Marca dónde está parado el paciente (cadera y pies) con los próximos cuadros: de ahí se mide cuánto se
+  // mueve de más (ver `desplazamiento`). El Surf lo llama al empezar cada ronda.
+  fijarLineaBase() {
+    this._baseMov = null
+    this._muestrasBase = []
+    this._desp = null
+  }
+
+  // { cadera, pies } en largos de tronco desde la base (pies es null si no se ven los tobillos), o null si
+  // todavía no hay base o no se ve el cuerpo.
+  get desplazamiento() {
+    return this._desp
+  }
+
   reiniciarMetricas() {
     this._muestrasCadera = []
     this._muestrasAngulo = []
@@ -200,6 +221,7 @@ class KinetixAI {
         const mask = result.segmentationMasks?.[0] ?? null
         this.ultimosLandmarks = landmarks // la calibración del Surf los lee desde React
         if (landmarks) this._interpret(landmarks)
+        else this._desp = null
         if (this.overlayCtx) this._drawOverlay(landmarks)
         if (this.siluetaCtx) this._drawSilueta(mask, landmarks)
         // MPMask es un recurso nativo (WebGL) — hay que liberarlo cada frame
@@ -506,7 +528,22 @@ class KinetixAI {
   // Corre en cada frame para los 3 juegos, antes de la lógica específica de
   // cada uno — junta las muestras para las métricas de equilibrio que se
   // mandan al backend al terminar (ver getMetricasResumen()).
+  _seguirMovimiento(landmarks) {
+    const medida = medirCuerpo(landmarks, this.aspecto())
+    if (this._muestrasBase) {
+      if (medida) this._muestrasBase.push(medida)
+      if (this._muestrasBase.length >= CUADROS_BASE) {
+        this._baseMov = promediarBase(this._muestrasBase)
+        this._muestrasBase = null
+      }
+      return
+    }
+    this._desp = this._baseMov ? desplazamiento(this._baseMov, medida) : null
+  }
+
   _muestrear(landmarks) {
+    this._seguirMovimiento(landmarks)
+
     const visOk = (lm) => (lm?.visibility ?? 1) > 0.3
     const cIzq = landmarks[LM.CADERA_IZQ]
     const cDer = landmarks[LM.CADERA_DER]

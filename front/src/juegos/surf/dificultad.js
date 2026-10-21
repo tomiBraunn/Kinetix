@@ -1,21 +1,24 @@
-// Dificultad del Surf: empieza fácil y sube sola. Cada PECES_POR_NIVEL peces atrapados se pasa al nivel
-// siguiente (el que mejor le va, más rápido sube; el que le cuesta, se queda en uno cómodo). Funciones
-// puras: se prueban con node (dificultad.check.mjs); la escena las aplica en EscenaPrincipal.js.
+// Dificultad del Surf: empieza fácil y sube sola, pensada para adultos mayores (el kinesiólogo pidió pocos peces,
+// mucho tiempo entre uno y otro y movimientos de tronco y brazos, sin mover los pies). Cada PECES_POR_NIVEL peces
+// atrapados se pasa al nivel siguiente. Funciones puras: se prueban con node (dificultad.check.mjs); la escena las
+// aplica en EscenaPrincipal.js.
 //
-// Cada nivel cambia cuatro cosas, todas en la misma dirección (más difícil):
+// Los peces aparecen sobre una curva por encima del paciente, centrada en sus hombros (ver aparicion.js), dentro de
+// la zona que fija el kinesiólogo de antemano (alto y ancho, ver curva.js): eso NO cambia con el nivel. Cada nivel
+// cambia, todo en la dirección de "más difícil":
 //   pecesALaVez  cuántos hay nadando a la vez
-//   tam          multiplicador del tamaño (peces grandes al principio, más chicos después)
-//   vel          multiplicador de la velocidad (lento al principio)
-//   distMin      distancia mínima a los hombros, en largos de tronco: cerca al principio (casi sin estirar
-//                el brazo) y cada vez más lejos
-//   alcance      distancia máxima a los hombros, en largos de tronco: hasta dónde pueden aparecer
-export const PECES_POR_NIVEL = 3
+//   tam          multiplicador del tamaño (grandes al principio)
+//   vel          multiplicador de la velocidad con que se desplazan por la curva (muy lentos al principio)
+//   deriva       cuántos grados se desplazan por la curva yendo y viniendo
+//   espera       ms hasta que aparece el pez que reemplaza a uno atrapado: [mínimo, máximo]
+//   entre        ms entre un pez y el siguiente cuando faltan varios: [mínimo, máximo]
+export const PECES_POR_NIVEL = 2
 
 export const NIVELES = [
-  { pecesALaVez: 1, tam: 1.35, vel: 0.55, distMin: 0.4, alcance: 1.0 },
-  { pecesALaVez: 2, tam: 1.2, vel: 0.8, distMin: 0.6, alcance: 1.3 },
-  { pecesALaVez: 2, tam: 1.05, vel: 1.0, distMin: 0.8, alcance: 1.6 },
-  { pecesALaVez: 3, tam: 0.9, vel: 1.3, distMin: 1.0, alcance: 1.9 },
+  { pecesALaVez: 1, tam: 1.4, vel: 0.5, deriva: 8, espera: [2500, 3500], entre: [3500, 5000] },
+  { pecesALaVez: 1, tam: 1.25, vel: 0.6, deriva: 12, espera: [2500, 3500], entre: [3500, 5000] },
+  { pecesALaVez: 2, tam: 1.1, vel: 0.7, deriva: 16, espera: [3000, 4200], entre: [3500, 5000] },
+  { pecesALaVez: 2, tam: 1.0, vel: 0.8, deriva: 16, espera: [3000, 4200], entre: [3500, 5000] },
 ]
 
 /** Nivel (0 = el más fácil) según los peces atrapados en la ronda. */

@@ -12,7 +12,7 @@ import {
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="bg-white rounded-[18px] p-5 shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)]">
-      <p className="text-2xl font-black text-primary">{value}</p>
+      <p className={`${String(value).length > 10 ? 'text-lg' : 'text-2xl'} font-black text-primary`}>{value}</p>
       <p className="text-text-muted text-xs font-semibold mt-0.5">{label}</p>
     </div>
   )
@@ -68,6 +68,13 @@ function VideoOVacio({ url, label, giro = 0 }: { url: string | null; label: stri
   )
 }
 
+// Dónde aparecieron los peces en esa ronda: alto (largos de tronco sobre los hombros) y ancho (grados a cada lado)
+function zonaAparicion(z: unknown): string | null {
+  const o = z as { altoMin?: number; altoMax?: number; ancho?: number } | null
+  if (!o || typeof o.altoMin !== 'number' || typeof o.altoMax !== 'number' || typeof o.ancho !== 'number') return null
+  return `alto ${String(o.altoMin).replace('.', ',')}–${String(o.altoMax).replace('.', ',')} · ±${o.ancho}°`
+}
+
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null)
 
 // Grados que el paciente giró la cámara en esa ronda (0 si nunca la giró o la sesión es vieja)
@@ -86,6 +93,9 @@ function statsPorJuego(s: SesionDetalle): { label: string; value: string | numbe
       { label: 'Duración', value: raw.duracion_segundos ? `${raw.duracion_segundos}s` : '—' },
       // Las rondas jugadas antes de que existieran los niveles no lo traen
       ...(num(raw.nivel_maximo) != null ? [{ label: 'Nivel alcanzado', value: `${raw.nivel_maximo} de 4` }] : []),
+      // Cuántas veces la IA avisó que movió de más los pies o la cadera, y a qué altura estuvo la curva de los peces
+      ...(num(raw.alertas_movimiento) != null ? [{ label: 'Alertas de movimiento', value: raw.alertas_movimiento as number }] : []),
+      ...(zonaAparicion(raw.zona_aparicion) ? [{ label: 'Zona de aparición', value: zonaAparicion(raw.zona_aparicion)! }] : []),
     ]
   }
   if (s.juego === 'flamenco') {

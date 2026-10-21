@@ -3,10 +3,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import PhaserGame from './PhaserGame'
 import Escena from './Escena'
 import {
-  BarraSuperior, Contadores, ControlMusica, Consigna, Mensaje, GuiaSilueta, AntesDeEmpezar, DesafioCompletado,
+  BarraSuperior, Contadores, ControlMusica, Consigna, Mensaje, GuiaSilueta, AntesDeEmpezar, DesafioCompletado, SelectorZona,
 } from './pantallas'
 import { textoMensaje } from './mensajes'
 import { compararRondas } from './analisis'
+import { leerZona } from './curva'
+import { vigilar, ESTADO_INICIAL } from '../../ia/movimiento'
 import { usePoseAI } from '../../ia/usePoseAI'
 import { kinetixAI } from '../../ia/KinetixAI'
 import { useSessionRecorder } from '../../ia/useSessionRecorder'
@@ -59,6 +61,10 @@ export default function GamePage() {
   const [celebrando, setCelebrando] = useState(false) // el pez hace la pose de festejo después de cada acierto
   const [analisis, setAnalisis] = useState(null) // lo que analizó la IA en la ronda que terminó, comparado con la anterior
   const resumenPrevioRef = useRef(null)          // las métricas de la ronda anterior (solo de esta visita)
+  const [aviso, setAviso] = useState(null)       // lo que dice la IA por su cuenta: 'alerta' (movió de más) o 'postura' (lo hace bien)
+  const avisoTimerRef = useRef(null)
+  const alertasRef = useRef(0)                   // cuántas alertas de movimiento hubo en la ronda
+  const mensajeRef = useRef(null)                // el mensaje de la escena que se está mostrando, para no pisarlo
   const [sesionGuardada, setSesionGuardada] = useState(null) // la sesión de la ronda que terminó, para ir a verla en el panel
   const celebraTimerRef = useRef(null)
   const [tiempo, setTiempo] = useState(0) // segundos jugados, arranca en 0
@@ -101,9 +107,32 @@ export default function GamePage() {
   useEffect(() => {
     if (fase !== 'consigna') return
     kinetixAI.reiniciarMetricas()
+    kinetixAI.fijarLineaBase() // dónde está parado: de ahí se mide si mueve de más los pies o la cadera
+    alertasRef.current = 0
     window.kinetix?.empezar?.()
     iniciarSesion()
   }, [fase])
+
+  // La IA vigila que se mueva solo con el tronco y los brazos (los pies y la cadera quietos). Si no, avisa; si lo
+  // hace bien un buen rato, lo felicita. Mientras hay un mensaje de la escena no se le pisa (ver movimiento.js).
+  useEffect(() => {
+    mensajeRef.current = mensaje
+  })
+  useEffect(() => {
+    if ((fase !== 'consigna' && fase !== 'jugando') || pausado) return
+    let est = { ...ESTADO_INICIAL, ultimoMensaje: performance.now() }
+    const id = setInterval(() => {
+      const r = vigilar(est, kinetixAI.desplazamiento, performance.now(), !!mensajeRef.current)
+      est = r.est
+      if (!r.alerta && !r.refuerzo) return
+      if (r.alerta) alertasRef.current += 1
+      setAviso(r.alerta ? 'alerta' : 'postura')
+      clearTimeout(avisoTimerRef.current)
+      avisoTimerRef.current = setTimeout(() => setAviso(null), r.alerta ? 5000 : 3000)
+    }, 150)
+    return () => clearInterval(id)
+  }, [fase, pausado])
+  useEffect(() => () => clearTimeout(avisoTimerRef.current), [])
 
   // Eventos de la escena de Phaser
   useEffect(() => {
@@ -125,7 +154,8 @@ export default function GamePage() {
     // Guarda resultados al terminar la ronda + sube videos y eventos
     const fin = (e) => {
       // El análisis se muestra al terminar cada ronda, haya o no sesión guardada
-      const resumen = kinetixAI.getMetricasResumen()
+      const resumen = { ...kinetixAI.getMetricasResumen(), alertas_movimiento: alertasRef.current }
+      setAviso(null)
       setAnalisis(compararRondas(resumen, resumenPrevioRef.current))
       resumenPrevioRef.current = resumen
       setFase('completado')
@@ -136,7 +166,7 @@ export default function GamePage() {
       eventosRef.current = []
       if (!sesionId) return
 
-      finalizarSesion(sesionId, { juego: 'surf', ...e.detail, rotacion_camara: kinetixAI.rotacion }, resumen).catch(console.warn)
+      finalizarSesion(sesionId, { juego: 'surf', ...e.detail, rotacion_camara: kinetixAI.rotacion, alertas_movimiento: alertasRef.current, zona_aparicion: leerZona() }, resumen).catch(console.warn)
       eventos.push({ tipo: 'fin_juego', datos: e.detail })
       cierreRef.current = recorder.stop()
         .then(videos => {
@@ -198,6 +228,9 @@ export default function GamePage() {
   useEffect(() => {
     if (fase === 'jugando' && mensaje && !pausado) hablar(textoMensaje(mensaje))
   }, [mensaje, fase, pausado])
+  useEffect(() => {
+    if (aviso && !pausado) hablar(textoMensaje(aviso))
+  }, [aviso, pausado])
   useEffect(() => () => callar(), []) // al salir no puede quedar hablando
   useEffect(() => () => clearTimeout(celebraTimerRef.current), [])
 
@@ -295,15 +328,15 @@ export default function GamePage() {
           </>
         )}
         {fase === 'preparando' && <Consigna num="✓" texto={CONSIGNAS.preparando} mascota={pez('w-[130px]')} colaIzq={39} />}
-        {fase === 'consigna' && <Consigna num={2} texto={CONSIGNAS.consigna} mascota={pez('w-[130px]')} colaIzq={39} />}
-        {fase === 'jugando' && mensaje && <Mensaje clave={mensaje} />}
+        {fase === 'consigna' && !aviso && <Consigna num={2} texto={CONSIGNAS.consigna} mascota={pez('w-[130px]')} colaIzq={39} />}
+        {(aviso || (fase === 'jugando' && mensaje)) && <Mensaje clave={aviso ?? mensaje} />}
         {/* Jugando no hay consigna: el pez sigue ahí, más chico, por encima del paciente y por debajo de los peces */}
         {fase === 'jugando' && (
           <div aria-hidden="true" className="pointer-events-none absolute left-[4px] top-[152px] z-[16]">{pez('w-[100px]')}</div>
         )}
 
         {fase === 'instrucciones' && (
-          <AntesDeEmpezar onListo={() => { desbloquear(); setFase('calibracion') }} mascota={<Mascota especie="pez" className="w-[150px]" />} />
+          <AntesDeEmpezar onListo={() => { desbloquear(); setFase('calibracion') }} extra={<SelectorZona />} mascota={<Mascota especie="pez" className="w-[150px]" />} />
         )}
         {fase === 'completado' && (
           <DesafioCompletado ronda={ronda} analisis={analisis} onSeguir={seguirJugando} onVolver={() => navigate('/juego')}
