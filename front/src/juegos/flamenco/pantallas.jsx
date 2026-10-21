@@ -5,6 +5,7 @@
 import { useId } from 'react'
 import { AntesDeEmpezar } from '../surf/pantallas'
 import Mascota, { MascotaDelGlobo } from '../Mascota'
+import SelectorRutina from '../SelectorRutina'
 import iconoReloj from '../../assets/juegos/surf/reloj.svg'
 
 // Las y de Figma cuentan la barra superior (48px): el área de juego arranca en y=48, así que
@@ -22,12 +23,13 @@ const mmss = (segundos) => {
   return `${String(Math.floor(seg / 60)).padStart(2, '0')}:${String(seg % 60).padStart(2, '0')}`
 }
 
-export function PastillaTiempo({ segundos }) {
+// `etiqueta`: "Tiempo:" cuenta hacia arriba; en las repeticiones de 10 s es "Faltan:" y cuenta hacia atrás
+export function PastillaTiempo({ segundos, etiqueta = 'Tiempo:' }) {
   return (
     <div className="pointer-events-none absolute inset-x-0 top-[19px] z-20 mx-auto max-w-[402px] px-[18px]">
       <div className={`${pastilla} w-[126px] bg-[rgba(228,226,235,0.71)] pl-[9px]`}>
         <img src={iconoReloj} alt="" className="block size-[14px]" />
-        <span className="ml-0.5 font-bold">Tiempo:</span>
+        <span className="ml-0.5 font-bold">{etiqueta}</span>
         <span className="ml-[7px] font-black">{mmss(segundos)}</span>
       </div>
     </div>
@@ -78,8 +80,8 @@ export function MascotaSobreTarjeta({ children }) {
 }
 
 // ─── Saltar un paso ─────────────────────────────────────────────────────────
-// Salida para quien no llega a la posición "alto" (la más exigente): nadie tiene que forzarse a
-// algo que no puede ni quedarse sin cómo seguir. No está en el Figma: va debajo de la consigna, a la
+// Salida para quien no llega a la posición "alto" (la más exigente) o no aguanta los 10 s: nadie tiene que
+// forzarse a algo que no puede ni quedarse sin cómo seguir. No está en el Figma: va debajo de la consigna, a la
 // derecha (a la izquierda está la mascota), y Mia tiene que darle forma.
 export function BotonSaltar({ onClick }) {
   return (
@@ -143,6 +145,7 @@ const PASOS = [
 ]
 
 // La mascota es más alta que ancha (352×460): con 95px de ancho entra en el espacio libre de abajo sin scroll
+// El kinesiólogo elige las repeticiones y la dificultad acá, después de elegir paciente y juego
 export function AntesDeEmpezarFlamenco({ onListo }) {
-  return <AntesDeEmpezar onListo={onListo} pasos={PASOS} mascota={<Mascota especie="flamingo" className="w-[95px]" />} />
+  return <AntesDeEmpezar onListo={onListo} pasos={PASOS} extra={<SelectorRutina juego="flamenco" />} mascota={<Mascota especie="flamingo" className="w-[95px]" />} />
 }

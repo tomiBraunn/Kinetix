@@ -1,14 +1,37 @@
 // Prueba de dificultad.js con node: node src/juegos/surf/dificultad.check.mjs
 import assert from 'node:assert/strict'
-import { NIVELES, PECES_POR_NIVEL, nivelPara, parametrosDe } from './dificultad.js'
+import { NIVELES, NIVEL_FIJO, nivelPara, parametrosDe } from './dificultad.js'
 
-// Sube de a un nivel cada PECES_POR_NIVEL peces y se queda en el último
+// Subiendo de a poco (la de siempre: 8 peces) sube de a un nivel cada 2 peces y se queda en el último
 assert.equal(nivelPara(0), 0, 'arranca en el más fácil')
-assert.equal(nivelPara(PECES_POR_NIVEL - 1), 0)
-assert.equal(nivelPara(PECES_POR_NIVEL), 1, 'al completar el primer grupo sube')
-assert.equal(nivelPara(PECES_POR_NIVEL * 3), NIVELES.length - 1)
+assert.equal(nivelPara(1), 0)
+assert.equal(nivelPara(2), 1, 'al completar el primer grupo sube')
+assert.equal(nivelPara(6), NIVELES.length - 1)
 assert.equal(nivelPara(999), NIVELES.length - 1, 'no se pasa del último')
 assert.equal(nivelPara(-5), 0, 'un valor raro no rompe')
+
+// Con otra cantidad de peces los niveles se reparten parejo a lo largo de toda la ronda
+const progresiva = (repeticiones) => Array.from({ length: repeticiones + 1 }, (_, p) => nivelPara(p, { repeticiones, dificultad: 'progresiva' }))
+assert.deepEqual(progresiva(4), [0, 1, 2, 3, 3], '4 peces: un nivel por pez')
+assert.deepEqual(progresiva(8), [0, 0, 1, 1, 2, 2, 3, 3, 3], '8 peces: un nivel cada 2')
+assert.deepEqual(progresiva(20).filter((n, i, a) => i === 0 || n !== a[i - 1]), [0, 1, 2, 3], '20 peces: pasa por los 4 niveles, en orden')
+assert.deepEqual(progresiva(20).slice(0, 5), [0, 0, 0, 0, 0], '20 peces: tarda 5 peces en subir')
+assert.equal(nivelPara(0, { repeticiones: 6, dificultad: 'progresiva' }), 0, 'siempre arranca fácil')
+for (const n of [4, 5, 7, 8, 11, 20]) {
+  const p = progresiva(n)
+  assert.ok(p.every((v, i) => i === 0 || v >= p[i - 1]), `${n} peces: nunca baja de nivel`)
+  assert.equal(p.at(-1), NIVELES.length - 1, `${n} peces: termina en el nivel máximo`)
+}
+
+// La dificultad fija no cambia en toda la ronda
+for (const [clave, nivel] of Object.entries(NIVEL_FIJO)) {
+  for (const repeticiones of [4, 8, 20]) {
+    assert.ok([0, 1, repeticiones - 1, repeticiones, 999].every((p) => nivelPara(p, { repeticiones, dificultad: clave }) === nivel), `${clave} con ${repeticiones} peces: siempre el nivel ${nivel + 1}`)
+  }
+}
+assert.ok(NIVEL_FIJO.facil < NIVEL_FIJO.media && NIVEL_FIJO.media < NIVEL_FIJO.dificil, 'fácil < media < difícil')
+assert.ok(parametrosDe(NIVEL_FIJO.facil).pecesALaVez === 1, 'fácil es un pez a la vez')
+assert.equal(nivelPara(3, { repeticiones: 8, dificultad: 'inventada' }), 1, 'una dificultad que no existe se trata como subiendo de a poco')
 
 // Cada nivel es más difícil que el anterior (o igual), nunca más fácil
 for (let i = 1; i < NIVELES.length; i++) {

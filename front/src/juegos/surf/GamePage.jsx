@@ -14,6 +14,7 @@ import { kinetixAI } from '../../ia/KinetixAI'
 import { useSessionRecorder } from '../../ia/useSessionRecorder'
 import { crearSesion, finalizarSesion, subirVideosSesion, mandarEventosSesion } from '../../lib/sesiones.ts'
 import { hablar, callar, desbloquear, useVoz } from '../../ia/voz'
+import SelectorRutina from '../SelectorRutina'
 import Mascota from '../Mascota'
 import BotonVoz from '../BotonVoz'
 import BotonGirarCamara from '../BotonGirarCamara'
@@ -58,6 +59,7 @@ export default function GamePage() {
   const [fase, setFase] = useState('instrucciones')
   const [ronda, setRonda] = useState(1)
   const [puntos, setPuntos] = useState(0)
+  const [meta, setMeta] = useState(null)             // cuántos peces hay que atrapar en esta ronda (lo que se eligió en "Antes de empezar")
   const [celebrando, setCelebrando] = useState(false) // el pez hace la pose de festejo después de cada acierto
   const [analisis, setAnalisis] = useState(null) // lo que analizó la IA en la ronda que terminó, comparado con la anterior
   const resumenPrevioRef = useRef(null)          // las métricas de la ronda anterior (solo de esta visita)
@@ -139,6 +141,7 @@ export default function GamePage() {
     const estado = (e) => {
       const d = e.detail
       setPuntos(d.puntos)
+      setMeta(d.meta)
       setTiempo(d.tiempo)
       setMensaje(d.mensaje)
       // Al atrapar el primer pez deja de ser consigna y empieza el reloj
@@ -307,7 +310,7 @@ export default function GamePage() {
           />
         </div>
 
-        {fase !== 'instrucciones' && <Contadores puntos={puntos} tiempo={tiempo} />}
+        {fase !== 'instrucciones' && <Contadores puntos={puntos} meta={meta} tiempo={tiempo} />}
         {CON_MUSICA.includes(fase) && (
           <ControlMusica volumen={volumen} silencio={silencio} onVolumen={cambiarVolumen} onSilencio={alternarSilencio} />
         )}
@@ -336,7 +339,7 @@ export default function GamePage() {
         )}
 
         {fase === 'instrucciones' && (
-          <AntesDeEmpezar onListo={() => { desbloquear(); setFase('calibracion') }} extra={<SelectorZona />} mascota={<Mascota especie="pez" className="w-[150px]" />} />
+          <AntesDeEmpezar onListo={() => { desbloquear(); setFase('calibracion') }} extra={<><SelectorRutina juego="surf" /><SelectorZona /></>} mascota={<Mascota especie="pez" className="w-[150px]" />} />
         )}
         {fase === 'completado' && (
           <DesafioCompletado ronda={ronda} analisis={analisis} onSeguir={seguirJugando} onVolver={() => navigate('/juego')}

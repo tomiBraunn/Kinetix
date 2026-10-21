@@ -54,13 +54,14 @@ const pastilla = 'flex h-[29px] items-center rounded-[10px] border border-[#e3e3
 
 const mmss = (seg) => `${String(Math.floor(seg / 60)).padStart(2, '0')}:${String(seg % 60).padStart(2, '0')}`
 
-export function Contadores({ puntos, tiempo }) {
+// `meta`: cuántos peces hay que atrapar en la ronda (la elige el kinesiólogo); sin ella se muestra solo lo atrapado
+export function Contadores({ puntos, tiempo, meta = null }) {
   return (
     <div className="pointer-events-none absolute inset-x-0 top-5 z-20 mx-auto flex max-w-[402px] gap-[30px] px-[15px]">
-      <div className={`${pastilla} w-[91px] bg-[rgba(228,226,235,0.75)] pl-[7px]`}>
+      <div className={`${pastilla} ${meta ? 'w-[110px]' : 'w-[91px]'} bg-[rgba(228,226,235,0.75)] pl-[7px]`}>
         <img src={iconoPez} alt="" className="block h-[13px] w-[15px]" />
         <span className="ml-[7px] font-bold">Peces:</span>
-        <span className="ml-[7px] font-black">{puntos}</span>
+        <span className="ml-[7px] font-black">{meta ? `${puntos}/${meta}` : puntos}</span>
       </div>
       <div className={`${pastilla} w-[126px] bg-[rgba(228,226,235,0.71)] pl-[9px]`}>
         <img src={iconoReloj} alt="" className="block size-[14px]" />

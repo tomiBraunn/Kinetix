@@ -20,12 +20,15 @@ export type SesionRow = {
   } | null
 }
 
-type MetricasSurf = { juego: 'surf'; puntos: number; duracion_segundos: number }
+// La rutina que armó el kinesiólogo en "Antes de empezar": cuántas repeticiones y cómo va la dificultad (ver juegos/rutina.js).
+type Rutina = { repeticiones: number; dificultad: string }
+type MetricasSurf = { juego: 'surf'; puntos: number; duracion_segundos: number; rutina?: Rutina }
 // Un paso del Flamenco: la pierna pedida y la posición ('flamenco' = pie despegado, 'alto' = rodilla bien arriba).
 // altura_max: hasta dónde subió la rodilla, en largos de torso (0 = a la altura de la cadera); null si no se midió.
+// objetivo_segundos: lo que había que sostener (10 s); null en la última repetición, que es "todo lo que puedas".
 // Los pasos saltados ("me cuesta") traen saltado: true y segundos: 0, y no cuentan como intento.
-export type PasoFlamenco = { pierna: 'der' | 'izq'; posicion: 'flamenco' | 'alto'; segundos: number; altura_max: number | null; saltado: boolean }
-type MetricasFlamenco = { juego: 'flamenco'; mejor_tiempo_segundos: number; intentos: number; tiempos_segundos?: number[]; pasos?: PasoFlamenco[]; duracion_segundos: number }
+export type PasoFlamenco = { pierna: 'der' | 'izq'; posicion: 'flamenco' | 'alto'; objetivo_segundos?: number | null; segundos: number; altura_max: number | null; saltado: boolean }
+type MetricasFlamenco = { juego: 'flamenco'; mejor_tiempo_segundos: number; intentos: number; tiempos_segundos?: number[]; pasos?: PasoFlamenco[]; duracion_segundos: number; rutina?: Rutina }
 type MetricasEstrellas = { juego: 'estrellas'; estrellas_alcanzadas: number; movimientos_pies: number; duracion_segundos: number }
 type Metricas = MetricasSurf | MetricasFlamenco | MetricasEstrellas
 

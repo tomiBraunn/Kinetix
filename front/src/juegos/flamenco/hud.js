@@ -26,9 +26,10 @@ const mmss = (seg) => `${String(Math.floor(seg / 60)).padStart(2, '0')}:${String
  * @param canvas    el canvas a dibujar (se limpia entero)
  * @param consigna  texto del banner, o null
  * @param tiempo    segundos sostenidos para la pastilla de tiempo, o null para ocultarla
+ * @param etiqueta  rótulo de la pastilla de tiempo ('Tiempo:', o 'Faltan:' cuando cuenta hacia atrás)
  * @param progreso  texto de la pastilla de arriba a la derecha, o null
  */
-export function dibujarHud(canvas, { consigna, tiempo, progreso }) {
+export function dibujarHud(canvas, { consigna, tiempo, etiqueta = 'Tiempo:', progreso }) {
   const ctx = canvas.getContext('2d')
   const w = canvas.width
   ctx.clearRect(0, 0, w, canvas.height)
@@ -42,7 +43,7 @@ export function dibujarHud(canvas, { consigna, tiempo, progreso }) {
     ctx.stroke()
     ctx.fillStyle = GRIS
     ctx.font = "700 12px 'DM Sans', sans-serif"
-    ctx.fillText('Tiempo:', 44, 34)
+    ctx.fillText(etiqueta, 44, 34)
     ctx.font = "900 12px 'DM Sans', sans-serif"
     ctx.fillText(mmss(tiempo), 95, 34)
   }

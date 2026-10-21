@@ -5,9 +5,11 @@ import { FELICITACIONES } from './mensajes'
 import { cuerpoEnPantalla, arcoDelPez, posicionEnArco } from './aparicion'
 import { nivelPara, parametrosDe } from './dificultad'
 import { leerZona, radioAlAzar } from './curva'
+import { leerRutina } from '../rutina'
 import pecesUrl from '../../assets/juegos/surf/peces.png'
 
-const DURACION_JUEGO = 30
+const TOPE_RONDA_S = 300   // si en 5 minutos no se atrapó la cantidad pedida, la ronda se da por terminada (que la grabación no quede andando)
+const FIN_MS = 1200        // entre el último pez y la pantalla de fin: se alcanza a ver y a oír el festejo
 const ESTANCADO_S = 14     // segundos sin atrapar nada → "¡No te rindas!" (los peces tardan: es un juego para adultos mayores)
 const MENSAJE_MS = 3000    // cuánto se muestra cada felicitación
 const APARECE_MS = 700     // el pez entra con un fundido, no de golpe
@@ -87,6 +89,7 @@ export default class EscenaPrincipal extends Phaser.Scene {
 
   _resetear() {
     this.relojTiempo?.remove()
+    this.cierre?.remove()
     this.ocultarMensaje?.remove()
     this._apariciones?.forEach((e) => e.remove())
     this._apariciones = []
@@ -98,12 +101,12 @@ export default class EscenaPrincipal extends Phaser.Scene {
     this.peces = []
     reiniciarReaccion()
     this.puntos = 0
-    this.tiempo = 0              // segundos jugados (0 → DURACION_JUEGO)
+    this.tiempo = 0              // segundos jugados desde el primer pez
     this.cronometrando = false   // el reloj arranca al atrapar el primer pez
     this.jugando = false
     this.mensaje = null
     this.sinAcierto = 0
-    this.nivel = 0               // nivel de dificultad alcanzado (0 = el más fácil, ver dificultad.js)
+    this.nivel = nivelPara(0, this.rutina) // nivel de dificultad alcanzado (0 = el más fácil, ver dificultad.js)
     this._lado = 1               // de qué lado de la curva sale el próximo pez (se va alternando)
     this._despacharEstado()
   }
@@ -119,7 +122,7 @@ export default class EscenaPrincipal extends Phaser.Scene {
   // aparición (ver `espera` y `entre` en dificultad.js: es un juego para adultos mayores y el kinesiólogo pidió
   // una cadencia mucho menor). Los que ya están programados cuentan como presentes.
   _rellenarPeces() {
-    const nivel = parametrosDe(nivelPara(this.puntos))
+    const nivel = parametrosDe(nivelPara(this.puntos, this.rutina))
     let espera = 0
     for (let n = this.peces.length + this._apariciones.length; n < nivel.pecesALaVez; n++) {
       espera += Phaser.Math.Between(...(espera === 0 ? nivel.espera : nivel.entre))
@@ -132,6 +135,7 @@ export default class EscenaPrincipal extends Phaser.Scene {
   }
 
   _empezar() {
+    this.rutina = leerRutina('surf') // cuántos peces atrapar y qué dificultad: lo que eligió el kinesiólogo en "Antes de empezar"
     this._resetear()
     this.zona = leerZona() // dónde aparecen los peces: el alto y el ancho que eligió el kinesiólogo en "Antes de empezar"
     this.jugando = true
@@ -140,10 +144,11 @@ export default class EscenaPrincipal extends Phaser.Scene {
 
   _arrancarCronometro() {
     this.cronometrando = true
-    // El pez de la consigna ya se está reemplazando solo (ver tocarPez)
+    // El pez de la consigna ya se está reemplazando solo (ver tocarPez). Cuenta hacia arriba: la ronda termina
+    // al atrapar la cantidad pedida, no por tiempo.
     this.relojTiempo = this.time.addEvent({
       delay: 1000,
-      repeat: DURACION_JUEGO - 1,
+      loop: true,
       callback: this._descontarTiempo,
       callbackScope: this,
     })
@@ -151,7 +156,7 @@ export default class EscenaPrincipal extends Phaser.Scene {
 
   spawnearPez() {
     const { width, height } = this.scale
-    const nivel = parametrosDe(nivelPara(this.puntos))
+    const nivel = parametrosDe(nivelPara(this.puntos, this.rutina))
     const escala = this._escalaPantalla()
     const apaisada = width > height * 1.2
     // Dónde hay cámara: con la vista "alejada" esa zona es más chica que la pantalla, y fuera de ella el
@@ -224,13 +229,14 @@ export default class EscenaPrincipal extends Phaser.Scene {
     if (!this.cronometrando) this._arrancarCronometro()
     this.sinAcierto = 0
     // Al pasar de nivel se avisa en vez de la felicitación de siempre
-    const nivelNuevo = nivelPara(this.puntos)
+    const nivelNuevo = nivelPara(this.puntos, this.rutina)
     const subio = nivelNuevo > this.nivel
     this.nivel = nivelNuevo
     const mensaje = subio ? `nivel${nivelNuevo + 1}` : FELICITACIONES[(this.puntos - 1) % FELICITACIONES.length]
     this._mostrarMensaje(mensaje, true)
 
     window.dispatchEvent(new CustomEvent('kinetix:surf:punto', { detail: { mensaje } }))
+    if (this.puntos >= this.rutina.repeticiones) this._cerrarRonda()
 
     this.tweens.killTweensOf(pez.img)
     this.tweens.killTweensOf(pez.t)
@@ -264,7 +270,16 @@ export default class EscenaPrincipal extends Phaser.Scene {
     this.sinAcierto++
     if (this.sinAcierto >= ESTANCADO_S && this.mensaje !== 'norindas') this._mostrarMensaje('norindas', false)
     this._despacharEstado()
-    if (this.tiempo >= DURACION_JUEGO) this._finJuego()
+    if (this.tiempo >= TOPE_RONDA_S) this._finJuego()
+  }
+
+  // Se atrapó el último pez: no sale ninguno más y la pantalla de fin llega un momento después
+  _cerrarRonda() {
+    this.jugando = false
+    this.relojTiempo?.remove()
+    this._apariciones.forEach((e) => e.remove())
+    this._apariciones = []
+    this.cierre = this.time.delayedCall(FIN_MS, () => this._finJuego())
   }
 
   _despacharEstado() {
@@ -275,14 +290,16 @@ export default class EscenaPrincipal extends Phaser.Scene {
         cronometrando: this.cronometrando,
         mensaje: this.mensaje,
         nivel: this.nivel + 1,
+        meta: this.rutina?.repeticiones ?? null, // cuántos peces hay que atrapar en la ronda
       },
     }))
   }
 
   _finJuego() {
     this.jugando = false
+    this.relojTiempo?.remove()
     window.dispatchEvent(new CustomEvent('kinetix:surf:fin', {
-      detail: { puntos: this.puntos, duracion_segundos: DURACION_JUEGO, nivel_maximo: this.nivel + 1 },
+      detail: { puntos: this.puntos, duracion_segundos: Math.max(1, this.tiempo), nivel_maximo: this.nivel + 1, rutina: { ...this.rutina } },
     }))
   }
 

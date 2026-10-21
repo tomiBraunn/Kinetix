@@ -8,8 +8,9 @@ import { BarraSuperior, GuiaSilueta } from '../surf/pantallas'
 import { PastillaTiempo, PastillaProgreso, ConsignaCentrada, BotonSaltar, MascotaSobreTarjeta, TarjetaSesion, AntesDeEmpezarFlamenco } from './pantallas'
 import Mascota from '../Mascota'
 import { poseMascota, HITOS_ANIMO_S, FRASES_ANIMO, ANIMO_MS } from './mascota'
-import { PASOS, REPETICIONES, estadoInicial, reducir, segundosSostenidos, resumen } from './logica'
-import { consigna as consignaDe, TARJETA_COMENZAR, tarjetaDescanso, TARJETA_COMPLETADO } from './mensajes'
+import { estadoInicial, reducir, segundosSostenidos, resumen } from './logica'
+import { consigna as consignaDe, tarjetaComenzar, tarjetaDescanso, tarjetaCompletado } from './mensajes'
+import { leerRutina } from '../rutina'
 import { dibujarHud } from './hud'
 import { usePoseAI } from '../../ia/usePoseAI'
 import { kinetixAI } from '../../ia/KinetixAI'
@@ -49,10 +50,10 @@ export default function FlamencoPage() {
   const [segundos, setSegundos] = useState(0)
   const [pausado, setPausado] = useState(false)
   const [aviso, setAviso] = useState(null) // lo que ve la cámara y conviene decirle al paciente (ver mensajes.js)
-  const [animoDicho, setAnimo] = useState(null) // frase de ánimo que dice la mascota mientras el paciente sostiene (ver mascota.js)
+  const [animoDicho, setAnimo] = useState(null) // { frase, desde }: ánimo que dice la mascota mientras el paciente sostiene (ver mascota.js); `desde` es el inicio de ese equilibrio
   const animoTimerRef = useRef(null)
   const segundoPrevioRef = useRef(0)
-  const { fase, paso, completadas } = estado
+  const { fase, paso, completadas, pasos } = estado
   const estadoRef = useRef(estado)
   useEffect(() => { estadoRef.current = estado })
   const enviar = useCallback((tipo) => dispatch({ tipo, ahora: performance.now() }), [])
@@ -96,9 +97,9 @@ export default function FlamencoPage() {
   // Qué pierna y qué posición pide cada paso (en la práctica, cualquiera y "flamenco"). Va antes
   // del efecto de abajo: ese consulta si la pierna ya está arriba con el pedido nuevo.
   useEffect(() => {
-    const p = fase === 'levantar' || fase === 'equilibrio' ? PASOS[paso] : null
+    const p = fase === 'levantar' || fase === 'equilibrio' ? pasos[paso] : null
     kinetixAI.pedirPierna(p?.pierna ?? null, p?.posicion ?? 'flamenco')
-  }, [fase, paso])
+  }, [fase, paso, pasos])
 
   // Pulso de 100 ms: reloj de equilibrio (en pausa se congela), tope de tiempo, altura de la
   // rodilla y avisos. Los eventos al reducer no re-renderizan si no cambia nada.
@@ -114,7 +115,7 @@ export default function FlamencoPage() {
       // efecto sobre `segundos`: es un evento puntual, no estado derivado. El ref evita repetirlo al reanudar.
       const i = HITOS_ANIMO_S.indexOf(s)
       if (e.fase === 'equilibrio' && s !== segundoPrevioRef.current && i !== -1) {
-        setAnimo(FRASES_ANIMO[i])
+        setAnimo({ frase: FRASES_ANIMO[i], desde: e.desdeMs })
         hablar(FRASES_ANIMO[i])
         clearTimeout(animoTimerRef.current)
         animoTimerRef.current = setTimeout(() => setAnimo(null), ANIMO_MS)
@@ -129,7 +130,7 @@ export default function FlamencoPage() {
       const esperando = e.fase === 'levantar' || e.fase === 'practica-levantar'
       const quiere = !esperando || !p ? null
         : p.altura == null ? 'rodillas'
-        : e.fase === 'levantar' ? (p.otra ? 'otra' : PASOS[e.paso].posicion === 'alto' && p.arriba && !p.cumple ? 'subir' : null)
+        : e.fase === 'levantar' ? (p.otra ? 'otra' : e.pasos[e.paso].posicion === 'alto' && p.arriba && !p.cumple ? 'subir' : null)
         : null
       racha = quiere === racha.tipo ? { tipo: quiere, n: racha.n + 1 } : { tipo: quiere, n: 1 }
       setAviso(racha.n >= 5 ? quiere : null)
@@ -147,12 +148,13 @@ export default function FlamencoPage() {
   // demora, se perderían los primeros eventos): 'equilibrio' y los pasos solo ocurren
   // después de "Comenzar", que es cuando se vacía la lista.
   useEffect(() => {
-    if (fase === 'equilibrio') eventosRef.current.push({ tipo: 'mensaje', mensaje: consignaDe('equilibrio', estadoRef.current.paso) })
+    if (fase !== 'equilibrio') return
+    eventosRef.current.push({ tipo: 'mensaje', mensaje: consignaDe('equilibrio', estadoRef.current.paso, estadoRef.current.pasos) })
   }, [fase])
   useEffect(() => {
     if (completadas === 0) return
-    const { pierna, posicion, segundos: tiempo, altura_max, saltado } = estadoRef.current.resultados[completadas - 1]
-    eventosRef.current.push({ tipo: 'repeticion', datos: { numero: completadas, pierna, posicion, tiempo_segundos: tiempo, altura_max, saltado } })
+    const { pierna, posicion, objetivo_segundos, segundos: tiempo, altura_max, saltado } = estadoRef.current.resultados[completadas - 1]
+    eventosRef.current.push({ tipo: 'repeticion', datos: { numero: completadas, pierna, posicion, objetivo_segundos, tiempo_segundos: tiempo, altura_max, saltado } })
   }, [completadas])
 
   // Cierra la sesión: guarda resultados y sube videos y eventos. Sirve tanto para el
@@ -184,7 +186,7 @@ export default function FlamencoPage() {
     if (fase === 'completado') terminarSesion()
   }, [fase, terminarSesion])
 
-  // La sesión y las métricas arrancan con "Comenzar las 4 repeticiones", no con la
+  // La sesión y las métricas arrancan con "Comenzar las N repeticiones", no con la
   // práctica ni la calibración (ahí el paciente todavía se está acomodando).
   const comenzar = useCallback(() => {
     enviar('comenzar')
@@ -231,17 +233,21 @@ export default function FlamencoPage() {
   const verAnalisis = useCallback(() => navigate(`/sesiones/${sesionGuardada}`), [navigate, sesionGuardada])
   const acciones = { comenzar, seguir: () => enviar('seguir'), volver }
   const tarjeta =
-    fase === 'comenzar' ? TARJETA_COMENZAR
-    : fase === 'descanso' ? tarjetaDescanso(completadas, estado.resultados[completadas - 1]?.saltado)
-    : fase === 'completado' ? TARJETA_COMPLETADO
+    fase === 'comenzar' ? tarjetaComenzar(pasos)
+    : fase === 'descanso' ? tarjetaDescanso(completadas, estado.resultados[completadas - 1]?.saltado, pasos)
+    : fase === 'completado' ? tarjetaCompletado(estado.resultados)
     : null
-  const consigna = consignaDe(fase, paso, aviso)
+  const consigna = consignaDe(fase, paso, pasos, aviso, estado.corto)
   const enPaso = fase === 'levantar' || fase === 'equilibrio'
   const progreso =
-    enPaso ? `Repetición ${paso + 1} de ${REPETICIONES}`
-    : fase === 'descanso' || fase === 'completado' ? `${completadas} de ${REPETICIONES} completadas`
+    enPaso ? `Repetición ${paso + 1} de ${pasos.length}`
+    : fase === 'descanso' || fase === 'completado' ? `${completadas} de ${pasos.length} completadas`
     : null
   const conTiempo = CON_TIEMPO.includes(fase)
+  // En las repeticiones de 10 s el reloj cuenta hacia atrás ("Faltan"); en la última y en la práctica, hacia arriba
+  const objetivoS = fase === 'equilibrio' && pasos[paso].objetivoMs != null ? pasos[paso].objetivoMs / 1000 : null
+  const tiempoPastilla = objetivoS != null ? Math.max(0, objetivoS - segundos) : segundos
+  const etiquetaTiempo = objetivoS != null ? 'Faltan:' : 'Tiempo:'
 
   // Voz: dice la consigna o, cuando hay una tarjeta, su texto (sin el rótulo del juego). En pausa se calla.
   const { hablando } = useVoz()
@@ -258,9 +264,10 @@ export default function FlamencoPage() {
     return () => kinetixAI.fijarCamaraCompleta(false)
   }, [fase])
 
-  // El ánimo solo se muestra en el equilibrio: el temporizador que lo apaga (en un ref, el pulso lo
-  // reinicia a cada hito) puede vencer ya en otra fase y no hay que arrastrar la frase al paso siguiente.
-  const animo = fase === 'equilibrio' ? animoDicho : null
+  // El ánimo solo se muestra en el equilibrio en el que se dijo (`desde`): el temporizador que lo apaga (en un ref, el
+  // pulso lo reinicia a cada hito) puede vencer ya en otra fase o en otra repetición, y la frase del 10 s de una
+  // repetición que se cumple justo ahí no puede aparecer en la siguiente.
+  const animo = fase === 'equilibrio' && animoDicho?.desde === estado.desdeMs ? animoDicho.frase : null
   useEffect(() => () => clearTimeout(animoTimerRef.current), [])
 
   // Entre un paso y el siguiente: 5 s de descanso y sigue solo, sin que el paciente tenga que tocar la pantalla.
@@ -273,11 +280,11 @@ export default function FlamencoPage() {
     hudCanvasRef.current.height = tam.h
   }, [tam])
   useEffect(() => {
-    dibujarHud(hudCanvasRef.current, { consigna: animo ?? consigna, tiempo: conTiempo ? segundos : null, progreso })
-  }, [tam, consigna, animo, conTiempo, segundos, progreso])
+    dibujarHud(hudCanvasRef.current, { consigna: animo ?? consigna, tiempo: conTiempo ? tiempoPastilla : null, etiqueta: etiquetaTiempo, progreso })
+  }, [tam, consigna, animo, conTiempo, tiempoPastilla, etiquetaTiempo, progreso])
 
   // La mascota: pose según el momento. Debajo del globo en el juego y asomada sobre la tarjeta en los descansos.
-  const pose = poseMascota({ fase, paso, aviso, animo: !!animo })
+  const pose = poseMascota({ fase, paso, pasos, aviso, animo: !!animo })
 
   return (
     <div className={`relative flex h-dvh flex-col overflow-hidden [font-variation-settings:'opsz'_14] ${fase === 'instrucciones' ? '' : 'bg-[linear-gradient(180deg,#2f8fe8,#7cc4f6)]'}`}>
@@ -315,12 +322,12 @@ export default function FlamencoPage() {
           />
         </div>
 
-        {conTiempo && <PastillaTiempo segundos={segundos} />}
+        {conTiempo && <PastillaTiempo segundos={tiempoPastilla} etiqueta={etiquetaTiempo} />}
         {progreso && <PastillaProgreso texto={progreso} />}
         {consigna && (
           <ConsignaCentrada texto={animo ?? consigna} mascota={<Mascota especie="flamingo" pose={pose} habla={hablando} className="w-[112px]" />} />
         )}
-        {enPaso && PASOS[paso].posicion === 'alto' && <BotonSaltar onClick={() => enviar('saltar')} />}
+        {enPaso && <BotonSaltar onClick={() => enviar('saltar')} />}
 
         {fase === 'calibracion' && (
           <GuiaSilueta
@@ -355,7 +362,13 @@ export default function FlamencoPage() {
         )}
         <CursorMano activo={!pausado && fase !== 'instrucciones'} areaRef={areaRef} />
         {fase !== 'instrucciones' && <BotonVoz>{fase === 'calibracion' && <BotonGirarCamara />}</BotonVoz>}
-        {fase === 'instrucciones' && <AntesDeEmpezarFlamenco onListo={() => { desbloquear(); enviar('listo') }} />}
+        {fase === 'instrucciones' && (
+          <AntesDeEmpezarFlamenco onListo={() => {
+            desbloquear()
+            // Lo que el kinesiólogo eligió en esta misma pantalla (ver SelectorRutina)
+            dispatch({ tipo: 'listo', ahora: performance.now(), valor: leerRutina('flamenco') })
+          }} />
+        )}
       </div>
     </div>
   )

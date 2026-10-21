@@ -77,6 +77,18 @@ function zonaAparicion(z: unknown): string | null {
 
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null)
 
+const DIFICULTAD: Record<string, string> = { progresiva: 'Subiendo de a poco', flamenco: 'Pierna despegada', alto: 'Rodilla alta', facil: 'Fácil', media: 'Media', dificil: 'Difícil' }
+
+// La rutina que se armó antes de jugar: cuántas repeticiones y cómo iba la dificultad (las sesiones viejas no la traen)
+function rutinaStats(raw: Record<string, unknown>, repeticiones: string): { label: string; value: string | number }[] {
+  const r = raw.rutina as { repeticiones?: unknown; dificultad?: unknown } | null | undefined
+  if (!r || typeof r !== 'object') return []
+  return [
+    ...(num(r.repeticiones) != null ? [{ label: repeticiones, value: r.repeticiones as number }] : []),
+    ...(typeof r.dificultad === 'string' ? [{ label: 'Dificultad', value: DIFICULTAD[r.dificultad] ?? r.dificultad }] : []),
+  ]
+}
+
 // Grados que el paciente giró la cámara en esa ronda (0 si nunca la giró o la sesión es vieja)
 function giroCamara(s: SesionDetalle): number {
   const g = num((s.metricas_sesion?.datos_ia_raw as Record<string, unknown> | null)?.rotacion_camara)
@@ -96,12 +108,18 @@ function statsPorJuego(s: SesionDetalle): { label: string; value: string | numbe
       // Cuántas veces la IA avisó que movió de más los pies o la cadera, y a qué altura estuvo la curva de los peces
       ...(num(raw.alertas_movimiento) != null ? [{ label: 'Alertas de movimiento', value: raw.alertas_movimiento as number }] : []),
       ...(zonaAparicion(raw.zona_aparicion) ? [{ label: 'Zona de aparición', value: zonaAparicion(raw.zona_aparicion)! }] : []),
+      ...rutinaStats(raw, 'Peces a atrapar'),
     ]
   }
   if (s.juego === 'flamenco') {
+    // La última repetición es la de "aguantar todo lo que puedas" (sin objetivo): su tiempo es el que mide la resistencia
+    const pasos = Array.isArray(raw.pasos) ? (raw.pasos as { saltado?: boolean; segundos?: number; objetivo_segundos?: number | null }[]) : []
+    const ultima = pasos.at(-1)
     return [
       { label: 'Mejor tiempo en equilibrio', value: raw.mejor_tiempo_segundos ? `${raw.mejor_tiempo_segundos}s` : '—' },
       { label: 'Intentos', value: (raw.intentos as number) ?? '—' },
+      ...(ultima && ultima.objetivo_segundos === null && !ultima.saltado && num(ultima.segundos) != null ? [{ label: 'Última repetición', value: `${String(ultima.segundos).replace('.', ',')}s` }] : []),
+      ...rutinaStats(raw, 'Repeticiones'),
     ]
   }
   if (s.juego === 'estrellas') {

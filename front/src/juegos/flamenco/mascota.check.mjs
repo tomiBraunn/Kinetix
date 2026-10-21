@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict'
-import { PASOS } from './logica.js'
+import { crearPasos } from './logica.js'
 import { poseMascota, HITOS_ANIMO_S, FRASES_ANIMO } from './mascota.js'
 
-const pose = (o) => poseMascota(o)
+const pasos = crearPasos({ repeticiones: 4, dificultad: 'progresiva' })
+const pose = (o) => poseMascota({ pasos, ...o })
 
 // ─ cada paso muestra su pierna y su posición (derecha, izquierda, derecha alto, izquierda alto)
-assert.deepEqual(PASOS.map((_, paso) => pose({ fase: 'levantar', paso })), ['flamenco-der', 'flamenco-izq', 'alto-der', 'alto-izq'])
-assert.deepEqual(PASOS.map((_, paso) => pose({ fase: 'equilibrio', paso })), ['flamenco-der', 'flamenco-izq', 'alto-der', 'alto-izq'], 'mientras sostiene sigue en la pose')
+assert.deepEqual(pasos.map((_, paso) => pose({ fase: 'levantar', paso })), ['flamenco-der', 'flamenco-izq', 'alto-der', 'alto-izq'])
+assert.deepEqual(pasos.map((_, paso) => pose({ fase: 'equilibrio', paso })), ['flamenco-der', 'flamenco-izq', 'alto-der', 'alto-izq'], 'mientras sostiene sigue en la pose')
 
 // ─ avisos
 assert.equal(pose({ fase: 'levantar', paso: 1, aviso: 'otra' }), 'senala', 'levantó la otra pierna: señala')
