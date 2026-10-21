@@ -20,7 +20,7 @@ import GuiaMascota from '../GuiaMascota'
 import Mascota from '../Mascota'
 import BotonVoz from '../BotonVoz'
 import BotonGirarCamara from '../BotonGirarCamara'
-import CursorMano from '../CursorMano'
+// import CursorMano from '../CursorMano' // apagada por ahora (ver más abajo)
 import musica from '../../assets/juegos/surf/musica-fondo.mp3'
 
 const HEADER_H = 48
@@ -329,7 +329,8 @@ export default function GamePage() {
           <ControlMusica volumen={volumen} silencio={silencio} onVolumen={cambiarVolumen} onSilencio={alternarSilencio} />
         )}
 
-        <CursorMano activo={!pausado && fase !== 'instrucciones'} areaRef={areaRef} />
+        {/* La mano como cursor (CursorMano) está apagada por ahora; el código queda para más adelante. Para prenderla: descomentar el import y esta línea. */}
+        {/* <CursorMano activo={!pausado && fase !== 'instrucciones'} areaRef={areaRef} /> */}
         {fase !== 'instrucciones' && <BotonVoz posicion="bottom-[61px]">{fase === 'calibracion' && <BotonGirarCamara />}</BotonVoz>}
 
         {fase === 'calibracion' && (

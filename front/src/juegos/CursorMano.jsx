@@ -1,3 +1,6 @@
+// APAGADA por ahora: ningún juego la usa (en FlamencoPage y GamePage está comentada, con el import). Queda el código para
+// más adelante. Los botones siguen marcados con `data-mano`, así que al volver a prenderla ya funciona.
+//
 // La mano del paciente como cursor sobre el área de juego: se levanta una mano, el círculo la sigue y,
 // si se queda sobre un botón marcado con `data-mano`, lo elige (ver ia/manoCursor.js). Sirve para
 // manejar el juego sin tocar la pantalla. Solo aparece cuando hay un botón para elegir, así durante el
