@@ -50,6 +50,9 @@ const HUESOS = [
   [11, 23], [12, 24], [23, 24], [23, 25], [25, 27], [24, 26], [26, 28],
 ]
 
+// Los puntos que unen los huesos, más la nariz (0), para marcar la cabeza
+const ARTICULACIONES = [...new Set([0, ...HUESOS.flat()])]
+
 class KinetixAI {
   constructor() {
     this.landmarker = null
@@ -331,6 +334,41 @@ class KinetixAI {
     ctx.restore()
   }
 
+  // Los huesos que detectó la IA, sobre la cámara entera: mientras el paciente se acomoda (calibración) ve que lo
+  // está siguiendo y qué parte del cuerpo le falta mostrar. Va dentro del espejo y con el encuadre `e` del video, así
+  // que calza con la imagen. Con un contorno oscuro para que se vea sobre cualquier fondo, y con el grosor
+  // proporcional a la pantalla (un televisor se mira de lejos).
+  _dibujarHuesos(ctx, landmarks, e, w) {
+    const grosor = Math.max(3, w * 0.012)
+    const visible = (lm) => lm && (lm.visibility ?? 1) >= 0.3
+    ctx.lineCap = 'round'
+    for (const [color, ancho] of [['rgba(15,19,135,0.55)', grosor * 1.9], ['#34D399', grosor]]) {
+      ctx.strokeStyle = color
+      ctx.lineWidth = ancho
+      for (const [a, b] of HUESOS) {
+        const p1 = landmarks[a]
+        const p2 = landmarks[b]
+        if (!visible(p1) || !visible(p2)) continue
+        ctx.beginPath()
+        ctx.moveTo(e.dx + p1.x * e.dw, e.dy + p1.y * e.dh)
+        ctx.lineTo(e.dx + p2.x * e.dw, e.dy + p2.y * e.dh)
+        ctx.stroke()
+      }
+    }
+    // Las articulaciones (las de los huesos y la nariz, para la cabeza), rosas con borde blanco
+    ctx.fillStyle = '#F472B6'
+    ctx.strokeStyle = '#FFFFFF'
+    ctx.lineWidth = grosor * 0.5
+    for (const i of ARTICULACIONES) {
+      const lm = landmarks[i]
+      if (!visible(lm)) continue
+      ctx.beginPath()
+      ctx.arc(e.dx + lm.x * e.dw, e.dy + lm.y * e.dh, grosor * 1.4, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+    }
+  }
+
   // Recorta el cuerpo del paciente del video (usando la máscara de
   // segmentación de MediaPipe) y lo dibuja sobre un canvas de pantalla
   // completa con fondo transparente — puesto por encima del canvas de
@@ -349,6 +387,7 @@ class KinetixAI {
       ctx.translate(w, 0)
       ctx.scale(-1, 1)
       ctx.drawImage(this._fuente, e.dx, e.dy, e.dw, e.dh)
+      if (landmarks) this._dibujarHuesos(ctx, landmarks, e, w)
       ctx.restore()
       return
     }

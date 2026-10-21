@@ -95,3 +95,12 @@ export function tarjetaCompletado(resultados) {
     botones: [{ texto: 'Volver a juegos', variante: 'principal', accion: 'volver' }],
   }
 }
+
+// Lo que dice el flamenco en la guía de "cómo se juega", paso a paso, sobre el parque (ver GuiaMascota.jsx). Cortos: cada paso
+// dura 5 s y la voz tiene que alcanzar a decirlo (unas 65 letras). Mia tiene que validar los textos y la pose de cada uno.
+export const GUIA_FLAMENCO = [
+  { pose: 'celebra', texto: '¡Hola! Dejá lugar libre para moverte y poné la cámara frente a vos.' },
+  { pose: 'senala', texto: 'Ubicate en la silueta: que se te vea de la cabeza a las rodillas.' },
+  { pose: 'flamenco-der', texto: 'Levantá la pierna que te pida y mantené el equilibrio.' },
+  { pose: 'reposo', texto: '¿Listo? Tocá el botón y prendemos la cámara.' },
+]

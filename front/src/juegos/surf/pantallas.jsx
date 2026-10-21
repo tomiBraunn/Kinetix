@@ -5,9 +5,10 @@ import { useEffect, useRef, useState } from 'react'
 import Logo from '../../components/Logo'
 import { kinetixAI } from '../../ia/KinetixAI'
 import { PUNTOS_SILUETA, evaluar, vistaPara } from '../../ia/calibracion'
-import { hablar, callar } from '../../ia/voz'
+import { hablar } from '../../ia/voz'
 import { estiloSobreBotonApp } from '../../lib/appMovil'
 import { MascotaDelGlobo } from '../Mascota'
+import '../guia.css'
 import { MENSAJES } from './mensajes'
 import { LIMITES, PASOS_ZONA, leerZona, guardarZona, normalizarZona } from './curva'
 import iconoMenu from '../../assets/juegos/surf/menu.svg'
@@ -109,12 +110,12 @@ export function ControlMusica({ volumen, silencio, onVolumen, onSilencio }) {
 // Con `mascota` (un <Mascota>) queda pegada abajo a la izquierda con la cola del globo apuntándole.
 export function Consigna({ num, texto, mascota = null, colaIzq }) {
   return (
-    <div role="status" className="pointer-events-none absolute inset-x-[26px] top-[84px] z-20 mx-auto flex min-h-[67px] max-w-[350px] items-center gap-[9.5px] rounded-[22px] border-[1.475px] border-primary bg-[#fffbfb] py-2 pl-[12.5px] pr-3.5 shadow-[0_1.966px_1.966px_rgba(0,0,0,0.25)]">
+    <div role="status" className="globo-pop pointer-events-none absolute inset-x-[26px] top-[84px] z-20 mx-auto flex min-h-[67px] max-w-[350px] items-center gap-[9.5px] rounded-[22px] border-[1.475px] border-primary bg-[#fffbfb] py-2 pl-[12.5px] pr-3.5 shadow-[0_1.966px_1.966px_rgba(0,0,0,0.25)]">
       <span className="relative grid h-[29.494px] w-[28.511px] shrink-0 place-items-center text-[18px] font-bold text-white">
         <img src={circuloPaso} alt="" className="absolute inset-0 block size-full" />
         <span className="relative">{num}</span>
       </span>
-      <p className="text-[18px] font-bold leading-[22px] text-primary-dark">{texto}</p>
+      <p key={texto} className="globo-texto text-[18px] font-bold leading-[22px] text-primary-dark">{texto}</p>
       {mascota && <MascotaDelGlobo colaIzq={colaIzq}>{mascota}</MascotaDelGlobo>}
     </div>
   )
@@ -127,7 +128,7 @@ export function Mensaje({ clave }) {
   const alerta = clave === 'alerta'
   return (
     <div role={alerta ? 'alert' : 'status'} className="pointer-events-none absolute inset-x-0 top-[106px] z-20 flex justify-center px-[26px]">
-      <p className={`flex w-[319px] max-w-full items-center justify-center rounded-[16px] border-b-4 bg-white/90 text-[18px] font-bold tracking-[-0.45px] text-[#0e111f] shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1)] backdrop-blur-[4px] ${alerta ? 'min-h-[38px] whitespace-normal border-[rgba(217,119,6,0.45)] px-3 py-2 text-center leading-[22px]' : 'h-[38px] whitespace-nowrap border-[rgba(190,24,93,0.2)] pt-1'}`}>
+      <p className={`globo-pop flex w-[319px] max-w-full items-center justify-center rounded-[16px] border-b-4 bg-white/90 text-[18px] font-bold tracking-[-0.45px] text-[#0e111f] shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1)] backdrop-blur-[4px] ${alerta ? 'min-h-[38px] whitespace-normal border-[rgba(217,119,6,0.45)] px-3 py-2 text-center leading-[22px]' : 'h-[38px] whitespace-nowrap border-[rgba(190,24,93,0.2)] pt-1'}`}>
         {/* en un span: como hijos sueltos del flex, el espacio final de `antes` se pierde */}
         <span>{antes}<em className={`font-bold italic ${alerta ? 'text-[#b45309]' : 'text-[#d6065c]'}`}>{resaltado}</em>{despues}</span>
       </p>
@@ -253,39 +254,20 @@ export function GuiaSilueta({ pausado, onListo, requiere = 'torso' }) {
 }
 
 // ─── Antes de empezar ───────────────────────────────────────────────────────
-const PASOS = [
-  ['Prepará el espacio', 'Dejá espacio libre para moverte y colocá la cámara frente a vos.'],
-  ['Ubicate en la silueta', 'Alejate hasta que se te vea de la cabeza a la cintura. Quedate quieto dentro de la silueta de puntos.'],
-  ['Seguí las consignas', 'El juego te va a indicar qué pez tocar. Mové los brazos para alcanzarlo y volvé al centro.'],
-]
-
-// `pasos` es opcional: el Flamenco reusa esta pantalla con los suyos. `mascota` también: va
-// debajo del botón, en el espacio libre que deja el diseño (no está en el Figma de trabajo).
-export function AntesDeEmpezar({ onListo, pasos = PASOS, mascota = null, extra = null }) {
-  // La voz lee todo lo que se ve. Al salir se calla: la consigna de la calibración la reemplaza.
-  useEffect(() => {
-    hablar(`¿Cómo se juega? Primero preparate. Después, el juego te va a indicar qué movimiento hacer. ${pasos.map(([titulo, texto], i) => `${i + 1}. ${titulo}. ${texto}`).join(' ')}`)
-    return callar
-  }, [pasos])
+// Primera etapa: el kinesiólogo arma la sesión (la rutina y la zona de los peces). La segunda es la guía de la
+// mascota, que explica cómo se juega paso a paso (ver GuiaMascota). `mascota` va debajo del botón, en el espacio
+// libre que deja el diseño (no está en el Figma de trabajo).
+export function AntesDeEmpezar({ onListo, mascota = null, extra = null }) {
   return (
     <div className="absolute inset-0 z-40 overflow-y-auto bg-[rgba(240,242,255,0.96)] text-primary-dark">
       <div className="mx-auto flex max-w-[402px] flex-col gap-5 px-[26px] pb-8 pt-10">
         {/* Interlineados en px, los de Figma (832:95): sin ellos el navegador usa 1.5 y todo queda más alto */}
         <p className="text-[13px] font-bold leading-[17px]">ANTES DE EMPEZAR</p>
-        <h1 className="text-[29px] font-bold leading-[38px]">¿Cómo se juega?</h1>
-        <p className="text-[17px] leading-[22px]">Primero preparate. Después, el juego te va a indicar qué movimiento hacer.</p>
-        {pasos.map(([titulo, texto], i) => (
-          <div key={titulo} className="flex items-start gap-3.5 rounded-[18px] bg-white p-4">
-            <span className="grid size-[34px] shrink-0 place-items-center rounded-full bg-[#b11c6c] text-[18px] font-bold text-white">{i + 1}</span>
-            <div className="flex flex-col gap-1">
-              <p className="text-[18px] font-bold leading-[23px]">{titulo}</p>
-              <p className="text-[15px] leading-5">{texto}</p>
-            </div>
-          </div>
-        ))}
+        <h1 className="text-[29px] font-bold leading-[38px]">Armá la sesión</h1>
+        <p className="text-[17px] leading-[22px]">Elegí cómo va a ser. Después, la mascota le explica el juego al paciente, paso a paso.</p>
         {extra}
         <button onClick={onListo} className="h-[54px] rounded-[27px] bg-[#b11c6c] text-[18px] font-bold text-white">
-          Estoy listo
+          Continuar
         </button>
         {mascota && <div className="flex justify-center">{mascota}</div>}
       </div>

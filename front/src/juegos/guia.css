@@ -1,0 +1,36 @@
+/* Animaciones de la guía de la mascota (ver GuiaMascota.jsx) y de los globos de texto del juego. Solo transform y
+   opacity: las resuelve la GPU. El globo y la mascota entran con un "rebote" corto, uno después del otro. */
+
+/* La mascota llega desde abajo a la izquierda, girando un poco, y se asienta con un rebote */
+.guia-mascota {
+  transform-origin: 50% 100%;
+  animation: guia-mascota-entra .9s cubic-bezier(.2, 1.3, .4, 1) .25s both;
+}
+@keyframes guia-mascota-entra {
+  from { opacity: 0; transform: translate(-55%, 45%) rotate(-16deg) scale(.55); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* El globo "se infla" desde la cola (que apunta a la mascota). Cada paso nuevo es un globo nuevo (key) y lo repite;
+   el primero espera a que la mascota llegue. */
+.globo-pop {
+  transform-origin: 18% 100%;
+  animation: globo-pop .45s cubic-bezier(.2, 1.4, .4, 1) both;
+}
+.globo-pop.primero { animation-delay: 1s; }
+@keyframes globo-pop {
+  from { opacity: 0; transform: translateY(14px) scale(.6); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* El texto de un globo que cambia (otra consigna) entra desde abajo, suave */
+.globo-texto { animation: globo-texto .35s ease-out both; }
+@keyframes globo-texto {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Accesibilidad: quien pidió menos movimiento ve todo quieto y de una */
+@media (prefers-reduced-motion: reduce) {
+  .guia-mascota, .globo-pop, .globo-texto { animation: none; }
+}

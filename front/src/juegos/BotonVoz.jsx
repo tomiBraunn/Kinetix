@@ -9,7 +9,7 @@ export default function BotonVoz({ posicion = 'bottom-[15px]', children = null }
   const { silenciada, soportada } = useVoz()
   if (!soportada && !children) return null // sin síntesis de voz en el aparato no hay nada que silenciar
   return (
-    <div style={estiloSobreBotonApp} className={`pointer-events-none absolute inset-x-0 z-20 mx-auto flex max-w-[402px] justify-end gap-2 px-[15px] ${posicion}`}>
+    <div style={posicion.includes('bottom') ? estiloSobreBotonApp : undefined} className={`pointer-events-none absolute inset-x-0 z-20 mx-auto flex max-w-[402px] justify-end gap-2 px-[15px] ${posicion}`}>
       {children}
       {soportada && (
         <button

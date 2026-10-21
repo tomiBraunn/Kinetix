@@ -23,3 +23,12 @@ export const MENSAJES = {
 export const FELICITACIONES = ['bienhecho', 'seguiasi', 'muybien', 'excelente', 'asi', 'mejor']
 
 export const textoMensaje = (clave) => MENSAJES[clave]?.join('') ?? ''
+
+// Lo que dice el pez en la guía de "cómo se juega", paso a paso, sobre el mar (ver GuiaMascota.jsx). Cortos: cada paso dura
+// 5 s y la voz tiene que alcanzar a decirlo (unas 65 letras). Mia tiene que validar los textos y la pose de cada uno.
+export const GUIA_SURF = [
+  { pose: 'celebra', texto: '¡Hola! Dejá lugar libre para moverte y poné la cámara frente a vos.' },
+  { pose: 'reposo', texto: 'Ubicate en la silueta: que se te vea de la cabeza a la cintura.' },
+  { pose: 'atrapa', texto: 'Tocá los peces con las manos, sin mover los pies.' },
+  { pose: 'celebra', texto: '¿Listo? Tocá el botón y prendemos la cámara.' },
+]

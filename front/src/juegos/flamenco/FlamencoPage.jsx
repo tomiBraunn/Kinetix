@@ -6,10 +6,11 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import EscenaParque from './EscenaParque'
 import { BarraSuperior, GuiaSilueta } from '../surf/pantallas'
 import { PastillaTiempo, PastillaProgreso, ConsignaCentrada, BotonSaltar, MascotaSobreTarjeta, TarjetaSesion, AntesDeEmpezarFlamenco } from './pantallas'
+import GuiaMascota from '../GuiaMascota'
 import Mascota from '../Mascota'
 import { poseMascota, HITOS_ANIMO_S, FRASES_ANIMO, ANIMO_MS } from './mascota'
 import { estadoInicial, reducir, segundosSostenidos, resumen } from './logica'
-import { consigna as consignaDe, tarjetaComenzar, tarjetaDescanso, tarjetaCompletado } from './mensajes'
+import { consigna as consignaDe, tarjetaComenzar, tarjetaDescanso, tarjetaCompletado, GUIA_FLAMENCO } from './mensajes'
 import { leerRutina } from '../rutina'
 import { dibujarHud } from './hud'
 import { usePoseAI } from '../../ia/usePoseAI'
@@ -50,6 +51,9 @@ export default function FlamencoPage() {
   const [estado, dispatch] = useReducer(reducir, undefined, estadoInicial)
   const [segundos, setSegundos] = useState(0)
   const [pausado, setPausado] = useState(false)
+  // "Antes de empezar" tiene dos etapas: elegir la rutina (kinesiólogo) y la guía de la mascota sobre el parque, que ya
+  // está entrando de fondo. Después se prende la cámara (calibración). Queda en true: el parque no vuelve a entrar.
+  const [guiando, setGuiando] = useState(false)
   const [aviso, setAviso] = useState(null) // lo que ve la cámara y conviene decirle al paciente (ver mensajes.js)
   const [animoDicho, setAnimo] = useState(null) // { frase, desde }: ánimo que dice la mascota mientras el paciente sostiene (ver mascota.js); `desde` es el inicio de ese equilibrio
   const animoTimerRef = useRef(null)
@@ -58,6 +62,8 @@ export default function FlamencoPage() {
   const estadoRef = useRef(estado)
   useEffect(() => { estadoRef.current = estado })
   const enviar = useCallback((tipo) => dispatch({ tipo, ahora: performance.now() }), [])
+  // Termina la guía: la cámara se prende para calibrar, con la rutina que se eligió en "Antes de empezar" (ver SelectorRutina)
+  const empezarCalibracion = useCallback(() => dispatch({ tipo: 'listo', ahora: performance.now(), valor: leerRutina('flamenco') }), [])
 
   // Tamaño real del área de juego: los canvas se dimensionan con esto (ver GamePage del Surf)
   const areaRef = useRef(null)
@@ -297,9 +303,9 @@ export default function FlamencoPage() {
   const pose = poseMascota({ fase, paso, pasos, aviso, animo: !!animo })
 
   return (
-    <div className={`relative flex h-dvh flex-col overflow-hidden [font-variation-settings:'opsz'_14] ${fase === 'instrucciones' ? '' : 'bg-[linear-gradient(180deg,#2f8fe8,#7cc4f6)]'}`}>
+    <div className={`relative flex h-dvh flex-col overflow-hidden [font-variation-settings:'opsz'_14] ${fase === 'instrucciones' && !guiando ? '' : 'bg-[linear-gradient(180deg,#2f8fe8,#7cc4f6)]'}`}>
       {/* El parque cubre toda la pantalla, también detrás de la barra */}
-      <EscenaParque activa={CON_ESCENA.includes(fase)} onEntro={() => enviar('escenaLista')} />
+      <EscenaParque activa={guiando || CON_ESCENA.includes(fase)} onEntro={fase === 'preparando' ? () => enviar('escenaLista') : undefined} />
 
       <BarraSuperior
         conPausa={fase !== 'instrucciones'}
@@ -372,13 +378,11 @@ export default function FlamencoPage() {
         )}
         <CursorMano activo={!pausado && fase !== 'instrucciones'} areaRef={areaRef} />
         {fase !== 'instrucciones' && <BotonVoz>{fase === 'calibracion' && <BotonGirarCamara />}</BotonVoz>}
-        {fase === 'instrucciones' && (
-          <AntesDeEmpezarFlamenco onListo={() => {
-            desbloquear()
-            desbloquearSonidos()
-            // Lo que el kinesiólogo eligió en esta misma pantalla (ver SelectorRutina)
-            dispatch({ tipo: 'listo', ahora: performance.now(), valor: leerRutina('flamenco') })
-          }} />
+        {fase === 'instrucciones' && !guiando && (
+          <AntesDeEmpezarFlamenco onListo={() => { desbloquear(); desbloquearSonidos(); setGuiando(true) }} />
+        )}
+        {fase === 'instrucciones' && guiando && (
+          <GuiaMascota especie="flamingo" pasos={GUIA_FLAMENCO} onListo={empezarCalibracion} onOmitir={empezarCalibracion} />
         )}
       </div>
     </div>

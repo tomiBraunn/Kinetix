@@ -6,6 +6,7 @@ import { useId } from 'react'
 import { AntesDeEmpezar } from '../surf/pantallas'
 import Mascota, { MascotaDelGlobo } from '../Mascota'
 import SelectorRutina from '../SelectorRutina'
+import '../guia.css'
 import iconoReloj from '../../assets/juegos/surf/reloj.svg'
 
 // Las y de Figma cuentan la barra superior (48px): el área de juego arranca en y=48, así que
@@ -57,8 +58,8 @@ export function PastillaProgreso({ texto }) {
 // Con `mascota` (un <Mascota>) queda pegada abajo a la izquierda con la cola del globo apuntándole.
 export function ConsignaCentrada({ texto, mascota = null }) {
   return (
-    <div role="status" className="pointer-events-none absolute inset-x-[26px] top-[84px] z-20 mx-auto flex min-h-[67px] max-w-[350px] items-center justify-center rounded-[22px] border-[1.475px] border-primary bg-[#fffbfb] px-[17px] py-2 shadow-[0_1.966px_1.966px_rgba(0,0,0,0.25)]">
-      <p className="w-full text-center text-[18px] font-bold leading-[22px] text-primary-dark">{texto}</p>
+    <div role="status" className="globo-pop pointer-events-none absolute inset-x-[26px] top-[84px] z-20 mx-auto flex min-h-[67px] max-w-[350px] items-center justify-center rounded-[22px] border-[1.475px] border-primary bg-[#fffbfb] px-[17px] py-2 shadow-[0_1.966px_1.966px_rgba(0,0,0,0.25)]">
+      <p key={texto} className="globo-texto w-full text-center text-[18px] font-bold leading-[22px] text-primary-dark">{texto}</p>
       {mascota && <MascotaDelGlobo>{mascota}</MascotaDelGlobo>}
     </div>
   )
@@ -137,15 +138,8 @@ export function TarjetaSesion({ titulo, texto, botones = [] }) {
 }
 
 // ─── Antes de empezar ───────────────────────────────────────────────────────
-// Mismo layout que el del Surf (832:47 es igual a 837:672); solo cambian los pasos.
-const PASOS = [
-  ['Prepará el espacio', 'Dejá espacio libre para moverte y colocá la cámara frente a vos.'],
-  ['Ubicate en la silueta', 'Alejate hasta que se te vea de la cabeza a las rodillas. Quedate quieto dentro de la silueta de puntos.'],
-  ['Seguí las consignas', 'El juego te va a pedir que levantes cada pierna y mantengas el equilibrio. Seguí las indicaciones en pantalla.'],
-]
-
+// Primera etapa: el kinesiólogo arma la rutina (ver SelectorRutina). La segunda es la guía de la mascota.
 // La mascota es más alta que ancha (352×460): con 95px de ancho entra en el espacio libre de abajo sin scroll
-// El kinesiólogo elige las repeticiones y la dificultad acá, después de elegir paciente y juego
 export function AntesDeEmpezarFlamenco({ onListo }) {
-  return <AntesDeEmpezar onListo={onListo} pasos={PASOS} extra={<SelectorRutina juego="flamenco" />} mascota={<Mascota especie="flamingo" className="w-[95px]" />} />
+  return <AntesDeEmpezar onListo={onListo} extra={<SelectorRutina juego="flamenco" />} mascota={<Mascota especie="flamingo" className="w-[95px]" />} />
 }

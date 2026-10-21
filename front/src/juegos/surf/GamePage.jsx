@@ -5,7 +5,7 @@ import Escena from './Escena'
 import {
   BarraSuperior, Contadores, ControlMusica, Consigna, Mensaje, GuiaSilueta, AntesDeEmpezar, DesafioCompletado, SelectorZona,
 } from './pantallas'
-import { textoMensaje } from './mensajes'
+import { textoMensaje, GUIA_SURF } from './mensajes'
 import { compararRondas } from './analisis'
 import { leerZona } from './curva'
 import { vigilar, ESTADO_INICIAL } from '../../ia/movimiento'
@@ -16,6 +16,7 @@ import { crearSesion, finalizarSesion, subirVideosSesion, mandarEventosSesion } 
 import { hablar, callar, desbloquear, useVoz } from '../../ia/voz'
 import { sonar, desbloquearSonidos, silenciarEfectos } from '../../ia/sonidos'
 import SelectorRutina from '../SelectorRutina'
+import GuiaMascota from '../GuiaMascota'
 import Mascota from '../Mascota'
 import BotonVoz from '../BotonVoz'
 import BotonGirarCamara from '../BotonGirarCamara'
@@ -58,6 +59,9 @@ export default function GamePage() {
   const recorder = useSessionRecorder()
 
   const [fase, setFase] = useState('instrucciones')
+  // "Antes de empezar" tiene dos etapas: armar la sesión (kinesiólogo) y la guía de la mascota sobre el mar, que ya está
+  // entrando de fondo. Después se prende la cámara (calibración). Queda en true: el mar no vuelve a entrar.
+  const [guiando, setGuiando] = useState(false)
   const [ronda, setRonda] = useState(1)
   const [puntos, setPuntos] = useState(0)
   const [meta, setMeta] = useState(null)             // cuántos peces hay que atrapar en esta ronda (lo que se eligió en "Antes de empezar")
@@ -279,11 +283,11 @@ export default function GamePage() {
   }
 
   return (
-    <div className={`relative flex h-dvh flex-col overflow-hidden [font-variation-settings:'opsz'_14] ${fase === 'instrucciones' ? '' : 'bg-[linear-gradient(180deg,#141a63,#2b319c)]'}`}>
+    <div className={`relative flex h-dvh flex-col overflow-hidden [font-variation-settings:'opsz'_14] ${fase === 'instrucciones' && !guiando ? '' : 'bg-[linear-gradient(180deg,#141a63,#2b319c)]'}`}>
       {/* Cielo, nubes, olas y tabla (animados): cubren toda la pantalla, también detrás de la barra.
           Hasta que el paciente esté bien detectado hay solo un fondo liso; cuando termina de entrar
           todo, arranca el juego. */}
-      <Escena activa={CON_ESCENA.includes(fase)} onEntro={() => setFase(f => (f === 'preparando' ? 'consigna' : f))} />
+      <Escena activa={guiando || CON_ESCENA.includes(fase)} onEntro={fase === 'preparando' ? () => setFase('consigna') : undefined} />
       <audio ref={musicaRef} src={musica} loop preload="auto" />
 
       <BarraSuperior
@@ -348,8 +352,15 @@ export default function GamePage() {
           <div aria-hidden="true" className="pointer-events-none absolute left-[4px] top-[152px] z-[16]">{pez('w-[100px]')}</div>
         )}
 
-        {fase === 'instrucciones' && (
-          <AntesDeEmpezar onListo={() => { desbloquear(); desbloquearSonidos(); setFase('calibracion') }} extra={<><SelectorRutina juego="surf" /><SelectorZona /></>} mascota={<Mascota especie="pez" className="w-[150px]" />} />
+        {fase === 'instrucciones' && !guiando && (
+          <AntesDeEmpezar
+            onListo={() => { desbloquear(); desbloquearSonidos(); setGuiando(true) }}
+            extra={<><SelectorRutina juego="surf" /><SelectorZona /></>}
+            mascota={<Mascota especie="pez" className="w-[150px]" />}
+          />
+        )}
+        {fase === 'instrucciones' && guiando && (
+          <GuiaMascota especie="pez" pasos={GUIA_SURF} onListo={() => setFase('calibracion')} onOmitir={() => setFase('calibracion')} />
         )}
         {fase === 'completado' && (
           <DesafioCompletado ronda={ronda} analisis={analisis} onSeguir={seguirJugando} onVolver={() => navigate('/juego')}

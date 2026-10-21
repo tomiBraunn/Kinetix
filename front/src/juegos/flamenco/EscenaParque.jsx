@@ -34,17 +34,24 @@ const CAPAS = [
 // 5,5 s con 1 s de subida y flores a los 6,2 s). Ahí recién empieza el juego. Con "reducir
 // movimiento" no hay animación y no se espera.
 const ENTRADA_MS = 7000
+const ESPERA_MIN_MS = 3000 // tiempo mínimo entre que la página lo pide y el aviso: que se alcance a leer el mensaje
 
+// `onEntro` solo se pasa cuando la página espera que la escena haya entrado (después de la calibración): la escena
+// empieza a entrar antes, con la guía de la mascota, así que lo que falta es poco (pero al menos ESPERA_MIN_MS).
 export default function EscenaParque({ activa, onEntro }) {
   const entroRef = useRef(onEntro)
+  const desdeRef = useRef(null) // desde cuándo está entrando
+  const quiereAviso = !!onEntro
   useEffect(() => { entroRef.current = onEntro })
+  useEffect(() => { desdeRef.current = activa ? (desdeRef.current ?? performance.now()) : null }, [activa])
 
   useEffect(() => {
-    if (!activa) return
+    if (!activa || !quiereAviso) return
     const sinMovimiento = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const id = setTimeout(() => entroRef.current?.(), sinMovimiento ? 600 : ENTRADA_MS)
+    const faltan = Math.max(ESPERA_MIN_MS, ENTRADA_MS - (performance.now() - desdeRef.current))
+    const id = setTimeout(() => entroRef.current?.(), sinMovimiento ? 600 : faltan)
     return () => clearTimeout(id)
-  }, [activa])
+  }, [activa, quiereAviso])
 
   return (
     <div className={`parque absolute inset-0 overflow-hidden ${activa ? 'activa' : ''}`} aria-hidden="true">
