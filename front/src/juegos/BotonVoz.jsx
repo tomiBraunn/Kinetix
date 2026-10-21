@@ -3,12 +3,13 @@
 // `posicion` mueve el botón cuando ese rincón está ocupado (en el Surf va arriba del volumen).
 // `children`: otros botones del mismo rincón, a su izquierda (ej. "Girar cámara" en la calibración).
 import { useVoz, alternarSilencio } from '../ia/voz'
+import { estiloSobreBotonApp } from '../lib/appMovil'
 
 export default function BotonVoz({ posicion = 'bottom-[15px]', children = null }) {
   const { silenciada, soportada } = useVoz()
   if (!soportada && !children) return null // sin síntesis de voz en el aparato no hay nada que silenciar
   return (
-    <div className={`pointer-events-none absolute inset-x-0 z-20 mx-auto flex max-w-[402px] justify-end gap-2 px-[15px] ${posicion}`}>
+    <div style={estiloSobreBotonApp} className={`pointer-events-none absolute inset-x-0 z-20 mx-auto flex max-w-[402px] justify-end gap-2 px-[15px] ${posicion}`}>
       {children}
       {soportada && (
         <button

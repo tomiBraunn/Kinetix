@@ -6,6 +6,7 @@ import Logo from '../../components/Logo'
 import { kinetixAI } from '../../ia/KinetixAI'
 import { PUNTOS_SILUETA, evaluar, vistaPara } from '../../ia/calibracion'
 import { hablar, callar } from '../../ia/voz'
+import { estiloSobreBotonApp } from '../../lib/appMovil'
 import { MascotaDelGlobo } from '../Mascota'
 import { MENSAJES } from './mensajes'
 import iconoMenu from '../../assets/juegos/surf/menu.svg'
@@ -78,7 +79,7 @@ export function ControlMusica({ volumen, silencio, onVolumen, onSilencio }) {
   const nivel = silencio ? 0 : volumen
   const icono = nivel === 0 ? 'volume_off' : nivel < 0.5 ? 'volume_down' : 'volume_up'
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-[15px] z-20 mx-auto flex max-w-[402px] justify-end px-[15px]">
+    <div style={estiloSobreBotonApp} className="pointer-events-none absolute inset-x-0 bottom-[15px] z-20 mx-auto flex max-w-[402px] justify-end px-[15px]">
       <div className="pointer-events-auto flex h-[38px] w-fit items-center gap-1 rounded-[10px] border border-[#e3e3e3] bg-[rgba(228,226,235,0.75)] pl-1 pr-3 shadow-[0_1.966px_1.966px_rgba(0,0,0,0.25)]">
         <button
           onClick={onSilencio}
