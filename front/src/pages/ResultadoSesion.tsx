@@ -18,26 +18,62 @@ function Stat({ label, value }: { label: string; value: string | number }) {
   )
 }
 
-function VideoOVacio({ url, label }: { url: string | null; label: string }) {
+// `giro`: grados que hay que girar el video para verlo parado (la cámara estaba de costado, ver
+// front/src/ia/rotacion.js). Solo se usa con el video crudo: los otros dos se grabaron ya parados.
+function VideoOVacio({ url, label, giro = 0 }: { url: string | null; label: string; giro?: number }) {
+  const sombra = 'shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)]'
+  let contenido
   if (!url) {
-    return (
-      <div className="w-full aspect-video rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] bg-slate-100 flex flex-col items-center justify-center gap-2">
+    contenido = (
+      <div className={`w-full aspect-video rounded-[18px] ${sombra} bg-slate-100 flex flex-col items-center justify-center gap-2`}>
         <span className="material-symbols-rounded text-[32px] text-text-placeholder">videocam_off</span>
         <p className="text-text-muted text-xs font-semibold">{label} no disponible</p>
       </div>
     )
+  } else if (giro === 90 || giro === 270) {
+    // Girado un cuarto de vuelta ocupa el alto por el ancho: la caja es vertical y el video se acuesta adentro
+    contenido = (
+      <div className={`relative w-full overflow-hidden rounded-[18px] ${sombra} bg-black`} style={{ aspectRatio: '3 / 4' }}>
+        <video
+          src={url}
+          autoPlay
+          muted
+          loop
+          playsInline
+          controls
+          className="absolute left-1/2 top-1/2 object-contain"
+          style={{ width: '133.333%', height: '75%', transform: `translate(-50%, -50%) rotate(${giro}deg)` }}
+        />
+      </div>
+    )
+  } else {
+    contenido = (
+      <video
+        src={url}
+        autoPlay
+        muted
+        loop
+        playsInline
+        controls
+        className={`w-full rounded-[18px] ${sombra} bg-black aspect-video`}
+        style={giro === 180 ? { transform: 'rotate(180deg)' } : undefined}
+      />
+    )
   }
   return (
-    <video
-      src={url}
-      autoPlay
-      muted
-      loop
-      playsInline
-      controls
-      className="w-full rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] bg-black aspect-video"
-    />
+    <figure>
+      <figcaption className="text-text-muted text-xs font-bold mb-1.5">{label}</figcaption>
+      {contenido}
+    </figure>
   )
+}
+
+const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null)
+
+// Grados que el paciente giró la cámara en esa ronda (0 si nunca la giró o la sesión es vieja)
+function giroCamara(s: SesionDetalle): number {
+  const g = num((s.metricas_sesion?.datos_ia_raw as Record<string, unknown> | null)?.rotacion_camara)
+  return g === 90 || g === 180 || g === 270 ? g : 0
 }
 
 // Cada juego guarda su propio JSON en datos_ia_raw — mapeamos los campos
@@ -48,6 +84,8 @@ function statsPorJuego(s: SesionDetalle): { label: string; value: string | numbe
     return [
       { label: 'Peces atrapados', value: (raw.puntos as number) ?? '—' },
       { label: 'Duración', value: raw.duracion_segundos ? `${raw.duracion_segundos}s` : '—' },
+      // Las rondas jugadas antes de que existieran los niveles no lo traen
+      ...(num(raw.nivel_maximo) != null ? [{ label: 'Nivel alcanzado', value: `${raw.nivel_maximo} de 4` }] : []),
     ]
   }
   if (s.juego === 'flamenco') {
@@ -76,6 +114,12 @@ function metricasIA(s: SesionDetalle): { label: string; value: string }[] {
   if (m.precision_porcentaje != null) out.push({ label: 'Precisión de movimiento', value: `${m.precision_porcentaje}%` })
   if (m.rango_movimiento_avg != null) out.push({ label: 'Rango de movimiento (prom.)', value: `${m.rango_movimiento_avg}°` })
   if (m.rango_movimiento_max != null) out.push({ label: 'Rango de movimiento (máx.)', value: `${m.rango_movimiento_max}°` })
+  // Estas dos van dentro de datos_ia_raw (no tienen columna propia); null si la IA no tuvo muestras suficientes
+  const raw = (m.datos_ia_raw ?? {}) as Record<string, unknown>
+  const coordinacion = num(raw.coordinacion)
+  const reaccion = num(raw.tiempo_reaccion_s)
+  if (coordinacion != null) out.push({ label: 'Coordinación', value: `${coordinacion}%` })
+  if (reaccion != null) out.push({ label: 'Tiempo de reacción', value: `${String(reaccion).replace('.', ',')} s` })
   return out
 }
 
@@ -189,6 +233,7 @@ export default function ResultadoSesion() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <div className="space-y-4 lg:order-2">
+          <VideoOVacio url={sesion.videos_sesion?.url_crudo ?? null} label="Video de la cámara" giro={giroCamara(sesion)} />
           <VideoOVacio url={sesion.videos_sesion?.url_landmarks ?? null} label="Video con detección de IA" />
           <VideoOVacio url={sesion.videos_sesion?.url_gameplay ?? null} label="Video del juego" />
         </div>

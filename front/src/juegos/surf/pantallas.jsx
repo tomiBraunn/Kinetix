@@ -297,7 +297,7 @@ const fuenteInter = { fontFamily: "'Inter', 'DM Sans', sans-serif" }
 // Color de la comparación con la ronda anterior (además del color va la flecha y un texto solo para lectores)
 const COLOR_ESTADO = { mejor: 'text-[#0f8a5f]', peor: 'text-[#b45309]', igual: 'text-[#5e668c]' }
 
-export function DesafioCompletado({ ronda, analisis = null, onSeguir, onVolver }) {
+export function DesafioCompletado({ ronda, analisis = null, onSeguir, onVolver, onVerAnalisis = null }) {
   const ordinal = ORDINALES[ronda - 1]
   const titulo = ordinal ? `¡${ordinal[0].toUpperCase()}${ordinal.slice(1)} desafío completado!` : '¡Desafío completado!'
   const detalle = ordinal ? `Completaste el ${ordinal} desafío de Surf.` : 'Completaste otro desafío de Surf.'
@@ -340,6 +340,8 @@ export function DesafioCompletado({ ronda, analisis = null, onSeguir, onVolver }
         )}
         <div className="mt-[17px] flex w-[278px] max-w-full flex-col gap-3 text-[14px] font-semibold" style={fuenteInter}>
           <button data-mano onClick={onSeguir} className="h-[46px] rounded-[15px] bg-[#ff5faa] text-white">Seguir jugando</button>
+          {/* Lleva al panel, a los videos y al análisis completo de esta ronda (solo si la ronda se guardó) */}
+          {onVerAnalisis && <button onClick={onVerAnalisis} className="h-[46px] rounded-[15px] border border-[#ff5faa] bg-white text-[#ff5faa]">Ver análisis y videos de esta ronda</button>}
           <button onClick={onVolver} className="h-[46px] rounded-[15px] border border-[#ff5faa] bg-white text-[#ff5faa]">Volver al menú de juegos</button>
         </div>
       </div>

@@ -38,6 +38,7 @@ export default function FlamencoPage() {
   const [params] = useSearchParams()
   const pacienteId = params.get('pacienteId')
   const sesionIdRef = useRef(null)
+  const [sesionGuardada, setSesionGuardada] = useState(null) // la sesión que terminó, para ir a verla en el panel
   const creandoRef = useRef(Promise.resolve()) // creación de la sesión + arranque de la grabación, si están en curso
   const montadoRef = useRef(true)
   const eventosRef = useRef([])
@@ -168,7 +169,8 @@ export default function FlamencoPage() {
     if (!sesionId) return
     sesionIdRef.current = null
 
-    finalizarSesion(sesionId, { juego: 'flamenco', ...datos }, kinetixAI.getMetricasResumen()).catch(console.warn)
+    setSesionGuardada(sesionId)
+    finalizarSesion(sesionId, { juego: 'flamenco', ...datos, rotacion_camara: kinetixAI.rotacion }, kinetixAI.getMetricasResumen()).catch(console.warn)
     eventos.push({ tipo: 'fin_juego', datos })
     detenerGrabacion()
       .then(videos => {
@@ -226,6 +228,7 @@ export default function FlamencoPage() {
     setPausado(p => !p)
   }
 
+  const verAnalisis = useCallback(() => navigate(`/sesiones/${sesionGuardada}`), [navigate, sesionGuardada])
   const acciones = { comenzar, seguir: () => enviar('seguir'), volver }
   const tarjeta =
     fase === 'comenzar' ? TARJETA_COMENZAR
@@ -334,11 +337,15 @@ export default function FlamencoPage() {
           <TarjetaSesion
             titulo={tarjeta.titulo}
             texto={tarjeta.texto}
-            botones={tarjeta.botones.map(({ accion, texto, ...boton }) => ({
-              ...boton,
-              texto: accion === 'seguir' && fase === 'descanso' ? `${texto} (${cuenta})` : texto,
-              onClick: acciones[accion],
-            }))}
+            botones={[
+              ...tarjeta.botones.map(({ accion, texto, ...boton }) => ({
+                ...boton,
+                texto: accion === 'seguir' && fase === 'descanso' ? `${texto} (${cuenta})` : texto,
+                onClick: acciones[accion],
+              })),
+              // Al terminar, lleva al panel: videos y análisis de esta sesión (solo si se guardó)
+              ...(fase === 'completado' && sesionGuardada ? [{ texto: 'Ver análisis y videos', variante: 'secundario', onClick: verAnalisis }] : []),
+            ]}
           />
         )}
         {tarjeta && (

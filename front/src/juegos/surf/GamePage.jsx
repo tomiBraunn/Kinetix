@@ -59,6 +59,7 @@ export default function GamePage() {
   const [celebrando, setCelebrando] = useState(false) // el pez hace la pose de festejo después de cada acierto
   const [analisis, setAnalisis] = useState(null) // lo que analizó la IA en la ronda que terminó, comparado con la anterior
   const resumenPrevioRef = useRef(null)          // las métricas de la ronda anterior (solo de esta visita)
+  const [sesionGuardada, setSesionGuardada] = useState(null) // la sesión de la ronda que terminó, para ir a verla en el panel
   const celebraTimerRef = useRef(null)
   const [tiempo, setTiempo] = useState(0) // segundos jugados, arranca en 0
   const [mensaje, setMensaje] = useState(null)
@@ -129,12 +130,13 @@ export default function GamePage() {
       resumenPrevioRef.current = resumen
       setFase('completado')
       const sesionId = sesionIdRef.current
+      setSesionGuardada(sesionId)
       const eventos = eventosRef.current
       sesionIdRef.current = null
       eventosRef.current = []
       if (!sesionId) return
 
-      finalizarSesion(sesionId, { juego: 'surf', ...e.detail }, resumen).catch(console.warn)
+      finalizarSesion(sesionId, { juego: 'surf', ...e.detail, rotacion_camara: kinetixAI.rotacion }, resumen).catch(console.warn)
       eventos.push({ tipo: 'fin_juego', datos: e.detail })
       cierreRef.current = recorder.stop()
         .then(videos => {
@@ -226,6 +228,7 @@ export default function GamePage() {
 
   const seguirJugando = () => {
     setRonda(r => r + 1)
+    setSesionGuardada(null)
     setFase('consigna')
   }
 
@@ -303,7 +306,8 @@ export default function GamePage() {
           <AntesDeEmpezar onListo={() => { desbloquear(); setFase('calibracion') }} mascota={<Mascota especie="pez" className="w-[150px]" />} />
         )}
         {fase === 'completado' && (
-          <DesafioCompletado ronda={ronda} analisis={analisis} onSeguir={seguirJugando} onVolver={() => navigate('/juego')} />
+          <DesafioCompletado ronda={ronda} analisis={analisis} onSeguir={seguirJugando} onVolver={() => navigate('/juego')}
+            onVerAnalisis={sesionGuardada ? () => navigate(`/sesiones/${sesionGuardada}`) : null} />
         )}
       </div>
     </div>
