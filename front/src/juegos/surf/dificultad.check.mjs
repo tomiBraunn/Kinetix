@@ -58,4 +58,10 @@ assert.deepEqual([f.pecesALaVez, f.tam > 1, f.vel < 1], [1, true, true])
 assert.equal(parametrosDe(99), NIVELES.at(-1), 'un nivel fuera de rango se acota')
 assert.equal(parametrosDe(-1), NIVELES[0])
 
+// Los peces a la vez que elige el kinesiólogo pisan a los del nivel, y solo eso
+assert.equal(parametrosDe(0, null), NIVELES[0], 'sin elegir, los del nivel (el mismo objeto)')
+assert.equal(parametrosDe(0, 3).pecesALaVez, 3)
+assert.equal(parametrosDe(3, 1).pecesALaVez, 1, 'también en el nivel más difícil')
+assert.deepEqual({ ...parametrosDe(0, 3), pecesALaVez: NIVELES[0].pecesALaVez }, NIVELES[0], 'tamaño, velocidad y cadencia siguen siendo los del nivel')
+
 console.log('dificultad.js OK')

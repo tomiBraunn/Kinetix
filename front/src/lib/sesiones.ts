@@ -21,7 +21,7 @@ export type SesionRow = {
 }
 
 // La rutina que armó el kinesiólogo en "Antes de empezar": cuántas repeticiones y cómo va la dificultad (ver juegos/rutina.js).
-type Rutina = { repeticiones: number; dificultad: string }
+type Rutina = { repeticiones: number; dificultad: string; aLaVez?: number | null }
 type MetricasSurf = { juego: 'surf'; puntos: number; duracion_segundos: number; rutina?: Rutina }
 // Un paso del Flamenco: la pierna pedida y la posición ('flamenco' = pie despegado, 'alto' = rodilla bien arriba).
 // altura_max: hasta dónde subió la rodilla, en largos de torso (0 = a la altura de la cadera); null si no se midió.

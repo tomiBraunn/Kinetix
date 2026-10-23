@@ -122,7 +122,7 @@ export default class EscenaPrincipal extends Phaser.Scene {
   // aparición (ver `espera` y `entre` en dificultad.js: es un juego para adultos mayores y el kinesiólogo pidió
   // una cadencia mucho menor). Los que ya están programados cuentan como presentes.
   _rellenarPeces() {
-    const nivel = parametrosDe(nivelPara(this.puntos, this.rutina))
+    const nivel = parametrosDe(nivelPara(this.puntos, this.rutina), this.rutina?.aLaVez)
     let espera = 0
     for (let n = this.peces.length + this._apariciones.length; n < nivel.pecesALaVez; n++) {
       espera += Phaser.Math.Between(...(espera === 0 ? nivel.espera : nivel.entre))
@@ -140,6 +140,7 @@ export default class EscenaPrincipal extends Phaser.Scene {
     this.zona = leerZona() // dónde aparecen los peces: el alto y el ancho que eligió el kinesiólogo en "Antes de empezar"
     this.jugando = true
     this.spawnearPez()
+    this._rellenarPeces() // si se eligieron varios peces a la vez, los demás van apareciendo de a uno, con su tiempo entre medio
   }
 
   _arrancarCronometro() {
@@ -156,7 +157,7 @@ export default class EscenaPrincipal extends Phaser.Scene {
 
   spawnearPez() {
     const { width, height } = this.scale
-    const nivel = parametrosDe(nivelPara(this.puntos, this.rutina))
+    const nivel = parametrosDe(nivelPara(this.puntos, this.rutina), this.rutina?.aLaVez)
     const escala = this._escalaPantalla()
     const apaisada = width > height * 1.2
     // Dónde hay cámara: con la vista "alejada" esa zona es más chica que la pantalla, y fuera de ella el

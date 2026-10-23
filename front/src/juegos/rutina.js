@@ -30,6 +30,14 @@ export const RUTINAS = {
       { clave: 'media', etiqueta: 'Media', detalle: 'De a dos peces, de tamaño y velocidad medios.' },
       { clave: 'dificil', etiqueta: 'Difícil', detalle: 'De a dos peces, más chicos y más rápidos.' },
     ],
+    // Cuántos peces nadan a la vez: sin elegir (null) los define la dificultad (empieza con uno y sube); un número lo
+    // fija durante toda la ronda, sea cual sea la dificultad
+    aLaVez: {
+      titulo: 'Peces a la vez',
+      ayuda: 'Cuántos peces nadan al mismo tiempo. "Según la dificultad" empieza con uno y sube de a poco.',
+      opciones: [1, 2, 3],
+      etiquetaAuto: 'Según la dificultad',
+    },
   },
 }
 
@@ -37,11 +45,13 @@ const clave = (juego) => `kinetix_rutina_${juego}`
 
 /** Deja una rutina válida para el juego: repeticiones enteras dentro de los límites y una dificultad que exista. */
 export function normalizarRutina(juego, r) {
-  const { repeticiones: { min, max, inicial }, dificultades } = RUTINAS[juego]
+  const { repeticiones: { min, max, inicial }, dificultades, aLaVez } = RUTINAS[juego]
   const n = Number.isFinite(r?.repeticiones) ? Math.round(r.repeticiones) : inicial
   return {
     repeticiones: Math.min(max, Math.max(min, n)),
     dificultad: dificultades.some((d) => d.clave === r?.dificultad) ? r.dificultad : 'progresiva',
+    // Solo el Surf: cuántos peces a la vez (null = según la dificultad)
+    ...(aLaVez ? { aLaVez: aLaVez.opciones.includes(r?.aLaVez) ? r.aLaVez : null } : {}),
   }
 }
 

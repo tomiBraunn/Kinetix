@@ -81,11 +81,12 @@ const DIFICULTAD: Record<string, string> = { progresiva: 'Subiendo de a poco', f
 
 // La rutina que se armó antes de jugar: cuántas repeticiones y cómo iba la dificultad (las sesiones viejas no la traen)
 function rutinaStats(raw: Record<string, unknown>, repeticiones: string): { label: string; value: string | number }[] {
-  const r = raw.rutina as { repeticiones?: unknown; dificultad?: unknown } | null | undefined
+  const r = raw.rutina as { repeticiones?: unknown; dificultad?: unknown; aLaVez?: unknown } | null | undefined
   if (!r || typeof r !== 'object') return []
   return [
     ...(num(r.repeticiones) != null ? [{ label: repeticiones, value: r.repeticiones as number }] : []),
     ...(typeof r.dificultad === 'string' ? [{ label: 'Dificultad', value: DIFICULTAD[r.dificultad] ?? r.dificultad }] : []),
+    ...(num(r.aLaVez) != null ? [{ label: 'Peces a la vez', value: r.aLaVez as number }] : []),
   ]
 }
 

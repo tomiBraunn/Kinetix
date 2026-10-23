@@ -32,5 +32,11 @@ export function nivelPara(puntos, { repeticiones = 8, dificultad = 'progresiva' 
   return Math.min(NIVELES.length - 1, Math.max(0, Math.floor((puntos * NIVELES.length) / repeticiones)))
 }
 
-/** Parámetros del nivel (se acota por si llega uno fuera de rango). */
-export const parametrosDe = (nivel) => NIVELES[Math.min(NIVELES.length - 1, Math.max(0, nivel))]
+/**
+ * Parámetros del nivel (se acota por si llega uno fuera de rango). `aLaVez` es lo que eligió el kinesiólogo
+ * (ver rutina.js): fija cuántos peces nadan a la vez en lugar de los del nivel; null o sin pasar, los del nivel.
+ */
+export function parametrosDe(nivel, aLaVez = null) {
+  const parametros = NIVELES[Math.min(NIVELES.length - 1, Math.max(0, nivel))]
+  return aLaVez == null ? parametros : { ...parametros, pecesALaVez: aLaVez }
+}

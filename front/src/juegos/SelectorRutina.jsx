@@ -7,7 +7,7 @@ import { RUTINAS, leerRutina, guardarRutina, normalizarRutina } from './rutina'
 const PASO = 'grid size-12 shrink-0 place-items-center rounded-full bg-[#b11c6c] text-[28px] font-bold leading-none text-white disabled:opacity-30'
 
 export default function SelectorRutina({ juego }) {
-  const { repeticiones: reps, dificultades } = RUTINAS[juego]
+  const { repeticiones: reps, dificultades, aLaVez } = RUTINAS[juego]
   const [rutina, setRutina] = useState(() => leerRutina(juego))
   const cambiar = (cambios) => {
     const nueva = normalizarRutina(juego, { ...rutina, ...cambios })
@@ -43,6 +43,31 @@ export default function SelectorRutina({ juego }) {
           )
         })}
       </div>
+
+      {/* Solo el Surf: cuántos peces nadan a la vez */}
+      {aLaVez && (
+        <>
+          <p className="mt-4 text-[18px] font-bold leading-[23px]">{aLaVez.titulo}</p>
+          <div role="radiogroup" aria-label={aLaVez.titulo} className="mt-2 flex flex-wrap gap-2">
+            {[null, ...aLaVez.opciones].map((opcion) => {
+              const elegida = rutina.aLaVez === opcion
+              return (
+                <button
+                  key={opcion ?? 'auto'}
+                  type="button"
+                  role="radio"
+                  aria-checked={elegida}
+                  onClick={() => cambiar({ aLaVez: opcion })}
+                  className={`h-12 rounded-full border-2 px-4 text-[16px] font-bold ${opcion == null ? '' : 'min-w-12'} ${elegida ? 'border-[#b11c6c] bg-[#fdeaf4] text-[#b11c6c]' : 'border-[#d9dcf0] bg-white'}`}
+                >
+                  {opcion ?? aLaVez.etiquetaAuto}
+                </button>
+              )
+            })}
+          </div>
+          <p className="mt-2 text-[15px] leading-5">{aLaVez.ayuda}</p>
+        </>
+      )}
     </div>
   )
 }
