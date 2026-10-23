@@ -29,17 +29,23 @@ export default function WebAppScreen() {
   const [error, setError] = useState(false)
   const [avisoGoogle, setAvisoGoogle] = useState(false)
   const [sinPermisoCamara, setSinPermisoCamara] = useState(false)
+  // En Android el WebView no se monta hasta que el sistema contestó el permiso de la cámara (ver más abajo)
+  const [permisoPedido, setPermisoPedido] = useState(Platform.OS !== 'android')
 
   // En Android el WebView no puede usar la cámara si la app no tiene el permiso
   // del sistema concedido: hay que pedirlo desde el lado nativo. Si se lo rechazó (o se marcó "no volver a
   // preguntar") el sistema ya no vuelve a preguntar y la cámara queda muerta sin explicación: por eso se avisa con
   // un cartel que lleva a los ajustes, y al volver de ahí se revisa de nuevo.
   // (En iOS el cartel de permiso lo muestra el propio WebView cuando la página pide la cámara.)
+  // El WebView recién se monta cuando el sistema contestó: si la página pedía la cámara mientras el cartel nativo
+  // seguía abierto, los dos pedidos de permiso se pisaban y la cámara quedaba "esperando el permiso" para siempre.
+  // Con el permiso ya dado, el WebView se lo concede a la página al instante.
   useEffect(() => {
     if (Platform.OS !== 'android') return
     PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA)
       .then((r) => setSinPermisoCamara(r !== PermissionsAndroid.RESULTS.GRANTED))
       .catch(() => {})
+      .finally(() => setPermisoPedido(true))
     const sub = AppState.addEventListener('change', (estado) => {
       if (estado !== 'active') return
       PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.CAMERA)
@@ -92,21 +98,23 @@ export default function WebAppScreen() {
 
   return (
     <SafeAreaView style={s.root} edges={['top']}>
-      <WebView
-        ref={webviewRef}
-        source={{ uri: GAME_SERVER_URL }}
-        style={s.webview}
-        applicationNameForUserAgent="KinetixApp"
-        allowsInlineMediaPlayback
-        mediaPlaybackRequiresUserAction={false}
-        mediaCapturePermissionGrantType="grant"
-        originWhitelist={['*']}
-        sharedCookiesEnabled
-        onNavigationStateChange={onNavigationStateChange}
-        onLoadEnd={() => setCargando(false)}
-        onError={(e: WebViewErrorEvent) => manejarFallo(e.nativeEvent.url)}
-        onHttpError={(e: WebViewHttpErrorEvent) => manejarFallo(e.nativeEvent.url)}
-      />
+      {permisoPedido && (
+        <WebView
+          ref={webviewRef}
+          source={{ uri: GAME_SERVER_URL }}
+          style={s.webview}
+          applicationNameForUserAgent="KinetixApp"
+          allowsInlineMediaPlayback
+          mediaPlaybackRequiresUserAction={false}
+          mediaCapturePermissionGrantType="grant"
+          originWhitelist={['*']}
+          sharedCookiesEnabled
+          onNavigationStateChange={onNavigationStateChange}
+          onLoadEnd={() => setCargando(false)}
+          onError={(e: WebViewErrorEvent) => manejarFallo(e.nativeEvent.url)}
+          onHttpError={(e: WebViewHttpErrorEvent) => manejarFallo(e.nativeEvent.url)}
+        />
+      )}
 
       {cargando && !error && (
         <View style={s.overlay} pointerEvents="none">
