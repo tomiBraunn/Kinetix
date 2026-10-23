@@ -13,6 +13,11 @@ if (!googleClientId || googleClientId.startsWith('YOUR_')) {
   console.warn('[Kinetix] VITE_GOOGLE_CLIENT_ID no está configurado. El botón de Google no va a funcionar hasta que lo pongas en /.env')
 }
 
+// Service worker para que se pueda instalar como app (ver public/sw.js). Solo en la versión publicada.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}))
+}
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <GoogleOAuthProvider
