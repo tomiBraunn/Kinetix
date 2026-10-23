@@ -104,6 +104,7 @@ export default function WebAppScreen() {
           source={{ uri: GAME_SERVER_URL }}
           style={s.webview}
           applicationNameForUserAgent="KinetixApp"
+        webviewDebuggingEnabled={__DEV__} // en desarrollo se puede inspeccionar la página (chrome://inspect o adb forward)
           allowsInlineMediaPlayback
           mediaPlaybackRequiresUserAction={false}
           mediaCapturePermissionGrantType="grant"
