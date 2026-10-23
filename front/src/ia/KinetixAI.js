@@ -100,6 +100,7 @@ class KinetixAI {
     const vision = await FilesetResolver.forVisionTasks(WASM_URL)
 
     // Intenta GPU primero; cae a CPU si falla
+    let ultimo
     for (const delegate of ['GPU', 'CPU']) {
       try {
         this.landmarker = await PoseLandmarker.createFromOptions(vision, {
@@ -113,11 +114,13 @@ class KinetixAI {
         })
         console.log(`[KinetixAI] Modelo listo (delegate: ${delegate})`)
         return
-      } catch {
-        console.warn(`[KinetixAI] ${delegate} falló, probando siguiente...`)
+      } catch (e) {
+        ultimo = e
+        console.warn(`[KinetixAI] ${delegate} falló, probando siguiente...`, e)
       }
     }
-    throw new Error('[KinetixAI] No se pudo inicializar MediaPipe')
+    // Con el motivo de la última falla: se muestra en pantalla (ver AvisoCamara) y sin él no hay cómo saber qué pasó
+    throw new Error(`No se pudo inicializar MediaPipe: ${ultimo?.message ?? ultimo}`, { cause: ultimo })
   }
 
   // reanudando: la detección se había pausado y sigue la misma partida. Se conserva lo

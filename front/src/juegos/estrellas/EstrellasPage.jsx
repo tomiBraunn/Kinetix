@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import PhaserGameEstrellas from './PhaserGameEstrellas'
 import { usePoseAI } from '../../ia/usePoseAI'
+import AvisoCamara from '../AvisoCamara'
 import { kinetixAI } from '../../ia/KinetixAI'
 import { useSessionRecorder } from '../../ia/useSessionRecorder'
 import { crearSesion, finalizarSesion, subirVideosSesion, mandarEventosSesion } from '../../lib/sesiones.ts'
@@ -129,6 +130,7 @@ export default function EstrellasPage() {
       overflow: 'hidden',
       fontFamily: 'system-ui, -apple-system, sans-serif',
     }}>
+      <AvisoCamara />
 
       {/* Header compacto (más angosto para mobile) */}
       <header style={{

@@ -3,7 +3,7 @@
 // (front/) y la app mobile simplemente lo muestra. Cualquier cambio que se
 // haga en la web se refleja acá solo, sin tocar este proyecto.
 import { useRef, useState, useCallback, useEffect } from 'react'
-import { View, StyleSheet, BackHandler, ActivityIndicator, Text, TouchableOpacity, Platform, PermissionsAndroid } from 'react-native'
+import { View, StyleSheet, BackHandler, ActivityIndicator, Text, TouchableOpacity, Platform, PermissionsAndroid, AppState, Linking } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { WebView, type WebViewNavigation } from 'react-native-webview'
 import type { WebViewErrorEvent, WebViewHttpErrorEvent } from 'react-native-webview/lib/WebViewTypes'
@@ -28,12 +28,25 @@ export default function WebAppScreen() {
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(false)
   const [avisoGoogle, setAvisoGoogle] = useState(false)
+  const [sinPermisoCamara, setSinPermisoCamara] = useState(false)
 
   // En Android el WebView no puede usar la cámara si la app no tiene el permiso
-  // del sistema concedido: hay que pedirlo desde el lado nativo.
+  // del sistema concedido: hay que pedirlo desde el lado nativo. Si se lo rechazó (o se marcó "no volver a
+  // preguntar") el sistema ya no vuelve a preguntar y la cámara queda muerta sin explicación: por eso se avisa con
+  // un cartel que lleva a los ajustes, y al volver de ahí se revisa de nuevo.
+  // (En iOS el cartel de permiso lo muestra el propio WebView cuando la página pide la cámara.)
   useEffect(() => {
     if (Platform.OS !== 'android') return
-    PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA).catch(() => {})
+    PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA)
+      .then((r) => setSinPermisoCamara(r !== PermissionsAndroid.RESULTS.GRANTED))
+      .catch(() => {})
+    const sub = AppState.addEventListener('change', (estado) => {
+      if (estado !== 'active') return
+      PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.CAMERA)
+        .then((ok) => setSinPermisoCamara(!ok))
+        .catch(() => {})
+    })
+    return () => sub.remove()
   }, [])
 
   useEffect(() => {
@@ -117,6 +130,15 @@ export default function WebAppScreen() {
         </View>
       )}
 
+      {sinPermisoCamara && !error && (
+        <View style={s.avisoCamara}>
+          <Text style={s.avisoCamaraText}>La cámara está bloqueada para la app. Los juegos la necesitan para detectar tus movimientos.</Text>
+          <TouchableOpacity style={s.avisoCamaraBtn} onPress={() => Linking.openSettings()}>
+            <Text style={s.avisoCamaraBtnText}>Abrir ajustes</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {!cargando && !error && (
         <TouchableOpacity style={s.fabJuegos} onPress={irAJuegos} activeOpacity={0.85}>
           <Text style={s.fabJuegosIcon}>🎮</Text>
@@ -144,6 +166,13 @@ const s = StyleSheet.create({
   errorSub: { color: '#6b7280', fontSize: 13, textAlign: 'center' },
   retryBtn: { backgroundColor: '#e91e8c', borderRadius: 999, paddingHorizontal: 24, paddingVertical: 12, marginTop: 8 },
   retryBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  avisoCamara: {
+    position: 'absolute', bottom: 88, left: 16, right: 16, gap: 10,
+    backgroundColor: 'rgba(26,26,46,0.95)', borderRadius: 14, padding: 14,
+  },
+  avisoCamaraText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  avisoCamaraBtn: { alignSelf: 'flex-start', backgroundColor: '#e91e8c', borderRadius: 999, paddingHorizontal: 18, paddingVertical: 9 },
+  avisoCamaraBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   fabJuegos: {
     position: 'absolute', bottom: 24, right: 20,
     flexDirection: 'row', alignItems: 'center', gap: 8,

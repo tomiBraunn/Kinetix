@@ -20,6 +20,7 @@ import { useSessionRecorder } from '../../ia/useSessionRecorder'
 import { hablar, callar, desbloquear, useVoz } from '../../ia/voz'
 import { sonar, desbloquearSonidos } from '../../ia/sonidos'
 import BotonVoz from '../BotonVoz'
+import AvisoCamara from '../AvisoCamara'
 import BotonGirarCamara from '../BotonGirarCamara'
 // import CursorMano from '../CursorMano' // apagada por ahora (ver más abajo)
 import { useCuentaRegresiva } from '../useCuentaRegresiva'
@@ -314,6 +315,8 @@ export default function FlamencoPage() {
         onPausa={togglePausa}
         onSalir={volver}
       />
+
+      <AvisoCamara />
 
       {/* Área de juego */}
       <div ref={areaRef} className="relative flex-1 overflow-hidden">

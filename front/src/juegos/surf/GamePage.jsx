@@ -19,6 +19,7 @@ import SelectorRutina from '../SelectorRutina'
 import GuiaMascota from '../GuiaMascota'
 import Mascota from '../Mascota'
 import BotonVoz from '../BotonVoz'
+import AvisoCamara from '../AvisoCamara'
 import BotonGirarCamara from '../BotonGirarCamara'
 // import CursorMano from '../CursorMano' // apagada por ahora (ver más abajo)
 import musica from '../../assets/juegos/surf/musica-fondo.mp3'
@@ -297,6 +298,8 @@ export default function GamePage() {
         onPausa={togglePausa}
         onSalir={() => navigate('/juego')}
       />
+
+      <AvisoCamara />
 
       {/* Área de juego */}
       <div ref={areaRef} className="relative flex-1 overflow-hidden">
