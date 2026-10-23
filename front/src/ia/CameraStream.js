@@ -16,7 +16,38 @@ function restricciones() {
 // Si el aparato no acepta lo que se pidió (algunos WebView y celulares viejos rechazan las medidas o la cámara
 // frontal) se prueba con menos exigencias, hasta pedir "cualquier cámara". Un permiso denegado o una cámara
 // inexistente no se arreglan pidiendo menos: ahí se corta.
-const SE_REINTENTA_CON_MENOS = ['OverconstrainedError', 'ConstraintNotSatisfiedError', 'TypeError', 'NotReadableError']
+const SE_REINTENTA_CON_MENOS = ['OverconstrainedError', 'ConstraintNotSatisfiedError', 'TypeError', 'NotReadableError', 'TimeoutError']
+
+// En algunos WebView de Android la promesa de getUserMedia queda esperando para siempre aunque el permiso del sistema ya
+// esté dado (la app de Expo mostraba "esperando el permiso" sin fin). Se le da este tiempo a cada intento y, si no contesta,
+// se prueba con una configuración más simple.
+const ESPERA_INTENTO_MS = 7000
+
+function conTiempo(promesa) {
+  let abandonada = false
+  return new Promise((resolver, rechazar) => {
+    const id = setTimeout(() => {
+      abandonada = true
+      rechazar(Object.assign(new Error(`getUserMedia no contestó en ${ESPERA_INTENTO_MS / 1000} s`), { name: 'TimeoutError' }))
+    }, ESPERA_INTENTO_MS)
+    promesa.then(
+      (s) => {
+        clearTimeout(id)
+        if (abandonada) s.getTracks().forEach((t) => t.stop()) // llegó tarde: nadie la va a usar y la luz quedaría prendida
+        else resolver(s)
+      },
+      (e) => { clearTimeout(id); if (!abandonada) rechazar(e) },
+    )
+  })
+}
+
+/** Datos del aparato para el aviso de cámara (si es un contexto seguro, el estado del permiso, cuántas cámaras ve). */
+export async function diagnosticoCamara() {
+  const partes = [`https: ${window.isSecureContext ? 'sí' : 'no'}`]
+  try { partes.push(`permiso: ${(await navigator.permissions.query({ name: 'camera' })).state}`) } catch { partes.push('permiso: n/d') }
+  try { partes.push(`cámaras: ${(await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput').length}`) } catch { partes.push('cámaras: n/d') }
+  return partes.join(' · ')
+}
 
 async function pedirCamara() {
   if (!navigator.mediaDevices?.getUserMedia) {
@@ -26,7 +57,7 @@ async function pedirCamara() {
   let ultimo
   for (const video of [restricciones(), { facingMode: 'user' }, true]) {
     try {
-      return await navigator.mediaDevices.getUserMedia({ video, audio: false })
+      return await conTiempo(navigator.mediaDevices.getUserMedia({ video, audio: false }))
     } catch (e) {
       ultimo = e
       if (!SE_REINTENTA_CON_MENOS.includes(e?.name)) throw e

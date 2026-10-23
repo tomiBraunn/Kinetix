@@ -84,6 +84,12 @@ export function describirFalla(etapa, error, esApp = false) {
     case 'TrackStartError':
     case 'AbortError':
       return { titulo: 'La cámara está ocupada', ayuda: 'Otra app la está usando. Cerrala y tocá Reintentar.', detalle }
+    case 'TimeoutError':
+      return {
+        titulo: 'La cámara no responde',
+        ayuda: 'El celular no contestó al pedido de la cámara. Revisá que el permiso esté en "Permitir", cerrá otras apps que la usen y tocá Reintentar.',
+        detalle,
+      }
     case 'NotSupportedError':
       return { titulo: 'Este aparato no permite usar la cámara', ayuda: 'El navegador no admite la cámara en esta pantalla. Probá con otro navegador o actualizalo.', detalle }
     case 'SinMediaDevices':

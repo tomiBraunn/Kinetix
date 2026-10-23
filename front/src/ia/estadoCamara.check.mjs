@@ -9,7 +9,7 @@ const casos = {
   NotAllowedError: /permiso/i, SecurityError: /permiso/i, PermissionDeniedError: /permiso/i,
   NotFoundError: /No se encontró/, DevicesNotFoundError: /No se encontró/, OverconstrainedError: /No se encontró/,
   NotReadableError: /ocupada/, TrackStartError: /ocupada/, AbortError: /ocupada/,
-  NotSupportedError: /no permite/, SinMediaDevices: /Acá no se puede/, Raro: /No se pudo abrir/,
+  TimeoutError: /no responde/, NotSupportedError: /no permite/, SinMediaDevices: /Acá no se puede/, Raro: /No se pudo abrir/,
 }
 for (const [nombre, patron] of Object.entries(casos)) {
   const d = describirFalla('camara', falla(nombre, 'Permission denied'))

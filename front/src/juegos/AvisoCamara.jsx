@@ -5,7 +5,7 @@
 // el reloj, el botón de voz): esos siguen a mano.
 import { useEffect, useState } from 'react'
 import { useEstadoCamara, problemaActual, describirFalla, pedirReintento } from '../ia/estadoCamara'
-import { openCamera, closeCamera } from '../ia/CameraStream'
+import { openCamera, closeCamera, diagnosticoCamara } from '../ia/CameraStream'
 import { esAppExpo } from '../lib/appMovil'
 
 const ESPERA_LARGA_MS = 6000 // pidiendo la cámara hace tanto: seguro hay un cartel de permiso esperando
@@ -27,6 +27,15 @@ export default function AvisoCamara() {
   }, [pidiendo, estado.pidiendoDesde])
 
   const problema = problemaActual(estado)
+  // Mientras hay un aviso se leen datos del aparato (permiso, cámaras) para mostrarlos: sirven para saber qué pasa
+  const hayAviso = !!problema || (pidiendo && esperaLarga)
+  const [diagnostico, setDiagnostico] = useState('')
+  useEffect(() => {
+    if (!hayAviso) return
+    let vivo = true
+    diagnosticoCamara().then((d) => { if (vivo) setDiagnostico(d) })
+    return () => { vivo = false }
+  }, [hayAviso])
   let titulo, ayuda, detalle
   if (problema) {
     ({ titulo, ayuda, detalle } = describirFalla(problema.etapa, problema.error, esAppExpo))
@@ -46,6 +55,7 @@ export default function AvisoCamara() {
             <p className="text-[16px] font-bold leading-[21px]">{titulo}</p>
             <p className="mt-0.5 text-[14px] leading-[19px]">{ayuda}</p>
             {detalle && <p className="mt-1 break-words text-[11px] leading-[15px] text-[#92400e]">{detalle}</p>}
+            {diagnostico && <p className="break-words text-[11px] leading-[15px] text-[#92400e]">{diagnostico}</p>}
           </div>
         </div>
         {problema && (
