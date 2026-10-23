@@ -9,7 +9,7 @@ import { hablar } from '../../ia/voz'
 import { estiloSobreBotonApp } from '../../lib/appMovil'
 import { MascotaDelGlobo } from '../Mascota'
 import '../guia.css'
-import { MENSAJES } from './mensajes'
+import { MENSAJES, esFestejo, textoMensaje } from './mensajes'
 import { LIMITES, PASOS_ZONA, leerZona, guardarZona, normalizarZona } from './curva'
 import iconoMenu from '../../assets/juegos/surf/menu.svg'
 import iconoPausa from '../../assets/juegos/surf/pausa.svg'
@@ -121,9 +121,39 @@ export function Consigna({ num, texto, mascota = null, colaIzq }) {
   )
 }
 
+// ─── Festejo: lo que aparece al atrapar un pez o pasar de nivel ─────────────
+// A lo grande: letras enormes, cada una de un color, con contorno blanco para que se lean sobre el mar, que entran
+// una por una con un rebote y después laten; con unas chispas a los costados. Se muestra en mayúsculas. La animación
+// está en guia.css (.festejo). Ocupa dos líneas si el texto es largo ("¡Pasaste al nivel 2!").
+const COLORES_FESTEJO = ['#ff3d81', '#ff9500', '#ffd60a', '#2ec27e', '#2f9bff', '#a259ff']
+
+function Festejo({ texto }) {
+  // Cada palabra va entera en una línea (no se corta en medio) y el tamaño se achica si la palabra más larga no entra
+  // en el ancho de la pantalla: "ESPECTACULAR" mide mucho más que "WOW". Un tope de 44px para pantallas grandes.
+  const palabras = texto.split(' ')
+  const inicios = palabras.map((_, w) => palabras.slice(0, w).join('').length) // en qué letra empieza cada palabra (el color sigue de corrido)
+  const tamano = `min(44px, ${(86 / (Math.max(...palabras.map((p) => p.length)) * 0.68)).toFixed(1)}vw)`
+  return (
+    <div role="status" className="pointer-events-none absolute inset-x-0 top-[92px] z-20 flex justify-center px-[10px]">
+      <p aria-label={texto} style={{ fontSize: tamano }} className="festejo relative flex flex-wrap justify-center gap-x-[0.3em] px-6 font-black uppercase leading-[1.05]">
+        <span aria-hidden="true" className="festejo-chispa left-0">✨</span>
+        {palabras.map((palabra, w) => (
+          <span key={w} aria-hidden="true" className="inline-flex whitespace-nowrap">
+            {[...palabra].map((letra, j) => (
+              <span key={j} className="festejo-letra" style={{ '--i': inicios[w] + j, color: COLORES_FESTEJO[(inicios[w] + j) % COLORES_FESTEJO.length] }}>{letra}</span>
+            ))}
+          </span>
+        ))}
+        <span aria-hidden="true" className="festejo-chispa right-0" style={{ animationDelay: '.25s' }}>⭐</span>
+      </p>
+    </div>
+  )
+}
+
 // ─── Mensajes de ánimo durante el juego (la escena elige cuál: mensajes.js) ──
 // La alerta de movimiento (clave "alerta") es más larga: puede ocupar dos líneas y lleva otro color
 export function Mensaje({ clave }) {
+  if (esFestejo(clave)) return <Festejo texto={textoMensaje(clave)} />
   const [antes, resaltado, despues] = MENSAJES[clave]
   const alerta = clave === 'alerta'
   return (

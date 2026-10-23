@@ -30,7 +30,40 @@
   to   { opacity: 1; transform: none; }
 }
 
+/* Festejo al atrapar un pez (ver Festejo en surf/pantallas.jsx): las letras entran una por una con un rebote y después
+   el conjunto late. El contorno blanco es de text-shadow (anda en todos los navegadores). */
+.festejo {
+  text-shadow: 3px 3px 0 #fff, -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff, 0 3px 0 #fff, 0 -3px 0 #fff, 3px 0 0 #fff, -3px 0 0 #fff, 0 9px 14px rgba(0, 0, 0, .35);
+  transform-origin: 50% 60%;
+  animation: festejo-pulso 1.1s ease-in-out .9s infinite;
+}
+.festejo-letra {
+  display: inline-block;
+  animation: festejo-letra .6s cubic-bezier(.2, 1.7, .4, 1) both;
+  animation-delay: calc(var(--i) * 45ms);
+}
+.festejo-chispa {
+  position: absolute;
+  top: -.5em;
+  font-size: .55em;
+  text-shadow: none;
+  animation: festejo-chispa 1.4s ease-out both;
+}
+@keyframes festejo-letra {
+  from { opacity: 0; transform: translateY(34px) scale(.2) rotate(-24deg); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes festejo-pulso {
+  0%, 100% { transform: scale(1) rotate(-1deg); }
+  50%      { transform: scale(1.07) rotate(1deg); }
+}
+@keyframes festejo-chispa {
+  from { opacity: 0; transform: translateY(14px) scale(.2) rotate(-40deg); }
+  60%  { opacity: 1; transform: translateY(-6px) scale(1.25) rotate(10deg); }
+  to   { opacity: 1; transform: none; }
+}
+
 /* Accesibilidad: quien pidió menos movimiento ve todo quieto y de una */
 @media (prefers-reduced-motion: reduce) {
-  .guia-mascota, .globo-pop, .globo-texto { animation: none; }
+  .guia-mascota, .globo-pop, .globo-texto, .festejo, .festejo-letra, .festejo-chispa { animation: none; }
 }

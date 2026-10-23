@@ -1,12 +1,6 @@
 // Mensajes de ánimo del Surf (Figma 833:442, 833:364, 833:292, 833:403).
 // Cada uno es [antes, resaltado, después]; el resaltado va en cursiva rosa.
 export const MENSAJES = {
-  bienhecho: ['¡', 'Bien hecho', '!'],
-  seguiasi:  ['¡', 'Seguí así', '!'],
-  muybien:   ['¡Lo estás haciendo ', 'muy bien', '!'],
-  excelente: ['¡', 'Excelente', '!'],
-  mejor:     ['¡', 'Cada vez mejor', '!'],
-  asi:       ['¡Así se ', 'hace', '!'],
   norindas:  ['¡', 'No te rindas', '!'],
   // Los pone la IA (movimiento.js), no la escena: cuando lleva un rato haciéndolo bien, y cuando mueve de más
   // los pies o la cadera (el juego se juega solo con el tronco y los brazos)
@@ -18,11 +12,25 @@ export const MENSAJES = {
   nivel4:    ['¡Pasaste al ', 'nivel 4', '!'],
 }
 
+// Los festejos de cuando atrapa un pez: cortos, a lo grande y con letras de colores (ver Festejo en pantallas.jsx). Cada
+// uno es el texto entero; se escriben normales y la pantalla los pone en mayúsculas, así la voz los lee como palabras.
+export const FESTEJOS = {
+  wow: '¡Wow!',
+  espectacular: '¡Espectacular!',
+  increible: '¡Increíble!',
+  genial: '¡Genial!',
+  fantastico: '¡Fantástico!',
+  bravo: '¡Bravo!',
+}
+
 // Los que se dicen al atrapar un pez, en orden y en ciclo. "norindas" es aparte:
 // sale cuando pasa un rato sin atrapar nada.
-export const FELICITACIONES = ['bienhecho', 'seguiasi', 'muybien', 'excelente', 'asi', 'mejor']
+export const FELICITACIONES = ['wow', 'espectacular', 'increible', 'genial', 'fantastico', 'bravo']
 
-export const textoMensaje = (clave) => MENSAJES[clave]?.join('') ?? ''
+/** ¿Es un festejo (pez atrapado o nivel nuevo)? Esos se muestran a lo grande y con colores; los demás avisos, no. */
+export const esFestejo = (clave) => clave in FESTEJOS || clave.startsWith('nivel')
+
+export const textoMensaje = (clave) => FESTEJOS[clave] ?? MENSAJES[clave]?.join('') ?? ''
 
 // Lo que dice el pez en la guía de "cómo se juega", paso a paso, sobre el mar (ver GuiaMascota.jsx). Cortos: cada paso dura
 // 5 s y la voz tiene que alcanzar a decirlo (unas 65 letras). Mia tiene que validar los textos y la pose de cada uno.
