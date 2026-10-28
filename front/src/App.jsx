@@ -31,10 +31,10 @@ import FlamencoPage from './juegos/flamenco/FlamencoPage'
 import EstrellasPage from './juegos/estrellas/EstrellasPage'
 
 // Todos los dominios de Vercel (kinetix-webapp, kinetix-ai, etc.) sirven el
-// mismo build — la landing vive solo en kinetix-ai.vercel.app, el resto de
-// la app (login/dashboard) en los demás dominios.
-const LANDING_HOST = 'kinetix-ai.vercel.app'
-const isLandingHost = typeof window !== 'undefined' && window.location.hostname === LANDING_HOST
+// mismo build — la landing vive solo en estos dominios (kinetix-ai.vercel.app y
+// el dominio propio kinetixproject.com); en los demás va directo el login/dashboard.
+const LANDING_HOSTS = ['kinetix-ai.vercel.app', 'kinetixproject.com', 'www.kinetixproject.com']
+const isLandingHost = typeof window !== 'undefined' && LANDING_HOSTS.includes(window.location.hostname)
 
 // gtag('config', ...) en index.html solo manda el page_view de la carga inicial.
 // En una SPA hay que mandar el resto a mano en cada cambio de ruta.

@@ -10,6 +10,7 @@ import OrDivider from '../components/auth/OrDivider'
 import { LoginIcon } from '../components/auth/icons'
 import GradientBackground from '../components/GradientBackground'
 import { useAuth } from '../context/AuthContext'
+import { track } from '../lib/analytics'
 
 type Errors = { email?: string; password?: string }
 
@@ -41,6 +42,7 @@ export default function Login() {
     if (Object.keys(found).length > 0) return
     try {
       await login(email, password)
+      track('login', { method: 'email' })
       navigate(redirectTo, { replace: true })
     } catch {
       // Error is surfaced through useAuth().error — no extra work here.

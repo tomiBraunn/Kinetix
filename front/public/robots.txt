@@ -6,5 +6,12 @@ Disallow: /analisis
 Disallow: /games
 Disallow: /sesiones
 Disallow: /juego
+Disallow: /login
+Disallow: /register
+Disallow: /verificar-email
+Disallow: /olvidaste-contrase%C3%B1a
+Disallow: /restablecer-password
+Disallow: /auth
+Disallow: /api
 
-Sitemap: https://kinetix-ai.vercel.app/sitemap.xml
+Sitemap: https://www.kinetixproject.com/sitemap.xml

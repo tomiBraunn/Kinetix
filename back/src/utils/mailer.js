@@ -2,22 +2,66 @@
 // registra con Google. Los mails de verificación/reset de la cuenta con
 // password los manda Supabase Auth solo (Custom SMTP + email-templates/),
 // pero "bienvenida" no es una plantilla de Auth que Supabase soporte, así que
-// esto va por afuera con nodemailer, usando la misma cuenta de Gmail.
-// Configuración: GMAIL_USER + GMAIL_APP_PASSWORD en el .env (raíz del repo).
+// esto va por afuera con nodemailer.
+//
+// Salida en dos pasos: primero intenta con el mail del dominio propio
+// (MAIL_DOMINIO_*), y si falla —por ejemplo porque el dominio se venció,
+// que se paga por año— sale por la cuenta de Gmail de siempre.
+// Configuración (.env de la raíz del repo):
+//   Gmail (respaldo): GMAIL_USER + GMAIL_APP_PASSWORD
+//   Dominio (opcional): MAIL_DOMINIO_HOST, MAIL_DOMINIO_PORT, MAIL_DOMINIO_USER, MAIL_DOMINIO_PASS
 
 const nodemailer = require('nodemailer');
 
-const user = process.env.GMAIL_USER;
-const appPassword = process.env.GMAIL_APP_PASSWORD;
+const gmailUser = process.env.GMAIL_USER;
+const gmailPass = process.env.GMAIL_APP_PASSWORD;
+const dominioHost = process.env.MAIL_DOMINIO_HOST;
+const dominioPort = Number(process.env.MAIL_DOMINIO_PORT || 465);
+const dominioUser = process.env.MAIL_DOMINIO_USER;
+const dominioPass = process.env.MAIL_DOMINIO_PASS;
 
-const configured = Boolean(user && appPassword);
+const gmailListo = Boolean(gmailUser && gmailPass);
+const dominioListo = Boolean(dominioHost && dominioUser && dominioPass);
+const configured = gmailListo || dominioListo;
 
-const transporter = configured
-  ? nodemailer.createTransport({
+// Cada salida: { nombre, from, transporter }. El orden es el de preferencia.
+const salidas = [
+  dominioListo && {
+    nombre: 'dominio',
+    from: dominioUser,
+    transporter: nodemailer.createTransport({
+      host: dominioHost,
+      port: dominioPort,
+      secure: dominioPort === 465,
+      auth: { user: dominioUser, pass: dominioPass },
+      connectionTimeout: 8000,
+    }),
+  },
+  gmailListo && {
+    nombre: 'gmail',
+    from: gmailUser,
+    transporter: nodemailer.createTransport({
       service: 'gmail',
-      auth: { user, pass: appPassword },
-    })
-  : null;
+      auth: { user: gmailUser, pass: gmailPass },
+    }),
+  },
+].filter(Boolean);
+
+// Prueba cada salida en orden y se queda con la primera que funciona
+async function enviar({ to, subject, html }) {
+  let ultimoError = null;
+  for (const salida of salidas) {
+    try {
+      await salida.transporter.sendMail({ from: `"Kinetix" <${salida.from}>`, to, subject, html });
+      return true;
+    } catch (err) {
+      ultimoError = err;
+      console.warn(`[mailer] falló la salida "${salida.nombre}" (${err.message}); se prueba la siguiente.`);
+    }
+  }
+  if (ultimoError) throw ultimoError;
+  return false;
+}
 
 const BRAND = {
   primary: '#2B319C',
@@ -39,12 +83,11 @@ function layout(innerHtml) {
 }
 
 async function sendWelcomeEmail(to, nombre) {
-  if (!transporter) {
-    console.warn(`[mailer] no configurado (falta GMAIL_USER / GMAIL_APP_PASSWORD). No se envió bienvenida a ${to}.`);
+  if (salidas.length === 0) {
+    console.warn(`[mailer] no configurado (falta GMAIL_USER / GMAIL_APP_PASSWORD o MAIL_DOMINIO_*). No se envió bienvenida a ${to}.`);
     return false;
   }
-  await transporter.sendMail({
-    from: `"Kinetix" <${user}>`,
+  return enviar({
     to,
     subject: '¡Bienvenido a Kinetix!',
     html: layout(
@@ -54,7 +97,6 @@ async function sendWelcomeEmail(to, nombre) {
        </p>`
     ),
   });
-  return true;
 }
 
 module.exports = { configured, sendWelcomeEmail };

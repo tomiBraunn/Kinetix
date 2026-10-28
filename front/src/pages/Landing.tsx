@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import logoMark from "../assets/logo-mark.png";
+import { track } from "../lib/analytics";
 import "./Landing.css";
 
 function ParticleCanvas() {
@@ -155,10 +156,10 @@ export default function Landing() {
             <li><a href="#ia">IA integrada</a></li>
           </ul>
           <div className="nav-cta">
-            <button className="nav-login" onClick={() => navigate("/login")}>
+            <button className="nav-login" onClick={() => { track("cta_click", { cta: "nav_login" }); navigate("/login"); }}>
               Iniciar sesión
             </button>
-            <button className="nav-register" onClick={() => navigate("/register")}>
+            <button className="nav-register" onClick={() => { track("cta_click", { cta: "nav_registro" }); navigate("/register"); }}>
               Registrarse
             </button>
           </div>
@@ -189,7 +190,7 @@ export default function Landing() {
             en tiempo real para profesionales.
           </p>
           <div className="hero-buttons">
-            <button className="btn-primary" onClick={() => navigate("/register")}>Empezar</button>
+            <button className="btn-primary" onClick={() => { track("cta_click", { cta: "hero_empezar" }); navigate("/register"); }}>Empezar</button>
             <a className="btn-secondary" href="#como-funciona">Ver cómo funciona</a>
           </div>
         </div>
@@ -313,8 +314,8 @@ export default function Landing() {
             pacientes con tecnología pensada para el bienestar.
           </p>
           <div className="cta-buttons">
-            <button className="btn-primary" onClick={() => navigate("/login")}>Iniciar Sesión</button>
-            <button className="btn-outline" onClick={() => navigate("/register")}>Registrarse</button>
+            <button className="btn-primary" onClick={() => { track("cta_click", { cta: "final_login" }); navigate("/login"); }}>Iniciar Sesión</button>
+            <button className="btn-outline" onClick={() => { track("cta_click", { cta: "final_registro" }); navigate("/register"); }}>Registrarse</button>
           </div>
         </div>
       </section>

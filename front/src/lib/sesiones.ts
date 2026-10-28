@@ -1,5 +1,6 @@
 import { api } from './api'
 import { getToken } from './auth'
+import { track } from './analytics'
 
 export type SesionRow = {
   id: string
@@ -51,10 +52,13 @@ export type MetricasEquilibrio = {
 function token() { return getToken() ?? undefined }
 
 export async function crearSesion(paciente_id: string, juego: string) {
-  return api.post<{ id: string }>('/sesiones', { paciente_id, juego }, { token: token() })
+  const sesion = await api.post<{ id: string }>('/sesiones', { paciente_id, juego }, { token: token() })
+  track('game_start', { juego })
+  return sesion
 }
 
 export async function finalizarSesion(sesionId: string, metricas: Metricas, metricasEquilibrio?: MetricasEquilibrio) {
+  track('game_complete', { juego: metricas.juego })
   await api.put(
     `/sesiones/${sesionId}/finalizar`,
     {

@@ -10,6 +10,7 @@ import OrDivider from '../components/auth/OrDivider'
 import { RegisterIcon, MailIcon } from '../components/auth/icons'
 import GradientBackground from '../components/GradientBackground'
 import { useAuth } from '../context/AuthContext'
+import { track } from '../lib/analytics'
 
 type Form = { nombre: string; apellido: string; email: string; password: string; confirm: string }
 type Errors = Partial<Record<keyof Form, string>>
@@ -50,6 +51,7 @@ export default function Register() {
         email: form.email.trim(),
         password: form.password
       })
+      track('sign_up', { method: 'email' })
       if (authed) navigate('/home', { replace: true })
       else setDone(true)
     } catch {
