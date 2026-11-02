@@ -1,0 +1,100 @@
+.demo-page {
+  min-height: 100vh;
+  background: radial-gradient(circle at 50% 0%, #2b319c 0%, #0a0a1a 70%);
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+}
+
+.demo-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 32px;
+}
+
+.demo-page-logo {
+  font-weight: 700;
+  font-size: 20px;
+  color: #ffaac0;
+}
+
+.demo-volver {
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 170, 192, 0.5);
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.demo-page-main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 16px 60px;
+}
+
+.demo-page-titulo {
+  font-size: 40px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.demo-page-titulo span {
+  color: #ff5faa;
+}
+
+.demo-page-sub {
+  margin-top: 12px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.demo-juegos {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-top: 40px;
+}
+
+.demo-juego {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 28px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 170, 192, 0.3);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  text-decoration: none;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.demo-juego:hover {
+  transform: translateY(-4px);
+  border-color: #ff5faa;
+}
+
+.demo-juego-nombre {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.demo-juego-detalle {
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+}
+
+.demo-juego-jugar {
+  margin-top: 8px;
+  font-weight: 700;
+  color: #ff5faa;
+}
+
+@media (max-width: 640px) {
+  .demo-page-titulo { font-size: 32px; }
+  .demo-juegos { grid-template-columns: 1fr; }
+}

@@ -7,6 +7,7 @@ import AppLayout from './components/layout/AppLayout'
 
 // Público
 import Landing from './pages/Landing.tsx'
+import Cartel from './pages/Cartel.tsx'
 import Login from './pages/Login.tsx'
 import Register from './pages/Register.tsx'
 import VerifyEmail from './pages/VerifyEmail.tsx'
@@ -29,6 +30,8 @@ import SeleccionJuego from './pages/SeleccionJuego.jsx'
 import GamePage from './juegos/surf/GamePage'
 import FlamencoPage from './juegos/flamenco/FlamencoPage'
 import EstrellasPage from './juegos/estrellas/EstrellasPage'
+import DemoPage from './pages/demo/DemoPage'
+import MarcoMovil from './pages/demo/MarcoMovil'
 
 // Todos los dominios de Vercel (kinetix-webapp, kinetix-ai, etc.) sirven el
 // mismo build — la landing vive solo en estos dominios (kinetix-ai.vercel.app y
@@ -42,7 +45,7 @@ function AnalyticsPageView() {
   const location = useLocation()
   useEffect(() => {
     window.gtag?.('event', 'page_view', {
-      page_path: location.pathname + location.search,
+      page_path: window.location.pathname + window.location.search,
       page_location: window.location.href,
     })
   }, [location])
@@ -68,16 +71,29 @@ function SoloApp({ children }) {
   )
 }
 
-export default function App() {
+// La webapp (login, panel, juegos) vive bajo /webapp; la landing y la demo, en la raíz.
+// Un solo build sirve las dos: se elige el router según la ruta, así los links internos
+// de la webapp (navigate('/login'), <Link to="/home">...) no se tocan: el basename les agrega el prefijo.
+const PREFIJO = '/webapp'
+const esWebapp = (ruta) => ruta === PREFIJO || ruta.startsWith(PREFIJO + '/')
+
+// Navegación completa (no del router) hacia otra "app": conserva ruta, parámetros y hash.
+function Redirigir({ a }) {
+  useEffect(() => { window.location.replace(a()) }, [a])
+  return null
+}
+// Rutas viejas (/login, /home, /auth/callback?token=...): van a /webapp con todo lo que traían,
+// para no romper links de mails, el login con Google ni la app instalada.
+const aWebapp = () => PREFIJO + window.location.pathname + window.location.search + window.location.hash
+const aLanding = () => '/'
+
+function Webapp() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={PREFIJO}>
       <AnalyticsPageView />
       <Routes>
         {/* Rutas públicas */}
-        <Route
-          path="/"
-          element={isLandingHost ? <Landing /> : <Navigate to="/login" replace />}
-        />
+        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
         <Route path="/verificar-email" element={<PublicRoute><VerifyEmail /></PublicRoute>} />
@@ -102,12 +118,38 @@ export default function App() {
         <Route path="/juego/flamenco" element={<SoloApp><ConPaciente><FlamencoPage /></ConPaciente></SoloApp>} />
         <Route path="/juego/estrellas" element={<SoloApp><ConPaciente><EstrellasPage /></ConPaciente></SoloApp>} />
 
-        {/* Catch-all: en kinetix-ai (solo landing) todo lo demás vuelve a "/" */}
+        {/* En los dominios con landing, lo desconocido vuelve a "/"; en los demás, al login */}
         <Route
           path="*"
-          element={isLandingHost ? <Navigate to="/" replace /> : <PublicRoute><Login /></PublicRoute>}
+          element={isLandingHost ? <Redirigir a={aLanding} /> : <PublicRoute><Login /></PublicRoute>}
         />
       </Routes>
     </BrowserRouter>
   )
+}
+
+function Landingsite() {
+  return (
+    <BrowserRouter>
+      <AnalyticsPageView />
+      <Routes>
+        <Route path="/" element={isLandingHost ? <Landing /> : <Redirigir a={() => PREFIJO + '/login'} />} />
+
+        {/* Demo en vivo de la landing: los juegos reales, sin cámara ni IA */}
+        <Route path="/demo" element={<MarcoMovil><DemoPage /></MarcoMovil>} />
+        <Route path="/demo/surf" element={<MarcoMovil><GamePage demo /></MarcoMovil>} />
+        <Route path="/demo/flamenco" element={<MarcoMovil><FlamencoPage demo /></MarcoMovil>} />
+
+        {/* Cartel de la feria de tecnología */}
+        <Route path="/cartel" element={<Cartel />} />
+
+        {/* Cualquier otra ruta es una URL vieja de la webapp */}
+        <Route path="*" element={<Redirigir a={aWebapp} />} />
+      </Routes>
+    </BrowserRouter>
+  )
+}
+
+export default function App() {
+  return esWebapp(window.location.pathname) ? <Webapp /> : <Landingsite />
 }

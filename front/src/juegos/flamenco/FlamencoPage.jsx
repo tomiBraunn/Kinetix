@@ -37,7 +37,8 @@ const LEVANTAR = ['practica-levantar', 'levantar']
 // ¿Hay algo que guardar? Un paso saltado no cuenta: solo saltar no deja una sesión
 const hayAlgoQueGuardar = (estado) => estado.resultados.some(r => !r.saltado)
 
-export default function FlamencoPage() {
+// demo: la versión de la landing. Juega igual; sin paciente no hay sesión ni análisis que guardar.
+export default function FlamencoPage({ demo = false }) {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const pacienteId = params.get('pacienteId')
@@ -225,7 +226,7 @@ export default function FlamencoPage() {
   // Salir antes de tiempo: si ya hubo repeticiones se guardan; si no, no hay nada que guardar
   const volver = useCallback(() => {
     if (hayAlgoQueGuardar(estadoRef.current)) terminarSesion()
-    navigate('/juego')
+    navigate(demo ? '/demo' : '/juego')
   }, [terminarSesion, navigate])
 
   // Salir por otro camino (el "atrás" del navegador, por ejemplo) no pasa por "volver": lo jugado

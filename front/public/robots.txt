@@ -1,5 +1,7 @@
 User-agent: *
 Allow: /
+Disallow: /webapp
+Disallow: /cartel
 Disallow: /home
 Disallow: /pacientes
 Disallow: /analisis

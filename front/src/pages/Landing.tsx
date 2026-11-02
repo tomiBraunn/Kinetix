@@ -100,42 +100,11 @@ const STATS = [
   { label: "IA PRECISION", value: "99.8%" },
 ];
 
-const HOW_IT_WORKS = [
-  {
-    step: 1,
-    side: "left",
-    title: "El kinesiólogo configura",
-    desc: "El profesional ingresa a la plataforma, registra al paciente y asigna los ejercicios según el plan de rehabilitación.",
-  },
-  {
-    step: 2,
-    side: "right",
-    title: "El paciente juega",
-    desc: "Desde una pantalla o televisor, el adulto mayor realiza los movimientos guiado por juegos interactivos diseñados para ejercitar.",
-  },
-  {
-    step: 3,
-    side: "left",
-    title: "La IA analiza en vivo",
-    desc: "La inteligencia artificial monitorea el equilibrio, detecta errores de postura y registra cada dato del movimiento en tiempo real.",
-  },
-  {
-    step: 4,
-    side: "right",
-    title: "El profesional evalúa",
-    desc: "El kinesiólogo accede a reportes detallados, ve la evolución del paciente y ajusta el tratamiento con datos precisos.",
-  },
-];
-
-const AI_METRICS = [
-  { label: "Equilibrio postural", value: 92 },
-  { label: "Coordinación del movimiento", value: 78 },
-  { label: "Progreso semanal", value: 85 },
-];
-
 export default function Landing() {
   const blobRef = useMouseBlob();
   const navigate = useNavigate();
+  // La webapp vive bajo /webapp, con su propio router: se entra con una carga completa de la página.
+  const irAWebapp = (ruta: string) => window.location.assign("/webapp" + ruta);
 
   return (
     <div className="landing">
@@ -150,16 +119,15 @@ export default function Landing() {
             <span className="logo-text">inetix</span>
           </div>
           <ul className="nav-links">
-            <li><a href="#como-funciona">Cómo funciona</a></li>
+            <li><a href="/demo" onClick={(e) => { e.preventDefault(); track("cta_click", { cta: "nav_demo" }); navigate("/demo"); }}>Demo en vivo</a></li>
             <li><a href="#incluye">Qué incluye</a></li>
             <li><a href="#kinesiologos">Para kinesiólogos</a></li>
-            <li><a href="#ia">IA integrada</a></li>
           </ul>
           <div className="nav-cta">
-            <button className="nav-login" onClick={() => { track("cta_click", { cta: "nav_login" }); navigate("/login"); }}>
+            <button className="nav-login" onClick={() => { track("cta_click", { cta: "nav_login" }); irAWebapp("/login"); }}>
               Iniciar sesión
             </button>
-            <button className="nav-register" onClick={() => { track("cta_click", { cta: "nav_registro" }); navigate("/register"); }}>
+            <button className="nav-register" onClick={() => { track("cta_click", { cta: "nav_registro" }); irAWebapp("/register"); }}>
               Registrarse
             </button>
           </div>
@@ -190,8 +158,8 @@ export default function Landing() {
             en tiempo real para profesionales.
           </p>
           <div className="hero-buttons">
-            <button className="btn-primary" onClick={() => { track("cta_click", { cta: "hero_empezar" }); navigate("/register"); }}>Empezar</button>
-            <a className="btn-secondary" href="#como-funciona">Ver cómo funciona</a>
+            <button className="btn-primary" onClick={() => { track("cta_click", { cta: "hero_empezar" }); irAWebapp("/register"); }}>Empezar</button>
+            <button className="btn-secondary" onClick={() => { track("cta_click", { cta: "hero_demo" }); navigate("/demo"); }}>Probar demo</button>
           </div>
         </div>
       </section>
@@ -202,29 +170,6 @@ export default function Landing() {
             <div key={i} className="stat-card">
               <span className="stat-label">{s.label}</span>
               <span className="stat-value">{s.value}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section id="como-funciona" className="how-it-works">
-        <div className="particle p-pink-light" style={{ top: "10%", left: "3%", animationName: "float-b", animationDuration: "8s", animationDelay: "0.4s" }} />
-        <div className="particle p-pink-bright" style={{ top: "40%", right: "5%", animationName: "float-a", animationDuration: "7s", animationDelay: "1.5s" }} />
-        <div className="particle p-white" style={{ top: "70%", left: "6%", animationName: "float-c", animationDuration: "10s", animationDelay: "2s" }} />
-        <div className="particle p-pink-light" style={{ top: "85%", right: "8%", animationName: "float-b", animationDuration: "9s", animationDelay: "0.9s" }} />
-        <h2 className="section-title">
-          Cómo funciona <span className="pink-text" style={{ fontStyle: "normal", color: "#ff5faa" }}>Kinetix</span>
-        </h2>
-        <div className="timeline">
-          {HOW_IT_WORKS.map((item) => (
-            <div key={item.step} className={`timeline-item timeline-${item.side}`}>
-              <div className="timeline-content">
-                <h3 className="step-title">{item.title}</h3>
-                <p className="step-desc">{item.desc}</p>
-              </div>
-              <div className="timeline-dot">
-                <span className="dot-number">{item.step}</span>
-              </div>
             </div>
           ))}
         </div>
@@ -314,51 +259,8 @@ export default function Landing() {
             pacientes con tecnología pensada para el bienestar.
           </p>
           <div className="cta-buttons">
-            <button className="btn-primary" onClick={() => { track("cta_click", { cta: "final_login" }); navigate("/login"); }}>Iniciar Sesión</button>
-            <button className="btn-outline" onClick={() => { track("cta_click", { cta: "final_registro" }); navigate("/register"); }}>Registrarse</button>
-          </div>
-        </div>
-      </section>
-
-      <section id="ia" className="ai-section">
-        <div className="ai-content">
-          <h2 className="ai-title">
-            La IA que <span className="gradient-text-upright">no</span>
-            <br />
-            <span className="gradient-text-upright">descansa</span>
-          </h2>
-          <p className="ai-desc">
-            Mientras el paciente juega, nuestra IA analiza cada movimiento en tiempo real.
-            Detecta desequilibrios, mide progreso y genera insights que el kinesiólogo no
-            podría obtener a simple vista.
-          </p>
-          <div className="ai-metrics">
-            {AI_METRICS.map((m, i) => (
-              <div key={i} className="metric">
-                <div className="metric-header">
-                  <span className="metric-label">{m.label}</span>
-                  <span className="metric-value">{m.value}%</span>
-                </div>
-                <div className="metric-bar">
-                  <div className="metric-fill" style={{ width: `${m.value}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="ai-visual">
-          <div className="particle p-pink-light" style={{ top: "13%", left: "12%", animationName: "float-b", animationDuration: "8s" }} />
-          <div className="particle p-white" style={{ top: "72%", left: "4%", animationName: "float-c", animationDuration: "11s", animationDelay: "1s" }} />
-          <div className="particle p-pink-bright" style={{ top: "50%", left: "9%", animationName: "float-a", animationDuration: "7s", animationDelay: "2s" }} />
-          <div className="particle p-pink-bright" style={{ top: "38%", right: "4%", animationName: "float-c", animationDuration: "9s", animationDelay: "0.5s" }} />
-          <div className="particle p-pink-light" style={{ bottom: "3%", right: "32%", animationName: "float-b", animationDuration: "6s", animationDelay: "1.8s" }} />
-          <div className="ai-orb">
-            <div className="orb-ring orb-ring-3" />
-            <div className="orb-ring orb-ring-2" />
-            <div className="orb-ring orb-ring-1" />
-            <div className="orb-core">
-              <span className="material-symbols-rounded">monitor_heart</span>
-            </div>
+            <button className="btn-primary" onClick={() => { track("cta_click", { cta: "final_login" }); irAWebapp("/login"); }}>Iniciar Sesión</button>
+            <button className="btn-outline" onClick={() => { track("cta_click", { cta: "final_registro" }); irAWebapp("/register"); }}>Registrarse</button>
           </div>
         </div>
       </section>

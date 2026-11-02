@@ -1,0 +1,41 @@
+.marco-fondo {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 0%, #2b319c 0%, #0a0a1a 70%);
+}
+
+/* Ocupa el tamaño ya escalado del iPhone, así el marco no deja espacio vacío */
+.marco-escala {
+  position: relative;
+}
+
+.marco-escala .marvel-device {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* Aviso para girar el celular: solo se ve en horizontal, en un celular */
+.girar-aviso {
+  display: none;
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .girar-aviso {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: #0a0a1a;
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    text-align: center;
+  }
+}

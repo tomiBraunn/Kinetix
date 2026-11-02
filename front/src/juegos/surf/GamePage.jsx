@@ -48,7 +48,9 @@ const CON_MUSICA = CON_PAUSA
 // El mar y el cielo no aparecen hasta que el paciente está bien detectado
 const CON_ESCENA = ['preparando', 'consigna', 'jugando', 'completado']
 
-export default function GamePage() {
+// demo: la versión de la landing. Juega igual, pero no muestra el análisis al terminar la ronda.
+export default function GamePage({ demo = false }) {
+  const salida = demo ? '/demo' : '/juego'
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const pacienteId = params.get('pacienteId')
@@ -167,7 +169,7 @@ export default function GamePage() {
       const resumen = { ...kinetixAI.getMetricasResumen(), alertas_movimiento: alertasRef.current }
       sonar('fin')
       setAviso(null)
-      setAnalisis(compararRondas(resumen, resumenPrevioRef.current))
+      setAnalisis(demo ? null : compararRondas(resumen, resumenPrevioRef.current))
       resumenPrevioRef.current = resumen
       setFase('completado')
       const sesionId = sesionIdRef.current
@@ -296,7 +298,7 @@ export default function GamePage() {
         conSalir={fase !== 'completado'}
         pausado={pausado}
         onPausa={togglePausa}
-        onSalir={() => navigate('/juego')}
+        onSalir={() => navigate(salida)}
       />
 
       <AvisoCamara />
@@ -367,7 +369,7 @@ export default function GamePage() {
           <GuiaMascota especie="pez" pasos={GUIA_SURF} onListo={() => setFase('calibracion')} onOmitir={() => setFase('calibracion')} />
         )}
         {fase === 'completado' && (
-          <DesafioCompletado ronda={ronda} analisis={analisis} onSeguir={seguirJugando} onVolver={() => navigate('/juego')}
+          <DesafioCompletado ronda={ronda} analisis={analisis} onSeguir={seguirJugando} onVolver={() => navigate(salida)}
             onVerAnalisis={sesionGuardada ? () => navigate(`/sesiones/${sesionGuardada}`) : null} />
         )}
       </div>
