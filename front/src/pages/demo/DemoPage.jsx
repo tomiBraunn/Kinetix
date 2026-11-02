@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import './DemoPage.css'
 
 // Los juegos de la demo son los de la app, con la cámara y la detección, pero sin el análisis ni guardar la sesión
-const JUEGOS = [
+export const JUEGOS = [
   { to: '/demo/surf', nombre: 'Surf', detalle: 'Atrapá los peces que nadan por la pantalla, con tu cuerpo.' },
   { to: '/demo/flamenco', nombre: 'Flamenco', detalle: 'Levantá la pierna y aguantá el equilibrio.' },
 ]

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { MockFrame } from 'react-mockframe'
 import 'react-mockframe/styles/mockframe-iphones.css'
+import { JUEGOS } from './DemoPage'
 import './MarcoMovil.css'
 
 // Medidas del iPhone 18 Pro de react-mockframe (MIT): la pantalla es de 402×874 y el cuerpo, con el marco, un poco más
@@ -15,12 +16,17 @@ const esCelular = () => window.matchMedia('(pointer: coarse)').matches
 
 // La demo se ve siempre en vertical, como en un celular.
 // - En una pantalla de escritorio: la página va dentro de un iPhone 18 Pro con la pantalla de 402×874. Es un iframe, así el
-//   juego ve una ventana vertical de verdad (window.innerWidth/innerHeight) y no una pantalla ancha.
+//   juego ve una ventana vertical de verdad (window.innerWidth/innerHeight) y no una pantalla ancha. Al lado, fuera del
+//   iPhone, van los botones para cambiar de juego.
 // - En un celular: va a pantalla completa, se pide la orientación vertical y, si el celular queda en horizontal, se
 //   muestra un aviso para girarlo (ver MarcoMovil.css).
 export default function MarcoMovil({ children }) {
   const { pathname } = useLocation()
+  const navigate = useNavigate()
   const [escala, setEscala] = useState(1)
+  // Juego que muestra el iPhone: el de la URL o, en /demo, el primero. `intento` reinicia el juego al volver a tocarlo.
+  const juego = (JUEGOS.find((j) => j.to === pathname) ?? JUEGOS[0]).to
+  const [intento, setIntento] = useState(0)
 
   useEffect(() => {
     if (enMarco()) return
@@ -44,15 +50,32 @@ export default function MarcoMovil({ children }) {
     )
   }
 
+  const elegir = (to) => {
+    if (to === juego) setIntento((n) => n + 1)
+    else navigate(to, { replace: true })
+  }
+
   return (
     <div className="marco-fondo">
+      <div className="marco-lado">
+        <button className="demo-volver" onClick={() => navigate('/')}>← Volver</button>
+        <h1 className="marco-titulo">Probalo <span>en vivo</span></h1>
+        <p className="marco-sub">Elegí un juego. Necesita la cámara para jugar.</p>
+        {JUEGOS.map((j) => (
+          <button key={j.to} className={`marco-juego${j.to === juego ? ' activo' : ''}`} onClick={() => elegir(j.to)}>
+            <span className="marco-juego-nombre">{j.nombre}</span>
+            <span className="marco-juego-detalle">{j.detalle}</span>
+          </button>
+        ))}
+      </div>
       {/* react-mockframe escala con transform y no achica su caja: este contenedor ocupa el tamaño ya escalado */}
       <div className="marco-escala" style={{ width: ANCHO_CUERPO * escala, height: ALTO_CUERPO * escala }}>
         <div className="marco-centro">
           <MockFrame device="iPhone 18 Pro" color="black" zoom={escala}>
             {/* El juego ocupa toda la pantalla; la Dynamic Island queda encima, en el centro de arriba */}
             <iframe
-              src={pathname}
+              key={`${juego}-${intento}`}
+              src={juego}
               title="Demo de Kinetix"
               allow="camera"
               style={{ width: PANTALLA_W, height: PANTALLA_H, border: 0, display: 'block' }}
