@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { MockFrame } from 'react-mockframe'
 import 'react-mockframe/styles/mockframe-iphones.css'
-import { JUEGOS } from './DemoPage'
+import GradientBackground from '../../components/GradientBackground'
+import Logo from '../../components/Logo'
+import { JUEGOS, tarjetaJuego } from './DemoPage'
 import './MarcoMovil.css'
 
 // Medidas del iPhone 18 Pro de react-mockframe (MIT): la pantalla es de 402×874 y el cuerpo, con el marco, un poco más
@@ -56,20 +58,31 @@ export default function MarcoMovil({ children }) {
   }
 
   return (
-    <div className="marco-fondo">
-      <div className="marco-lado">
-        <button className="demo-volver" onClick={() => navigate('/')}>← Volver</button>
-        <h1 className="marco-titulo">Probalo <span>en vivo</span></h1>
-        <p className="marco-sub">Elegí un juego. Necesita la cámara para jugar.</p>
+    <div className="relative flex min-h-screen items-center justify-center gap-16 overflow-hidden p-6">
+      <GradientBackground />
+      {/* Estética de la webapp: mismo degradé y tarjeta de vidrio que login/registro */}
+      <div className="relative z-10 flex w-[340px] flex-col gap-4 rounded-[2.5rem] bg-white/60 px-8 py-9 shadow-[0_24px_60px_-20px_rgba(43,49,156,0.18)] ring-1 ring-primary/5 backdrop-blur-xl">
+        <Logo />
+        <h1 className="mt-2 text-[32px] font-black leading-tight text-primary-dark">
+          Probalo <span className="text-accent">en vivo</span>
+        </h1>
+        <p className="text-[15px] font-semibold text-text-label">Elegí un juego. Necesita la cámara para jugar.</p>
         {JUEGOS.map((j) => (
-          <button key={j.to} className={`marco-juego${j.to === juego ? ' activo' : ''}`} onClick={() => elegir(j.to)}>
-            <span className="marco-juego-nombre">{j.nombre}</span>
-            <span className="marco-juego-detalle">{j.detalle}</span>
+          <button
+            key={j.to}
+            className={`${tarjetaJuego} ${j.to === juego ? 'border-accent' : 'border-transparent hover:border-accent/40'}`}
+            onClick={() => elegir(j.to)}
+          >
+            <span className="block text-xl font-black text-primary">{j.nombre}</span>
+            <span className="mt-1 block text-sm font-semibold text-text-muted">{j.detalle}</span>
           </button>
         ))}
+        <button className="self-start text-sm font-bold text-text-muted hover:text-accent" onClick={() => navigate('/')}>
+          ← Volver
+        </button>
       </div>
       {/* react-mockframe escala con transform y no achica su caja: este contenedor ocupa el tamaño ya escalado */}
-      <div className="marco-escala" style={{ width: ANCHO_CUERPO * escala, height: ALTO_CUERPO * escala }}>
+      <div className="marco-escala relative z-10" style={{ width: ANCHO_CUERPO * escala, height: ALTO_CUERPO * escala }}>
         <div className="marco-centro">
           <MockFrame device="iPhone 18 Pro" color="black" zoom={escala}>
             {/* El juego ocupa toda la pantalla; la Dynamic Island queda encima, en el centro de arriba */}

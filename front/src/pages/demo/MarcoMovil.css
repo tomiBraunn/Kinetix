@@ -1,75 +1,4 @@
-.marco-fondo {
-  min-height: 100vh;
-  overflow: hidden; /* el iPhone sin escalar sobra de su contenedor; que no genere scroll */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 72px;
-  font-family: 'Inter', sans-serif;
-  color: #fff;
-  background: radial-gradient(circle at 50% 0%, #2b319c 0%, #0a0a1a 70%);
-}
-
-.marco-lado {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 14px;
-  width: 300px;
-}
-
-.marco-titulo {
-  margin-top: 12px;
-  font-size: 36px;
-  font-weight: 700;
-  line-height: 1.15;
-}
-
-.marco-titulo span {
-  color: #ff5faa;
-}
-
-.marco-sub {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.marco-juego {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 100%;
-  padding: 18px 20px;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 170, 192, 0.3);
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: transform 0.2s, border-color 0.2s, background 0.2s;
-}
-
-.marco-juego:hover {
-  transform: translateY(-2px);
-  border-color: #ff5faa;
-}
-
-.marco-juego.activo {
-  border-color: #ff5faa;
-  background: rgba(255, 95, 170, 0.15);
-}
-
-.marco-juego-nombre {
-  font-size: 20px;
-  font-weight: 700;
-}
-
-.marco-juego-detalle {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 14px;
-  line-height: 1.4;
-}
-
+/* Ocupa el tamaño ya escalado del iPhone, así el marco no deja espacio vacío */
 .marco-escala {
   position: relative;
 }
@@ -96,9 +25,9 @@
     align-items: center;
     justify-content: center;
     padding: 24px;
-    background: #0a0a1a;
+    background: #0F1387;
     color: #fff;
-    font-family: 'Inter', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     font-size: 20px;
     font-weight: 700;
     text-align: center;
