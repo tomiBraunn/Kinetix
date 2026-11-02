@@ -7,7 +7,6 @@ import './MarcoMovil.css'
 // Medidas del iPhone 18 Pro de react-mockframe (MIT): la pantalla es de 402×874 y el cuerpo, con el marco, un poco más
 const PANTALLA_W = 402
 const PANTALLA_H = 874
-const BARRA_ESTADO = 54 // franja de arriba que tapa la Dynamic Island
 const ANCHO_CUERPO = 434 // el iPhone con su marco, para escalarlo a la ventana
 const ALTO_CUERPO = 905
 
@@ -51,15 +50,13 @@ export default function MarcoMovil({ children }) {
       <div className="marco-escala" style={{ width: ANCHO_CUERPO * escala, height: ALTO_CUERPO * escala }}>
         <div className="marco-centro">
           <MockFrame device="iPhone 18 Pro" color="black" zoom={escala}>
-            {/* La Dynamic Island queda arriba y negra; el juego empieza debajo */}
-            <div style={{ boxSizing: 'border-box', height: '100%', paddingTop: BARRA_ESTADO, background: '#000' }}>
-              <iframe
-                src={pathname}
-                title="Demo de Kinetix"
-                allow="camera"
-                style={{ width: PANTALLA_W, height: PANTALLA_H - BARRA_ESTADO, border: 0, display: 'block' }}
-              />
-            </div>
+            {/* El juego ocupa toda la pantalla; la Dynamic Island queda encima, en el centro de arriba */}
+            <iframe
+              src={pathname}
+              title="Demo de Kinetix"
+              allow="camera"
+              style={{ width: PANTALLA_W, height: PANTALLA_H, border: 0, display: 'block' }}
+            />
           </MockFrame>
         </div>
       </div>
