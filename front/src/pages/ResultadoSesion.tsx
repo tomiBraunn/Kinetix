@@ -2,21 +2,15 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   getSesion,
+  getSesiones,
   getAnalisisIA,
+  type AnalisisIA,
   type SesionDetalle,
-  JUEGO_LABEL,
+  type SesionRow,
   JUEGO_ICON,
   formatFecha,
 } from '../lib/sesiones'
-
-function Stat({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="bg-white rounded-[18px] p-5 shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)]">
-      <p className={`${String(value).length > 10 ? 'text-lg' : 'text-2xl'} font-black text-primary`}>{value}</p>
-      <p className="text-text-muted text-xs font-semibold mt-0.5">{label}</p>
-    </div>
-  )
-}
+import AnalisisSesion, { CARD, TITULO } from '../components/AnalisisSesion'
 
 // `giro`: grados que hay que girar el video para verlo parado (la cámara estaba de costado, ver
 // front/src/ia/rotacion.js). Solo se usa con el video crudo: los otros dos se grabaron ya parados.
@@ -96,14 +90,12 @@ function giroCamara(s: SesionDetalle): number {
   return g === 90 || g === 180 || g === 270 ? g : 0
 }
 
-// Cada juego guarda su propio JSON en datos_ia_raw — mapeamos los campos
-// relevantes por tipo de juego en vez de intentar generalizar una sola forma.
-function statsPorJuego(s: SesionDetalle): { label: string; value: string | number }[] {
+// Lo que el análisis de arriba no muestra: la rutina que se armó y datos propios de cada juego.
+// (Cada juego guarda su propio JSON en datos_ia_raw, por eso se mapea por tipo de juego.)
+function detallesExtra(s: SesionDetalle): { label: string; value: string | number }[] {
   const raw = (s.metricas_sesion?.datos_ia_raw ?? {}) as Record<string, unknown>
   if (s.juego === 'surf') {
     return [
-      { label: 'Peces atrapados', value: (raw.puntos as number) ?? '—' },
-      { label: 'Duración', value: raw.duracion_segundos ? `${raw.duracion_segundos}s` : '—' },
       // Las rondas jugadas antes de que existieran los niveles no lo traen
       ...(num(raw.nivel_maximo) != null ? [{ label: 'Nivel alcanzado', value: `${raw.nivel_maximo} de 4` }] : []),
       // Cuántas veces la IA avisó que movió de más los pies o la cadera, y a qué altura estuvo la curva de los peces
@@ -117,83 +109,60 @@ function statsPorJuego(s: SesionDetalle): { label: string; value: string | numbe
     const pasos = Array.isArray(raw.pasos) ? (raw.pasos as { saltado?: boolean; segundos?: number; objetivo_segundos?: number | null }[]) : []
     const ultima = pasos.at(-1)
     return [
-      { label: 'Mejor tiempo en equilibrio', value: raw.mejor_tiempo_segundos ? `${raw.mejor_tiempo_segundos}s` : '—' },
-      { label: 'Intentos', value: (raw.intentos as number) ?? '—' },
       ...(ultima && ultima.objetivo_segundos === null && !ultima.saltado && num(ultima.segundos) != null ? [{ label: 'Última repetición', value: `${String(ultima.segundos).replace('.', ',')}s` }] : []),
       ...rutinaStats(raw, 'Repeticiones'),
-    ]
-  }
-  if (s.juego === 'estrellas') {
-    return [
-      { label: 'Estrellas alcanzadas', value: (raw.estrellas_alcanzadas as number) ?? '—' },
-      { label: 'Movimientos de pies', value: (raw.movimientos_pies as number) ?? '—' },
     ]
   }
   return []
 }
 
-// Métricas que calcula MediaPipe a partir del tracking del cuerpo — distintas
-// del puntaje del juego. No todas las sesiones las tienen (juegos viejos,
-// jugados con las teclas de testing, no las generan).
-function metricasIA(s: SesionDetalle): { label: string; value: string }[] {
-  const m = s.metricas_sesion
-  if (!m) return []
-  const out: { label: string; value: string }[] = []
-  if (m.estabilidad_score != null) out.push({ label: 'Estabilidad', value: `${m.estabilidad_score}%` })
-  if (m.precision_porcentaje != null) out.push({ label: 'Precisión de movimiento', value: `${m.precision_porcentaje}%` })
-  if (m.rango_movimiento_avg != null) out.push({ label: 'Rango de movimiento (prom.)', value: `${m.rango_movimiento_avg}°` })
-  if (m.rango_movimiento_max != null) out.push({ label: 'Rango de movimiento (máx.)', value: `${m.rango_movimiento_max}°` })
-  // Estas dos van dentro de datos_ia_raw (no tienen columna propia); null si la IA no tuvo muestras suficientes
-  const raw = (m.datos_ia_raw ?? {}) as Record<string, unknown>
-  const coordinacion = num(raw.coordinacion)
-  const reaccion = num(raw.tiempo_reaccion_s)
-  if (coordinacion != null) out.push({ label: 'Coordinación', value: `${coordinacion}%` })
-  if (reaccion != null) out.push({ label: 'Tiempo de reacción', value: `${String(reaccion).replace('.', ',')} s` })
-  return out
-}
+// Los tres videos de la sesión de a uno: flechas (o los puntos) para pasar de uno a otro.
+// Se monta un solo <video> a la vez, así solo suena y reproduce el que se está viendo.
+function CarruselVideos({ videos, giro }: { videos: SesionDetalle['videos_sesion']; giro: number }) {
+  const items = [
+    { label: 'Video de la cámara', url: videos?.url_crudo ?? null, giro },
+    { label: 'Video con detección de IA', url: videos?.url_landmarks ?? null, giro: 0 },
+    { label: 'Video del juego', url: videos?.url_gameplay ?? null, giro: 0 },
+  ]
+  const [i, setI] = useState(0)
+  const ir = (d: number) => setI((n) => (n + d + items.length) % items.length)
+  const flecha = 'absolute top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/90 text-primary shadow-md flex items-center justify-center hover:bg-white cursor-pointer'
 
-// Comentario en texto generado a partir de las métricas — reglas simples
-// sobre los umbrales, no una llamada a un modelo generativo. Se arma acá
-// (no en el backend) porque solo depende de datos que ya llegaron al cliente.
-function comentarioIA(s: SesionDetalle): string | null {
-  const m = s.metricas_sesion
-  if (!m) return null
-
-  const partes: string[] = []
-  if (m.estabilidad_score != null) {
-    if (m.estabilidad_score >= 80) partes.push('una estabilidad postural muy buena')
-    else if (m.estabilidad_score >= 60) partes.push('una estabilidad postural aceptable, con margen de mejora')
-    else partes.push('dificultad para sostener la estabilidad postural')
-  }
-  if (m.precision_porcentaje != null) {
-    if (m.precision_porcentaje >= 85) partes.push('una precisión de movimiento muy alta')
-    else if (m.precision_porcentaje >= 65) partes.push('una precisión de movimiento dentro de lo esperado')
-    else partes.push('una precisión de movimiento por debajo del objetivo')
-  }
-  if (partes.length === 0) return null
-
-  const juego = JUEGO_LABEL[s.juego] ?? s.juego
-  let texto = `Durante la sesión de ${juego}, el paciente mostró ${partes.join(' y ')}`
-  if (m.rango_movimiento_avg != null) {
-    texto += `, con un rango de movimiento promedio de ${m.rango_movimiento_avg}°`
-  }
-  texto += '.'
-
-  if (m.estabilidad_score != null && m.precision_porcentaje != null) {
-    texto += m.estabilidad_score >= 75 && m.precision_porcentaje >= 75
-      ? ' El patrón de movimiento sugiere una buena evolución del control motor y el equilibrio.'
-      : ' Se recomienda reforzar ejercicios de equilibrio y control postural en las próximas sesiones.'
-  }
-
-  return texto
+  return (
+    <div className={`${CARD} p-5 max-w-[560px] mx-auto`}>
+      <div className="relative">
+        <VideoOVacio key={i} url={items[i].url} label={items[i].label} giro={items[i].giro} />
+        <button type="button" aria-label="Video anterior" onClick={() => ir(-1)} className={`${flecha} left-2`}>
+          <span className="material-symbols-rounded text-[24px]">chevron_left</span>
+        </button>
+        <button type="button" aria-label="Video siguiente" onClick={() => ir(1)} className={`${flecha} right-2`}>
+          <span className="material-symbols-rounded text-[24px]">chevron_right</span>
+        </button>
+      </div>
+      <div className="flex justify-center gap-2 mt-4">
+        {items.map((it, n) => (
+          <button
+            key={it.label}
+            type="button"
+            aria-label={it.label}
+            onClick={() => setI(n)}
+            className={`h-2 rounded-full cursor-pointer transition-all ${n === i ? 'w-6 bg-accent' : 'w-2 bg-[#e0e3f5]'}`}
+          />
+        ))}
+      </div>
+    </div>
+  )
 }
 
 export default function ResultadoSesion() {
   const { sesionId } = useParams<{ sesionId: string }>()
   const [sesion, setSesion] = useState<SesionDetalle | null>(null)
+  const [sesiones, setSesiones] = useState<SesionRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [cargandoLista, setCargandoLista] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [analisisGenerativo, setAnalisisGenerativo] = useState<string | null>(null)
+  const [ia, setIa] = useState<AnalisisIA | null>(null)
+  const [cargandoIa, setCargandoIa] = useState(true)
 
   useEffect(() => {
     if (!sesionId) return
@@ -202,11 +171,16 @@ export default function ResultadoSesion() {
       .then((data) => { if (active) setSesion(data) })
       .catch((err) => { if (active) setError(err instanceof Error ? err.message : 'No se pudo cargar la sesión') })
       .finally(() => { if (active) setLoading(false) })
-    // No bloquea la pantalla: si el modelo tarda o falla, se queda con el
-    // comentario por reglas que ya se muestra igual.
-    getAnalisisIA(sesionId)
-      .then((data) => { if (active && data.analisis) setAnalisisGenerativo(data.analisis) })
+    // Las demás sesiones sirven para comparar con la anterior del mismo paciente y juego
+    getSesiones()
+      .then((data) => { if (active) setSesiones(data) })
       .catch(() => {})
+      .finally(() => { if (active) setCargandoLista(false) })
+    // No bloquea la pantalla: si el modelo tarda o falla, el resto se muestra igual.
+    getAnalisisIA(sesionId)
+      .then((data) => { if (active) setIa(data) })
+      .catch(() => {})
+      .finally(() => { if (active) setCargandoIa(false) })
     return () => { active = false }
   }, [sesionId])
 
@@ -230,7 +204,7 @@ export default function ResultadoSesion() {
 
   if (loading) {
     return (
-      <div className="max-w-3xl mx-auto space-y-4">
+      <div className="max-w-[1082px] mx-auto space-y-4">
         <div className="h-8 w-48 rounded bg-white/70 animate-pulse" />
         <div className="h-40 rounded-[18px] bg-white/70 animate-pulse" />
       </div>
@@ -252,70 +226,54 @@ export default function ResultadoSesion() {
   }
 
   const volverA = sesion.pacientes ? `/pacientes/${sesion.pacientes.id}` : '/analisis'
+  const titulo = TITULO[sesion.juego] ?? sesion.juego
+  const extras = detallesExtra(sesion)
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <Link to={volverA} className="inline-flex items-center gap-1 text-text-muted text-sm font-bold hover:text-accent mb-6">
+    <div className="max-w-[1082px] mx-auto space-y-5">
+      <Link to={volverA} className="inline-flex items-center gap-1 text-text-muted text-sm font-bold hover:text-accent">
         <span className="material-symbols-rounded text-[18px]">arrow_back</span>
         Volver
       </Link>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        <div className="space-y-4 lg:order-2">
-          <VideoOVacio url={sesion.videos_sesion?.url_crudo ?? null} label="Video de la cámara" giro={giroCamara(sesion)} />
-          <VideoOVacio url={sesion.videos_sesion?.url_landmarks ?? null} label="Video con detección de IA" />
-          <VideoOVacio url={sesion.videos_sesion?.url_gameplay ?? null} label="Video del juego" />
-        </div>
-
-        <div>
-          <div className="bg-white rounded-[18px] shadow-[0_6px_24px_-12px_rgba(43,49,156,0.15)] p-6 lg:p-8 mb-6">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="w-10 h-10 rounded-[12px] bg-violet-50 text-primary flex items-center justify-center">
-                <span className="material-symbols-rounded text-[20px]">{JUEGO_ICON[sesion.juego] ?? 'sports_esports'}</span>
-              </span>
-              <h1 className="text-2xl font-black text-primary">{JUEGO_LABEL[sesion.juego] ?? sesion.juego}</h1>
-            </div>
-            <p className="text-text-muted font-medium">
-              {sesion.pacientes ? `${sesion.pacientes.nombre} ${sesion.pacientes.apellido} — ` : ''}
-              {formatFecha(sesion.iniciada_en)}
-            </p>
-            <p className="text-text-muted/70 text-xs font-mono mt-1 select-all">ID de sesión: {sesion.id}</p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            {statsPorJuego(sesion).map((s) => (
-              <Stat key={s.label} label={s.label} value={s.value} />
-            ))}
-            <Stat label="Duración total" value={sesion.duracion_segundos != null ? `${sesion.duracion_segundos}s` : '—'} />
-            <Stat label="Estado" value={sesion.estado === 'finalizada' ? 'Finalizada' : sesion.estado} />
-          </div>
-
-          {(metricasIA(sesion).length > 0 || analisisGenerativo || comentarioIA(sesion)) && (
-            <div className="mt-6 bg-primary rounded-[18px] p-6 text-white">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="material-symbols-rounded text-[20px] text-accent-light">auto_awesome</span>
-                <p className="text-xs font-bold uppercase tracking-wider text-white/80">Análisis de IA — MediaPipe</p>
-              </div>
-              {metricasIA(sesion).length > 0 && (
-                <div className="grid grid-cols-2 gap-4">
-                  {metricasIA(sesion).map((m) => (
-                    <div key={m.label}>
-                      <p className="text-2xl font-black">{m.value}</p>
-                      <p className="text-white/70 text-xs font-semibold mt-0.5">{m.label}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {(analisisGenerativo || comentarioIA(sesion)) && (
-                <p className={`text-white/90 text-sm leading-relaxed ${metricasIA(sesion).length > 0 ? 'mt-5 pt-5 border-t border-white/15' : ''}`}>
-                  {analisisGenerativo ?? comentarioIA(sesion)}
-                </p>
-              )}
-            </div>
-          )}
+      <div className="flex items-start gap-3">
+        <span className="w-11 h-11 shrink-0 rounded-[12px] bg-violet-50 text-primary flex items-center justify-center">
+          <span className="material-symbols-rounded text-[22px]">{JUEGO_ICON[sesion.juego] ?? 'sports_esports'}</span>
+        </span>
+        <div className="min-w-0">
+          <h1 className="text-[26px] lg:text-[30px] leading-[1.2] font-bold text-[#1a1f6e]">Análisis del juego {titulo}</h1>
+          <p className="text-[14px] text-[#61698a] mt-1.5">
+            {sesion.pacientes ? `${sesion.pacientes.nombre} ${sesion.pacientes.apellido} — ` : ''}
+            {formatFecha(sesion.iniciada_en)}
+          </p>
+          <p className="text-text-muted/70 text-xs font-mono mt-1 select-all">ID de sesión: {sesion.id}</p>
         </div>
       </div>
+
+      <CarruselVideos videos={sesion.videos_sesion} giro={giroCamara(sesion)} />
+
+      <AnalisisSesion
+        sel={sesion}
+        detalle={sesion}
+        sesiones={sesiones}
+        ia={ia}
+        cargandoDetalle={cargandoLista}
+        cargandoIa={cargandoIa}
+      />
+
+      {extras.length > 0 && (
+        <div className={`${CARD} p-6`}>
+          <h2 className="text-[18px] font-bold text-[#1a1f6e]">Datos de la rutina</h2>
+          <div className="mt-4 grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4">
+            {extras.map((e) => (
+              <div key={e.label}>
+                <p className="text-[10px] font-semibold text-[#61698a] uppercase">{e.label}</p>
+                <p className="text-[15px] font-bold text-[#1a1f6e] mt-1">{e.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
