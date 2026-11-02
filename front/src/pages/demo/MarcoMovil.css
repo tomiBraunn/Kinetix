@@ -1,20 +1,22 @@
 .marco-fondo {
   min-height: 100vh;
+  overflow: hidden; /* el iPhone sin escalar sobra de su contenedor; que no genere scroll */
   display: flex;
   align-items: center;
   justify-content: center;
   background: radial-gradient(circle at 50% 0%, #2b319c 0%, #0a0a1a 70%);
 }
 
-/* Ocupa el tamaño ya escalado del iPhone, así el marco no deja espacio vacío */
 .marco-escala {
   position: relative;
 }
 
-.marco-escala .marvel-device {
+/* El iPhone conserva su tamaño real y se centra: la escala (transform) lo achica alrededor de su centro */
+.marco-centro {
   position: absolute;
-  top: 0;
-  left: 0;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 /* Aviso para girar el celular: solo se ve en horizontal, en un celular */
