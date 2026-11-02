@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import {
   type SesionRow,
   type SesionDetalle,
@@ -177,6 +177,7 @@ export default function AnalisisSesion({
   ia,
   cargandoDetalle,
   cargandoIa,
+  lateral,
 }: {
   sel: SesionRow
   detalle: SesionDetalle | null
@@ -184,6 +185,8 @@ export default function AnalisisSesion({
   ia: AnalisisIA | null
   cargandoDetalle: boolean
   cargandoIa: boolean
+  // Si viene, las 4 métricas pasan arriba de todo, en una grilla de 2×2, y esto va al lado (ej. los videos)
+  lateral?: ReactNode
 }) {
   // Sesiones anteriores del mismo paciente y juego (la lista viene ordenada de más nueva a más vieja).
   const previas = useMemo(
@@ -223,41 +226,40 @@ export default function AnalisisSesion({
   const detalleIA = ia?.detalle ?? null
   const textoPlano = !detalleIA ? ia?.analisis ?? null : null
 
-  return (
-    <div className="space-y-5">
-      {/* Barra resumen */}
-      <div className={`${CARD} px-[22px] py-3.5 flex flex-wrap items-center gap-x-8 gap-y-3`}>
-        <div className="min-w-[150px]">
-          <p className="text-[15px] font-semibold text-[#1a1f6e]">{titulo}</p>
-          <p className="text-[11px] font-medium text-[#2ead6e]">{sel.estado === 'finalizada' ? 'Sesión completada' : sel.estado}</p>
-        </div>
-        <span className="hidden lg:block w-px h-[38px] bg-[#e0e3f5]" />
-        <div>
-          <p className="text-[10px] font-semibold text-[#61698a]">Duración</p>
-          <p className="text-[15px] font-bold text-[#1a1f6e]">{fmtDuracion(sel.duracion_segundos)}</p>
-        </div>
-        <div>
-          <p className="text-[10px] font-semibold text-[#61698a]">Resultado</p>
-          <p className="text-[15px] font-bold text-[#1a1f6e]">{resultadoPrincipal(sel)}</p>
-        </div>
-        {sel.juego === 'estrellas' && typeof (m?.datos_ia_raw as Raw | null)?.movimientos_pies === 'number' && (
-          <div>
-            <p className="text-[10px] font-semibold text-[#61698a]">Mov. de pies</p>
-            <p className="text-[15px] font-bold text-[#1a1f6e]">{(m!.datos_ia_raw as Raw).movimientos_pies}</p>
-          </div>
-        )}
-        <div>
-          <p className="text-[10px] font-semibold text-[#61698a]">Comparación</p>
-          <p className={`text-[14px] font-semibold ${comparacion.color}`}>{cargandoDetalle ? '…' : comparacion.texto}</p>
-        </div>
-        <span className={`ml-auto inline-flex items-center justify-center h-[38px] min-w-[157px] rounded-[12px] px-4 text-[12px] font-semibold ${insignia.fondo} ${insignia.color}`}>
-          {insignia.texto}
-        </span>
+  const barraResumen = (
+    <div className={`${CARD} px-[22px] py-3.5 flex flex-wrap items-center gap-x-8 gap-y-3`}>
+      <div className="min-w-[150px]">
+        <p className="text-[15px] font-semibold text-[#1a1f6e]">{titulo}</p>
+        <p className="text-[11px] font-medium text-[#2ead6e]">{sel.estado === 'finalizada' ? 'Sesión completada' : sel.estado}</p>
       </div>
-  
-      {/* Métricas */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-        {cargandoDetalle || !detalle
+      <span className="hidden lg:block w-px h-[38px] bg-[#e0e3f5]" />
+      <div>
+        <p className="text-[10px] font-semibold text-[#61698a]">Duración</p>
+        <p className="text-[15px] font-bold text-[#1a1f6e]">{fmtDuracion(sel.duracion_segundos)}</p>
+      </div>
+      <div>
+        <p className="text-[10px] font-semibold text-[#61698a]">Resultado</p>
+        <p className="text-[15px] font-bold text-[#1a1f6e]">{resultadoPrincipal(sel)}</p>
+      </div>
+      {sel.juego === 'estrellas' && typeof (m?.datos_ia_raw as Raw | null)?.movimientos_pies === 'number' && (
+        <div>
+          <p className="text-[10px] font-semibold text-[#61698a]">Mov. de pies</p>
+          <p className="text-[15px] font-bold text-[#1a1f6e]">{(m!.datos_ia_raw as Raw).movimientos_pies}</p>
+        </div>
+      )}
+      <div>
+        <p className="text-[10px] font-semibold text-[#61698a]">Comparación</p>
+        <p className={`text-[14px] font-semibold ${comparacion.color}`}>{cargandoDetalle ? '…' : comparacion.texto}</p>
+      </div>
+      <span className={`ml-auto inline-flex items-center justify-center h-[38px] min-w-[157px] rounded-[12px] px-4 text-[12px] font-semibold ${insignia.fondo} ${insignia.color}`}>
+        {insignia.texto}
+      </span>
+    </div>
+  )
+
+  const tarjetas = (
+    <>
+      {cargandoDetalle || !detalle
           ? [0, 1, 2, 3].map((i) => <Esqueleto key={i} className="h-[150px]" />)
           : armarTarjetas(detalle, prev).map((t, i) => {
               const c = PALETA[i]
@@ -275,8 +277,28 @@ export default function AnalisisSesion({
                 </div>
               )
             })}
-      </div>
-  
+    </>
+  )
+
+  return (
+    <div className="space-y-5">
+      {lateral ? (
+        <>
+          {/* Las 4 métricas en grilla de 2×2 y, al lado, el video */}
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)] gap-5 items-stretch">
+            <div className="grid grid-cols-2 gap-5 content-start">{tarjetas}</div>
+            {lateral}
+          </div>
+          {barraResumen}
+        </>
+      ) : (
+        <>
+          {barraResumen}
+          {/* Métricas */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">{tarjetas}</div>
+        </>
+      )}
+
       {/* Rendimiento + observaciones */}
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,688fr)_minmax(0,370fr)] gap-5">
         <div className={`${CARD} p-6 min-h-[294px]`}>

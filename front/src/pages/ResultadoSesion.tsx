@@ -129,7 +129,7 @@ function CarruselVideos({ videos, giro }: { videos: SesionDetalle['videos_sesion
   const flecha = 'absolute top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/90 text-primary shadow-md flex items-center justify-center hover:bg-white cursor-pointer'
 
   return (
-    <div className={`${CARD} p-5 max-w-[560px] mx-auto`}>
+    <div className={`${CARD} p-5 h-full flex flex-col justify-center`}>
       <div className="relative">
         <VideoOVacio key={i} url={items[i].url} label={items[i].label} giro={items[i].giro} />
         <button type="button" aria-label="Video anterior" onClick={() => ir(-1)} className={`${flecha} left-2`}>
@@ -250,8 +250,6 @@ export default function ResultadoSesion() {
         </div>
       </div>
 
-      <CarruselVideos videos={sesion.videos_sesion} giro={giroCamara(sesion)} />
-
       <AnalisisSesion
         sel={sesion}
         detalle={sesion}
@@ -259,6 +257,7 @@ export default function ResultadoSesion() {
         ia={ia}
         cargandoDetalle={cargandoLista}
         cargandoIa={cargandoIa}
+        lateral={<CarruselVideos videos={sesion.videos_sesion} giro={giroCamara(sesion)} />}
       />
 
       {extras.length > 0 && (
