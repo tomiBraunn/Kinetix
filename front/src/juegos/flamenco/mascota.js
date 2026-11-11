@@ -7,7 +7,7 @@ export const FRASES_ANIMO = ['¡Muy bien, seguí así!', '¡Qué buen equilibrio
 export const ANIMO_MS = 3000
 
 /**
- * @param aviso  lo que ve la cámara ('otra' | 'subir' | 'rodillas' | null, ver mensajes.js)
+ * @param aviso  lo que ve la cámara ('otra' | 'subir' | 'rodillas' | 'pos_*' | null, ver mensajes.js)
  * @param animo  si en este momento está animando
  * @param pasos  los pasos de la rutina (ver logica.js)
  * La pata levantada cae del mismo lado de la pantalla donde el paciente se ve levantar la suya: la cámara es un
@@ -15,6 +15,7 @@ export const ANIMO_MS = 3000
  */
 export function poseMascota({ fase, paso = 0, pasos = [], aviso = null, animo = false }) {
   const p = pasos[paso]
+  const senala = aviso === 'rodillas' || (aviso ?? '').startsWith('pos_') // no lo ve bien: le señala dónde ponerse
   const delPaso = p ? `${p.posicion === 'alto' ? 'alto' : 'flamenco'}-${p.pierna}` : 'flamenco-der'
   switch (fase) {
     case 'preparando':
@@ -22,9 +23,9 @@ export function poseMascota({ fase, paso = 0, pasos = [], aviso = null, animo = 
       return 'celebra'
     case 'practica-levantar':
     case 'practica-equilibrio': // en la práctica sirve cualquier pierna: muestra una
-      return aviso === 'rodillas' ? 'senala' : 'flamenco-der'
+      return senala ? 'senala' : 'flamenco-der'
     case 'levantar': // con "subí más" ya está haciendo la pose alta: la demostración se repite sola
-      return aviso === 'otra' || aviso === 'rodillas' ? 'senala' : delPaso
+      return aviso === 'otra' || senala ? 'senala' : delPaso
     case 'equilibrio':
       return animo ? 'anima' : delPaso
     case 'descanso':

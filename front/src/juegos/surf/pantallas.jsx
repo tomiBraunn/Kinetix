@@ -155,7 +155,7 @@ function Festejo({ texto }) {
 export function Mensaje({ clave }) {
   if (esFestejo(clave)) return <Festejo texto={textoMensaje(clave)} />
   const [antes, resaltado, despues] = MENSAJES[clave]
-  const alerta = clave === 'alerta'
+  const alerta = clave === 'alerta' || clave.startsWith('pos_') // los avisos de la IA van en ámbar y pueden ocupar dos renglones
   return (
     <div role={alerta ? 'alert' : 'status'} className="pointer-events-none absolute inset-x-0 top-[106px] z-20 flex justify-center px-[26px]">
       <p className={`globo-pop flex w-[319px] max-w-full items-center justify-center rounded-[16px] border-b-4 bg-white/90 text-[18px] font-bold tracking-[-0.45px] text-[#0e111f] shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1)] backdrop-blur-[4px] ${alerta ? 'min-h-[38px] whitespace-normal border-[rgba(217,119,6,0.45)] px-3 py-2 text-center leading-[22px]' : 'h-[38px] whitespace-nowrap border-[rgba(190,24,93,0.2)] pt-1'}`}>

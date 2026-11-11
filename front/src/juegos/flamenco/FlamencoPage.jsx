@@ -138,10 +138,13 @@ export default function FlamencoPage({ demo = false }) {
       // Solo mientras espera que levante la pierna. Sin la rodilla a la vista no hay cómo detectarla:
       // se lo dice en vez de dejarlo esperando sin explicación.
       const esperando = e.fase === 'levantar' || e.fase === 'practica-levantar'
-      const quiere = !esperando || !p ? null
+      // Mal parado (fuera de cuadro, muy cerca o lejos, de costado): la pierna no cuenta y se le dice por qué (ver postura.js)
+      const post = kinetixAI.postura
+      const dePostura = post.ok ? null : 'pos_' + post.pista
+      const quiere = !esperando ? null
+        : !p ? dePostura
         : p.altura == null ? 'rodillas'
-        : e.fase === 'levantar' ? (p.otra ? 'otra' : e.pasos[e.paso].posicion === 'alto' && p.arriba && !p.cumple ? 'subir' : null)
-        : null
+        : (e.fase === 'levantar' && (p.otra ? 'otra' : e.pasos[e.paso].posicion === 'alto' && p.arriba && !p.cumple ? 'subir' : null)) || dePostura
       racha = quiere === racha.tipo ? { tipo: quiere, n: racha.n + 1 } : { tipo: quiere, n: 1 }
       setAviso(racha.n >= 5 ? quiere : null)
     }, 100)

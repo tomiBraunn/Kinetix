@@ -11,6 +11,14 @@ const ORDINAL = ['', 'Primer', 'Segundo', 'Tercer', 'Cuarto', 'Quinto', 'Sexto',
 const OBJETIVO_S = OBJETIVO_MS / 1000
 const coma = (n) => String(n).replace('.', ',')
 
+// Lo que se le dice cuando está mal parado y por eso no cuenta la pierna (ver ia/postura.js)
+const POSTURA = {
+  pos_cuadro: 'Ponete en cuadro: que se te vea de la cabeza a las rodillas.',
+  pos_cerca: 'Estás muy cerca: alejate un poco de la cámara.',
+  pos_lejos: 'Estás muy lejos: acercate un poco a la cámara.',
+  pos_frente: 'Ponete de frente a la cámara.',
+}
+
 const FIJAS = {
   calibracion: 'Parate en el centro, frente a la cámara, dentro de la silueta.',
   // No está en el Figma: mientras entra el parque el paciente tiene que saber que ya está bien
@@ -24,10 +32,12 @@ const FIJAS = {
  * @param pasos  los pasos de la rutina (ver logica.js)
  * @param aviso  lo que ve la cámara y conviene decirle: 'otra' (levantó la otra pierna) | 'subir' (le falta altura) |
  *               'rodillas' (no se le ven las rodillas, así que no hay cómo detectar la pierna) | null
+ *               'pos_cuadro' | 'pos_cerca' | 'pos_lejos' | 'pos_frente' (mal parado: no cuenta la pierna, ver postura.js)
  * @param corto  segundos que aguantó el intento anterior si bajó la pierna antes del objetivo (ver logica.js) | null
  */
 export function consigna(fase, paso, pasos, aviso = null, corto = null) {
   if (aviso === 'rodillas' && (fase === 'levantar' || fase === 'practica-levantar')) return 'No te veo las rodillas: alejate un poco o apuntá la cámara más abajo.'
+  if (aviso in POSTURA && (fase === 'levantar' || fase === 'practica-levantar')) return POSTURA[aviso]
   if (fase !== 'levantar' && fase !== 'equilibrio') return FIJAS[fase] ?? null
   const { pierna, posicion, objetivoMs } = pasos[paso]
   const lado = LADO[pierna]

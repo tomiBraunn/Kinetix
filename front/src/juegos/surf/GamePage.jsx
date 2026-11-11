@@ -9,6 +9,7 @@ import { textoMensaje, GUIA_SURF } from './mensajes'
 import { compararRondas } from './analisis'
 import { leerZona } from './curva'
 import { vigilar, ESTADO_INICIAL } from '../../ia/movimiento'
+import { vigilarPostura, ESTADO_POSTURA } from '../../ia/postura'
 import { usePoseAI } from '../../ia/usePoseAI'
 import { kinetixAI } from '../../ia/KinetixAI'
 import { useSessionRecorder } from '../../ia/useSessionRecorder'
@@ -131,7 +132,17 @@ export default function GamePage({ demo = false }) {
   useEffect(() => {
     if ((fase !== 'consigna' && fase !== 'jugando') || pausado) return
     let est = { ...ESTADO_INICIAL, ultimoMensaje: performance.now() }
+    let postura = ESTADO_POSTURA
     const id = setInterval(() => {
+      // Mal parado (fuera de cuadro, muy cerca o lejos, de costado): los peces no cuentan y se le dice por qué
+      const p = vigilarPostura(postura, kinetixAI.postura, performance.now())
+      postura = p.est
+      if (p.pista && !mensajeRef.current) {
+        setAviso('pos_' + p.pista)
+        clearTimeout(avisoTimerRef.current)
+        avisoTimerRef.current = setTimeout(() => setAviso(null), 4000)
+        return
+      }
       const r = vigilar(est, kinetixAI.desplazamiento, performance.now(), !!mensajeRef.current)
       est = r.est
       if (!r.alerta && !r.refuerzo) return
@@ -249,7 +260,7 @@ export default function GamePage({ demo = false }) {
   useEffect(() => {
     if (!aviso || pausado) return
     hablar(textoMensaje(aviso))
-    sonar(aviso === 'alerta' ? 'aviso' : 'animo') // la alerta es un tono suave y bajo; el "muy bien", una campanita
+    sonar(aviso === 'alerta' || aviso.startsWith('pos_') ? 'aviso' : 'animo') // la alerta es un tono suave y bajo; el "muy bien", una campanita
   }, [aviso, pausado])
   useEffect(() => () => callar(), []) // al salir no puede quedar hablando
   useEffect(() => () => clearTimeout(celebraTimerRef.current), [])

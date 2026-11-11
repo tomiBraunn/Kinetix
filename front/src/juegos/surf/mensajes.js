@@ -6,6 +6,11 @@ export const MENSAJES = {
   // los pies o la cadera (el juego se juega solo con el tronco y los brazos)
   postura:   ['¡Muy bien! ', 'Seguí así', ', con los pies quietos'],
   alerta:    ['¡Cuidado! ', 'No muevas los pies', '. Alcanzá con el tronco y los brazos.'],
+  // Los pone la IA cuando el paciente está mal parado y por eso no cuentan los peces (ver postura.js)
+  pos_cuadro: ['¡Ojo! ', 'Ponete en cuadro', ': que se te vea de la cabeza a la cintura.'],
+  pos_cerca:  ['Estás muy cerca. ', 'Alejate un poco', ' de la cámara.'],
+  pos_lejos:  ['Estás muy lejos. ', 'Acercate a la cámara', '.'],
+  pos_frente: ['¡Ojo! ', 'Ponete de frente', ' a la cámara.'],
   // Al subir la dificultad (ver dificultad.js): el número es el nivel al que llegó
   nivel2:    ['¡Pasaste al ', 'nivel 2', '!'],
   nivel3:    ['¡Pasaste al ', 'nivel 3', '!'],

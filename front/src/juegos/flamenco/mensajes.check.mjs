@@ -66,4 +66,9 @@ assert.doesNotMatch(tarjetaCompletado([...hechos.slice(0, 3), { saltado: true, s
 assert.match(tarjetaCompletado(hechos.slice(0, 2)).texto, /Completaste los 2 desafíos/)
 assert.equal(final.botones[0].accion, 'volver')
 
+// ─ mal parado (ver ia/postura.js): se lo dice mientras espera que levante la pierna, y solo ahí
+assert.equal(consigna('levantar', 0, pasos4, 'pos_cerca'), 'Estás muy cerca: alejate un poco de la cámara.')
+assert.equal(consigna('practica-levantar', 0, pasos4, 'pos_frente'), 'Ponete de frente a la cámara.')
+assert.equal(consigna('equilibrio', 0, pasos4, 'pos_cuadro'), 'Mantené la pierna arriba durante 10 segundos.', 'ya levantó: no se le pisa la consigna')
+
 console.log('mensajes.js OK')

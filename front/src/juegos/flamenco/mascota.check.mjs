@@ -14,6 +14,7 @@ assert.equal(pose({ fase: 'levantar', paso: 1, aviso: 'otra' }), 'senala', 'leva
 assert.equal(pose({ fase: 'levantar', paso: 0, aviso: 'rodillas' }), 'senala', 'no se ven las rodillas: señala')
 assert.equal(pose({ fase: 'levantar', paso: 2, aviso: 'subir' }), 'alto-der', '"subí más": repite la pose alta')
 assert.equal(pose({ fase: 'practica-levantar', aviso: 'rodillas' }), 'senala')
+assert.equal(pose({ fase: 'levantar', paso: 0, aviso: 'pos_cerca' }), 'senala', 'mal parado: señala')
 
 // ─ ánimo mientras sostiene, y nada más en otras fases
 assert.equal(pose({ fase: 'equilibrio', paso: 0, animo: true }), 'anima')
@@ -32,7 +33,7 @@ assert.equal(pose({ fase: 'completado', paso: 3 }), 'celebra')
 // ─ siempre una pose que existe como archivo (sin esto la mascota quedaría sin dibujo)
 const POSES_QUE_EXISTEN = ['reposo', 'flamenco-der', 'flamenco-izq', 'alto-der', 'alto-izq', 'celebra', 'anima', 'senala', 'descansa']
 const fases = ['instrucciones', 'calibracion', 'preparando', 'practica-levantar', 'practica-equilibrio', 'comenzar', 'levantar', 'equilibrio', 'descanso', 'completado']
-for (const fase of fases) for (const paso of [0, 1, 2, 3]) for (const aviso of [null, 'otra', 'subir', 'rodillas']) for (const animo of [false, true]) {
+for (const fase of fases) for (const paso of [0, 1, 2, 3]) for (const aviso of [null, 'otra', 'subir', 'rodillas', 'pos_cuadro']) for (const animo of [false, true]) {
   assert.ok(POSES_QUE_EXISTEN.includes(pose({ fase, paso, aviso, animo })), `${fase}/${paso}/${aviso}/${animo}`)
 }
 

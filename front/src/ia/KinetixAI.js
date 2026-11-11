@@ -4,6 +4,7 @@ import { eficienciaDeTrayecto, coordinacionScore } from './trayectoria'
 import { medirPiernas, evaluarPierna } from './piernas'
 import { leerRotacion } from './rotacion'
 import { medirCuerpo, promediarBase, desplazamiento } from './movimiento'
+import { evaluarPostura } from './postura'
 
 const WASM_URL  = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm'
 const MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task'
@@ -33,6 +34,8 @@ const CUADROS_BASE = 12
 
 // Vista sin alejar: el video centrado y a escala 1 (ver KinetixAI._encuadre)
 const VISTA_BASE = { s: 1, px: 0.5, py: 0.5, qx: 0.5, qy: 0.5 }
+
+const POSTURA_OK = { ok: true, pista: null }
 
 // Evita disparar el mismo evento dos veces en el mismo objeto antes de que Phaser lo elimine
 const _cooldown = new Set()
@@ -71,6 +74,7 @@ class KinetixAI {
     this._pedido = { lado: null, posicion: 'flamenco' } // qué se le pide al paciente ahora (ver pedirPierna)
     this._med = null      // última medición de las piernas (ver piernas.js)
     this._pierna = null   // lo que se evaluó de la pierna pedida en el último frame
+    this._postura = POSTURA_OK // ¿está bien parado para que cuente lo que haga? (ver postura.js)
     this._canvasW = window.innerWidth
     this._canvasH = window.innerHeight
     // Acumuladores para las métricas de "equilibrio" que se mandan al
@@ -148,6 +152,7 @@ class KinetixAI {
       this._piernaCnt = 0
       this._med = null
       this._pierna = null
+      this._postura = POSTURA_OK
       this.reiniciarMetricas()
       this.reiniciarVista()
       _cooldown.clear()
@@ -204,6 +209,12 @@ class KinetixAI {
     return this._pierna
   }
 
+  // ¿Está bien parado como para que lo que haga cuente? { ok, pista } (ver postura.js). Mientras no lo esté, el Surf
+  // no registra toques y el Flamenco no da la pierna por levantada. El Alcanzá la estrella no lo usa.
+  get postura() {
+    return this._postura
+  }
+
   stop() {
     this.running = false
     this.ultimosLandmarks = null
@@ -227,7 +238,7 @@ class KinetixAI {
         const mask = result.segmentationMasks?.[0] ?? null
         this.ultimosLandmarks = landmarks // la calibración del Surf los lee desde React
         if (landmarks) this._interpret(landmarks)
-        else this._desp = null
+        else { this._desp = null; this._postura = { ok: false, pista: 'cuadro' } }
         if (this.overlayCtx) this._drawOverlay(landmarks)
         if (this.siluetaCtx) this._drawSilueta(mask, landmarks)
         // MPMask es un recurso nativo (WebGL) — hay que liberarlo cada frame
@@ -734,12 +745,18 @@ class KinetixAI {
     const manoDer = landmarks[LM.MUÑECA_DER]
     if (this.gameMode === 'surf' || this.gameMode === 'estrellas') this._seguirManos(manoIzq, manoDer)
 
+    // El Surf pide el tronco a la vista y el Flamenco además las rodillas; el Alcanzá la estrella no controla postura
+    this._postura = this.gameMode === 'surf' ? evaluarPostura(landmarks, 'torso')
+      : this.gameMode === 'flamenco' ? evaluarPostura(landmarks, 'rodillas')
+      : POSTURA_OK
+
     switch (this.gameMode) {
 
       // ─── SURF ──────────────────────────────────────────────────────────────
       // Detecta si alguna muñeca está cerca de un pez.
       // window.kinetixPeces = [{id, x, y, radio}] en coords de Phaser canvas.
       case 'surf': {
+        if (!this._postura.ok) break // mal parado: los peces aparecen igual, pero no cuentan
         const peces = window.kinetixPeces ?? []
         for (const pez of peces) {
           const radioNorm = this._radioNorm(pez.radio * 1.8)
@@ -763,7 +780,9 @@ class KinetixAI {
         this._med = med
         this._pierna = med && evaluarPierna(med, this._pedido, this._piernaLevantada)
         if (!this._pierna) break // sin el torso a la vista no se decide nada
-        const levantada = this._pierna.cumple
+        // Mal parado (se salió de cuadro, de costado...) no vale como pierna levantada: si estaba haciendo
+        // la pose, se cierra la repetición en curso (cae por el mismo camino de "bajó la pierna")
+        const levantada = this._postura.ok && this._pierna.cumple
 
         if (levantada === this._piernaLevantada) {
           this._piernaCnt = 0
