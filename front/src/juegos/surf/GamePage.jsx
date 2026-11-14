@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import PhaserGame from './PhaserGame'
 import Escena from './Escena'
 import {
-  BarraSuperior, Contadores, ControlMusica, Consigna, Mensaje, GuiaSilueta, AntesDeEmpezar, DesafioCompletado, SelectorZona,
+  BarraSuperior, Contadores, Consigna, Mensaje, GuiaSilueta, AntesDeEmpezar, DesafioCompletado, SelectorZona,
 } from './pantallas'
 import { textoMensaje, GUIA_SURF } from './mensajes'
 import { compararRondas } from './analisis'
@@ -15,7 +15,7 @@ import { kinetixAI } from '../../ia/KinetixAI'
 import { useSessionRecorder } from '../../ia/useSessionRecorder'
 import { crearSesion, finalizarSesion, subirVideosSesion, mandarEventosSesion } from '../../lib/sesiones.ts'
 import { hablar, callar, desbloquear, useVoz } from '../../ia/voz'
-import { sonar, desbloquearSonidos, silenciarEfectos } from '../../ia/sonidos'
+import { sonar, desbloquearSonidos } from '../../ia/sonidos'
 import SelectorRutina from '../SelectorRutina'
 import GuiaMascota from '../GuiaMascota'
 import Mascota from '../Mascota'
@@ -23,11 +23,8 @@ import BotonVoz from '../BotonVoz'
 import AvisoCamara from '../AvisoCamara'
 import BotonGirarCamara from '../BotonGirarCamara'
 // import CursorMano from '../CursorMano' // apagada por ahora (ver más abajo)
-import musica from '../../assets/juegos/surf/musica-fondo.mp3'
 
 const HEADER_H = 48
-const VOLUMEN_INICIAL = 0.4
-const BAJA_MUSICA = 0.3 // mientras la voz habla, la música baja a esta fracción para que se entienda
 const CELEBRA_MS = 900  // cuánto dura la pose de festejo del pez
 
 // Lo que dice la consigna de cada fase: se muestra en pantalla y la voz lo lee
@@ -43,9 +40,6 @@ const CONSIGNAS = {
 // - preparando: entran el fondo (fade de 5 s), las olas y la tabla; recién después empieza el juego.
 // y desde completado "Seguir jugando" vuelve a consigna (otra ronda, otra sesión).
 const CON_PAUSA = ['calibracion', 'preparando', 'consigna', 'jugando']
-// La música suena en las mismas fases en que se puede pausar (arranca con el
-// clic en "Estoy listo": el navegador no deja reproducir audio sin un gesto).
-const CON_MUSICA = CON_PAUSA
 // El mar y el cielo no aparecen hasta que el paciente está bien detectado
 const CON_ESCENA = ['preparando', 'consigna', 'jugando', 'completado']
 
@@ -57,7 +51,6 @@ export default function GamePage({ demo = false }) {
   const pacienteId = params.get('pacienteId')
   const sesionIdRef = useRef(null)
   const phaserRef   = useRef(null)
-  const musicaRef   = useRef(null)
   const eventosRef  = useRef([])
   const cierreRef   = useRef(Promise.resolve()) // guardado de la ronda anterior
   const recorder = useSessionRecorder()
@@ -87,8 +80,6 @@ export default function GamePage({ demo = false }) {
   // que el área y cortaban el cuerpo con una línea recta.
   const areaRef = useRef(null)
   const [tam, setTam] = useState({ w: window.innerWidth, h: window.innerHeight - HEADER_H })
-  const [volumen, setVolumen] = useState(VOLUMEN_INICIAL)
-  const [silencio, setSilencio] = useState(false)
 
   // Arranca MediaPipe Pose con las dimensiones correctas del canvas de surf
   // En "Antes de empezar" no hay nada que detectar: se ahorra el análisis (el modelo se va cargando igual)
@@ -221,13 +212,6 @@ export default function GamePage({ demo = false }) {
   }, [])
   useEffect(() => { phaserRef.current?.redimensionar(tam.w, tam.h) }, [tam])
 
-  // Música de fondo: suena mientras se juega, se calla al pausar y al terminar la ronda
-  useEffect(() => {
-    const audio = musicaRef.current
-    if (!audio) return
-    if (CON_MUSICA.includes(fase) && !pausado) audio.play().catch(() => {})
-    else audio.pause()
-  }, [fase, pausado])
   const { hablando } = useVoz()
   // Mientras se calibra se ve la cámara entera (para entender el espacio); recién con el cuerpo bien detectado
   // pasa al cuerpo recortado sobre el mar
@@ -235,17 +219,6 @@ export default function GamePage({ demo = false }) {
     kinetixAI.fijarCamaraCompleta(fase === 'calibracion')
     return () => kinetixAI.fijarCamaraCompleta(false)
   }, [fase])
-  useEffect(() => {
-    const audio = musicaRef.current
-    if (!audio) return
-    audio.volume = hablando ? volumen * BAJA_MUSICA : volumen
-    audio.muted = silencio
-  }, [volumen, silencio, hablando])
-  // Los efectos de sonido siguen al botón de la música; al salir no puede quedar silenciado para el juego que viene
-  useEffect(() => {
-    silenciarEfectos(silencio)
-    return () => silenciarEfectos(false)
-  }, [silencio])
 
   // Voz: lee la consigna de cada fase (las pistas de la calibración las dice GuiaSilueta). En pausa se calla.
   useEffect(() => {
@@ -269,20 +242,6 @@ export default function GamePage({ demo = false }) {
   const poseDelPez = celebrando || fase === 'preparando' ? 'celebra' : fase === 'consigna' ? 'atrapa' : 'reposo'
   const pez = (ancho) => <Mascota especie="pez" pose={poseDelPez} habla={hablando} className={ancho} />
 
-  // Mover el slider con la música silenciada la vuelve a activar; el botón
-  // la reactiva con el volumen de antes (o el inicial si había quedado en 0).
-  const cambiarVolumen = (v) => {
-    setVolumen(v)
-    setSilencio(v === 0)
-  }
-  const alternarSilencio = () => {
-    if (silencio && volumen === 0) setVolumen(VOLUMEN_INICIAL)
-    setSilencio(s => !s)
-  }
-  useEffect(() => {
-    const audio = musicaRef.current
-    return () => audio?.pause() // al salir del juego no puede quedar sonando
-  }, [])
 
   const togglePausa = useCallback(() => {
     if (pausado) window.kinetix?.reanudar?.()
@@ -302,7 +261,6 @@ export default function GamePage({ demo = false }) {
           Hasta que el paciente esté bien detectado hay solo un fondo liso; cuando termina de entrar
           todo, arranca el juego. */}
       <Escena activa={guiando || CON_ESCENA.includes(fase)} onEntro={fase === 'preparando' ? () => setFase('consigna') : undefined} />
-      <audio ref={musicaRef} src={musica} loop preload="auto" />
 
       <BarraSuperior
         conPausa={CON_PAUSA.includes(fase)}
@@ -341,13 +299,10 @@ export default function GamePage({ demo = false }) {
         </div>
 
         {fase !== 'instrucciones' && <Contadores puntos={puntos} meta={meta} tiempo={tiempo} />}
-        {CON_MUSICA.includes(fase) && (
-          <ControlMusica volumen={volumen} silencio={silencio} onVolumen={cambiarVolumen} onSilencio={alternarSilencio} />
-        )}
 
         {/* La mano como cursor (CursorMano) está apagada por ahora; el código queda para más adelante. Para prenderla: descomentar el import y esta línea. */}
         {/* <CursorMano activo={!pausado && fase !== 'instrucciones'} areaRef={areaRef} /> */}
-        {fase !== 'instrucciones' && <BotonVoz posicion="bottom-[61px]">{fase === 'calibracion' && <BotonGirarCamara />}</BotonVoz>}
+        {fase !== 'instrucciones' && <BotonVoz>{fase === 'calibracion' && <BotonGirarCamara />}</BotonVoz>}
 
         {fase === 'calibracion' && (
           <>

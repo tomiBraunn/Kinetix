@@ -6,7 +6,6 @@ import Logo from '../../components/Logo'
 import { kinetixAI } from '../../ia/KinetixAI'
 import { PUNTOS_SILUETA, evaluar, vistaPara } from '../../ia/calibracion'
 import { hablar } from '../../ia/voz'
-import { estiloSobreBotonApp } from '../../lib/appMovil'
 import { MascotaDelGlobo } from '../Mascota'
 import '../guia.css'
 import { MENSAJES, esFestejo, textoMensaje } from './mensajes'
@@ -68,39 +67,6 @@ export function Contadores({ puntos, tiempo, meta = null }) {
         <img src={iconoReloj} alt="" className="block size-[14px]" />
         <span className="ml-0.5 font-bold">Tiempo:</span>
         <span className="ml-[7px] font-black">{mmss(tiempo)}</span>
-      </div>
-    </div>
-  )
-}
-
-// ─── Volumen de la música ───────────────────────────────────────────────────
-// Abajo a la derecha (abajo a la izquierda está el esqueleto de la detección), con el
-// mismo estilo de pastilla que los contadores (el diseño de Figma no trae este control).
-// Silenciado, el slider queda en 0 pero se acuerda del volumen anterior para cuando se
-// vuelve a activar.
-export function ControlMusica({ volumen, silencio, onVolumen, onSilencio }) {
-  const nivel = silencio ? 0 : volumen
-  const icono = nivel === 0 ? 'volume_off' : nivel < 0.5 ? 'volume_down' : 'volume_up'
-  return (
-    <div style={estiloSobreBotonApp} className="pointer-events-none absolute inset-x-0 bottom-[15px] z-20 mx-auto flex max-w-[402px] justify-end px-[15px]">
-      <div className="pointer-events-auto flex h-[38px] w-fit items-center gap-1 rounded-[10px] border border-[#e3e3e3] bg-[rgba(228,226,235,0.75)] pl-1 pr-3 shadow-[0_1.966px_1.966px_rgba(0,0,0,0.25)]">
-        <button
-          onClick={onSilencio}
-          aria-label={silencio ? 'Activar la música' : 'Silenciar la música'}
-          aria-pressed={silencio}
-          className="grid size-[34px] place-items-center rounded-lg text-primary-dark"
-        >
-          <span className="material-symbols-rounded select-none text-[24px]" aria-hidden="true">{icono}</span>
-        </button>
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value={Math.round(nivel * 100)}
-          onChange={(e) => onVolumen(e.target.value / 100)}
-          aria-label="Volumen de la música"
-          className="w-[96px] accent-[#b11c6c]"
-        />
       </div>
     </div>
   )

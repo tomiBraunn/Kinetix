@@ -1,6 +1,5 @@
-// Silencia o reactiva la voz de las indicaciones (ver ia/voz.js). Abajo a la derecha, con el mismo
-// estilo de pastilla que el control de música del Surf (el diseño de Figma no trae este botón);
-// `posicion` mueve el botón cuando ese rincón está ocupado (en el Surf va arriba del volumen).
+// Silencia o reactiva la voz de las indicaciones (ver ia/voz.js). Abajo a la derecha (el diseño de
+// Figma no trae este botón); `posicion` lo mueve cuando ese rincón está ocupado.
 // `children`: otros botones del mismo rincón, a su izquierda (ej. "Girar cámara" en la calibración).
 import { useVoz, alternarSilencio } from '../ia/voz'
 import { estiloSobreBotonApp } from '../lib/appMovil'
