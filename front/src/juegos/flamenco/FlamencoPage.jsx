@@ -228,9 +228,10 @@ export default function FlamencoPage({ demo = false }) {
 
   // Salir antes de tiempo: si ya hubo repeticiones se guardan; si no, no hay nada que guardar
   const volver = useCallback(() => {
+    if (demo) return // en la demo, "Salir" no hace nada
     if (hayAlgoQueGuardar(estadoRef.current)) terminarSesion()
-    navigate(demo ? '/demo' : '/juego')
-  }, [terminarSesion, navigate])
+    navigate('/juego')
+  }, [demo, terminarSesion, navigate])
 
   // Salir por otro camino (el "atrás" del navegador, por ejemplo) no pasa por "volver": lo jugado
   // se guarda igual y la grabación no puede quedar andando sobre una cámara ya cerrada.

@@ -11,6 +11,12 @@
   transform: translate(-50%, -50%);
 }
 
+/* Dentro del iPhone, la barra de arriba (menú y "Salir") tiene margen hasta los bordes redondeados de la pantalla */
+.en-marco header.bg-bg-header {
+  padding-left: 32px;
+  padding-right: 32px;
+}
+
 /* Aviso para girar el celular: solo se ve en horizontal, en un celular */
 .girar-aviso {
   display: none;

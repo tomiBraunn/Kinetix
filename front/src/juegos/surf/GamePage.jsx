@@ -267,7 +267,7 @@ export default function GamePage({ demo = false }) {
         conSalir={fase !== 'completado'}
         pausado={pausado}
         onPausa={togglePausa}
-        onSalir={() => navigate(salida)}
+        onSalir={demo ? () => {} : () => navigate('/juego')} // en la demo, "Salir" no hace nada
       />
 
       <AvisoCamara />

@@ -31,7 +31,11 @@ export default function MarcoMovil({ children }) {
   const [intento, setIntento] = useState(0)
 
   useEffect(() => {
-    if (enMarco()) return
+    if (enMarco()) {
+      // Dentro del iPhone, la barra de arriba se separa de los bordes redondeados de la pantalla (ver MarcoMovil.css)
+      document.documentElement.classList.add('en-marco')
+      return () => document.documentElement.classList.remove('en-marco')
+    }
     if (esCelular()) {
       screen.orientation?.lock?.('portrait-primary').catch(() => {}) // solo funciona a pantalla completa en algunos navegadores
       return
@@ -84,8 +88,8 @@ export default function MarcoMovil({ children }) {
       {/* react-mockframe escala con transform y no achica su caja: este contenedor ocupa el tamaño ya escalado */}
       <div className="marco-escala relative z-10" style={{ width: ANCHO_CUERPO * escala, height: ALTO_CUERPO * escala }}>
         <div className="marco-centro">
-          <MockFrame device="iPhone 18 Pro" color="black" zoom={escala}>
-            {/* El juego ocupa toda la pantalla; la Dynamic Island queda encima, en el centro de arriba */}
+          <MockFrame device="iPhone 18 Pro" color="black" zoom={escala} hideNotch>
+            {/* El juego ocupa toda la pantalla, sin la Dynamic Island (hideNotch) */}
             <iframe
               key={`${juego}-${intento}`}
               src={juego}
