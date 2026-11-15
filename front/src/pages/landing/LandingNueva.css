@@ -467,3 +467,13 @@ html:has(.landing-nueva){scroll-behavior:smooth;-webkit-text-size-adjust:100%}
 .landing-nueva .st-fla .fla-a{animation:none;opacity:1}
 .landing-nueva .st-fla .fla-b{display:none}
 }
+
+/* Ajustes: sección de juegos (con Flamenco) y botones del hero en una fila */
+.landing-nueva .eyebrow{margin-bottom:14px;font:500 12.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--berry)}
+.landing-nueva .g-k{margin:22px 0 10px;font:500 12px/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.landing-nueva .lmk{margin-right:6px;font:500 12px/1 var(--mono);color:var(--berry)}
+.landing-nueva .art-flam .fla-izq{left:50%;bottom:4%;width:64%;aspect-ratio:352/460;transform:translateX(-50%)}
+.landing-nueva .game:hover .art-flam .fla-izq{transform:translateX(-50%) translateY(-8px) rotate(-2deg)}
+@media (min-width:641px){
+  .landing-nueva .cta-row{flex-wrap:nowrap}
+}

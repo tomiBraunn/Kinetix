@@ -281,8 +281,9 @@ export default function LandingNueva() {
         <section className="games" id="juegos" aria-labelledby="h-juegos">
           <div className="wrap">
             <div className="sec-head">
+              <p className="eyebrow">Los juegos</p>
               <h2 className="h2" id="h-juegos">Jugar es <span className="m">el ejercicio</span></h2>
-              <p className="sub">Cada ejercicio es un juego. La IA sigue los puntos del cuerpo que importan en cada movimiento.</p>
+              <p className="sub">Dos juegos, cada uno para una capacidad. La IA sigue los puntos del cuerpo que importan en cada movimiento.</p>
             </div>
 
             <div className="game-row">
@@ -299,7 +300,30 @@ export default function LandingNueva() {
                   <p className="g-k">Qué registra</p>
                   <ul className="tags"><li className="tag">Peces atrapados</li><li className="tag">Nivel alcanzado</li><li className="tag">Alertas de movimiento</li></ul>
                   <p className="g-k">Puntos que sigue la IA</p>
-                  <ul className="tags"><li className="tag lm">muñecas</li><li className="tag lm">caderas</li><li className="tag lm">tobillos</li></ul>
+                  <ul className="tags">
+                    <li className="tag lm"><span className="lmk">#15 #16</span>muñecas</li>
+                    <li className="tag lm"><span className="lmk">#23 #24</span>caderas</li>
+                    <li className="tag lm"><span className="lmk">#27 #28</span>tobillos</li>
+                  </ul>
+                </div>
+              </article>
+
+              <article className="game">
+                <div className="art art-flam">
+                  <Parque />
+                  <i className="mas fla-izq on" />
+                </div>
+                <div className="g-info">
+                  <p className="g-tag" style={vars({ '--c': 'var(--f-pink)' })}>Equilibrio y postura</p>
+                  <h3>Flamenco Challenge</h3>
+                  <p>Levantar una pierna como un flamenco y aguantar. Vos elegís cuántas repeticiones y si la rodilla sube de a poco o va siempre alta.</p>
+                  <p className="g-k">Qué registra</p>
+                  <ul className="tags"><li className="tag">Mejor tiempo en equilibrio</li><li className="tag">Intentos</li><li className="tag">Repeticiones</li></ul>
+                  <p className="g-k">Puntos que sigue la IA</p>
+                  <ul className="tags">
+                    <li className="tag lm"><span className="lmk">#25 #26</span>rodillas</li>
+                    <li className="tag lm"><span className="lmk">#27 #28</span>tobillos</li>
+                  </ul>
                 </div>
               </article>
             </div>
