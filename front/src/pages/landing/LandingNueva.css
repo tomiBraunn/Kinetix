@@ -477,3 +477,21 @@ html:has(.landing-nueva){scroll-behavior:smooth;-webkit-text-size-adjust:100%}
 @media (min-width:641px){
   .landing-nueva .cta-row{flex-wrap:nowrap}
 }
+
+/* Celular: el panel del kinesiólogo deja de parecer una notebook en miniatura y se ve como una tarjeta */
+@media (max-width:640px){
+  .landing-nueva .laptop-lid{padding:0;background:none;box-shadow:none;border-radius:0}
+  .landing-nueva .laptop-base,.landing-nueva .bar{display:none}
+  .landing-nueva .laptop{max-width:none}
+  .landing-nueva .panel{border-radius:24px;box-shadow:0 30px 50px -28px rgba(0,0,0,.55)}
+  .landing-nueva .main{padding:16px}
+  .landing-nueva .stat{padding:10px 12px}
+  .landing-nueva .stat b{font-size:20px}
+  .landing-nueva .stat small{font-size:11px}
+  .landing-nueva .head b{font-size:16px}
+  .landing-nueva .ai-g small{font-size:10px}
+  .landing-nueva .ai-g b{font-size:18px}
+  .landing-nueva .ai-c{font-size:12px;min-height:0}
+  .landing-nueva .back{font-size:12px}
+  .landing-nueva .stats{height:auto;align-content:start;grid-auto-rows:auto}
+}
