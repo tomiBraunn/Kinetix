@@ -7,6 +7,7 @@ import AppLayout from './components/layout/AppLayout'
 
 // Público
 import Landing from './pages/Landing.tsx'
+import LandingNueva from './pages/landing/LandingNueva.tsx'
 import Cartel from './pages/Cartel.tsx'
 import Login from './pages/Login.tsx'
 import Register from './pages/Register.tsx'
@@ -133,7 +134,9 @@ function Landingsite() {
     <BrowserRouter>
       <AnalyticsPageView />
       <Routes>
-        <Route path="/" element={isLandingHost ? <Landing /> : <Redirigir a={() => PREFIJO + '/login'} />} />
+        <Route path="/" element={isLandingHost ? <LandingNueva /> : <Redirigir a={() => PREFIJO + '/login'} />} />
+        {/* Landing anterior, en un slash propio */}
+        <Route path="/landing-vieja" element={isLandingHost ? <Landing /> : <Redirigir a={() => PREFIJO + '/login'} />} />
 
         {/* Demo en vivo de la landing: los juegos reales, sin cámara ni IA */}
         <Route path="/demo" element={<MarcoMovil><DemoPage /></MarcoMovil>} />
