@@ -106,6 +106,7 @@ export default function LandingNueva() {
               <p className="lead">Convertimos los ejercicios de kinesiología en juegos. Mientras el paciente juega, la IA mide su equilibrio y su movimiento, y vos ves cómo evoluciona desde tu panel.</p>
               <div className="cta-row">
                 <a className="btn btn-primary" href="/webapp/register" onClick={() => track('cta_click', { cta: 'hero_crear' })}>Crear cuenta</a>
+                <a className="btn btn-ghost" href="/demo" onClick={() => track('cta_click', { cta: 'hero_demo' })}>Probar demo</a>
                 <a className="btn btn-ghost" href="#conexion">Ver cómo funciona <svg className="ic"><use href="#i-down" /></svg></a>
               </div>
               <ul className="facts">
