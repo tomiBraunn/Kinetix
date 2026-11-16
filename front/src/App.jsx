@@ -117,7 +117,7 @@ function Webapp() {
           <Route path="/pacientes" element={<Pacientes />} />
           <Route path="/pacientes/nuevo" element={<CrearPaciente />} />
           <Route path="/pacientes/:id" element={<DetallePaciente />} />
-          <Route path="/games" element={esAppMovil ? <Games /> : <JuegosPlaceholder />} />
+          <Route path="/games" element={esAppMovil || esAdminGuardado() ? <Games /> : <JuegosPlaceholder />} />
           <Route path="/analisis" element={<Analisis />} />
           <Route path="/sesiones/:sesionId" element={<ResultadoSesion />} />
         </Route>
