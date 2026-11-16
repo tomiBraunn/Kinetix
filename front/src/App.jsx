@@ -33,6 +33,7 @@ import FlamencoPage from './juegos/flamenco/FlamencoPage'
 import EstrellasPage from './juegos/estrellas/EstrellasPage'
 import DemoPage from './pages/demo/DemoPage'
 import MarcoMovil from './pages/demo/MarcoMovil'
+import DemoAdmin from './pages/demo/DemoAdmin'
 
 // Todos los dominios de Vercel (kinetix-webapp, kinetix-ai, etc.) sirven el
 // mismo build — la landing vive solo en estos dominios (kinetix-ai.vercel.app y
@@ -151,6 +152,8 @@ function Landingsite() {
         <Route path="/demo" element={<MarcoMovil><DemoPage /></MarcoMovil>} />
         <Route path="/demo/surf" element={<MarcoMovil><GamePage demo /></MarcoMovil>} />
         <Route path="/demo/flamenco" element={<MarcoMovil><FlamencoPage demo /></MarcoMovil>} />
+        {/* Demo para admins: juego grabado + paciente + análisis, todo en un celular */}
+        <Route path="/demoadmin" element={<DemoAdmin />} />
 
         {/* Cartel de la feria de tecnología */}
         <Route path="/cartel" element={<Cartel />} />

@@ -40,7 +40,8 @@ export default function MarcoMovil({ children }) {
       screen.orientation?.lock?.('portrait-primary').catch(() => {}) // solo funciona a pantalla completa en algunos navegadores
       return
     }
-    const ajustar = () => setEscala(Math.min(1, (window.innerHeight - 48) / ALTO_CUERPO))
+    // Más grande que antes: crece hasta llenar el alto y el ancho que deja la tarjeta de la izquierda (tope 1.5)
+    const ajustar = () => setEscala(Math.max(0.5, Math.min(1.5, (window.innerHeight - 48) / ALTO_CUERPO, (window.innerWidth - 480) / ANCHO_CUERPO)))
     ajustar()
     window.addEventListener('resize', ajustar)
     return () => window.removeEventListener('resize', ajustar)
