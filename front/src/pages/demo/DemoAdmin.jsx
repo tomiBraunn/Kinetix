@@ -25,7 +25,6 @@ const ESCALA_MAC = 0.6667
 
 const SECCIONES = [
   { id: 'juego', label: 'Juego' },
-  { id: 'paciente', label: 'Paciente' },
   { id: 'analisis', label: 'Análisis' },
 ]
 
@@ -163,7 +162,6 @@ export default function DemoAdmin() {
 
   const url =
     seccion === 'juego' ? `/webapp/juego/${juego}?pacienteId=${pacienteId}`
-    : seccion === 'paciente' ? `/webapp/pacientes/${pacienteId}`
     : sesionId ? `/webapp/sesiones/${sesionId}`
     : null
 
