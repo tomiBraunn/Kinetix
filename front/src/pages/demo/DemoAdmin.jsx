@@ -7,6 +7,7 @@ import { api } from '../../lib/api'
 import { getSesiones } from '../../lib/sesiones'
 import imgPez from '../landing/assets/pez_celebra.svg'
 import imgFlamenco from '../landing/assets/fla_senala.svg'
+import Atraccion from './Atraccion'
 
 // /demoadmin: para presentar el proyecto desde la compu. Juego en un iPhone (vertical, como /demo) y
 // Paciente / Análisis en una MacBook Pro. Abajo: el selector de juego (con las mascotas) y el de sección.
@@ -70,15 +71,30 @@ export default function DemoAdmin() {
   const [error, setError] = useState(null)
   const [escala, setEscala] = useState({ celu: 1, mac: 1 })
   const [version, setVersion] = useState(0) // se usa para recargar los iframes al reiniciar
+  const [atrayendo, setAtrayendo] = useState(true) // pantalla de bienvenida hasta que se mueve el mouse
   const iframeRef = useRef(null)
   const [zoom, setZoom] = useState(null) // { min, max, step, valor } si la cámara del juego tiene zoom por hardware
 
   const reiniciar = () => {
+    setAtrayendo(true)
     setError(null)
     setSesionId(null)
     setSeccion('juego')
     setVersion((v) => v + 1)
   }
+
+  // Bienvenida: al mover el mouse se pasa a la demo (espera un segundo para no salir sola al cargar)
+  useEffect(() => {
+    if (!atrayendo) return
+    let listo = false
+    const t = setTimeout(() => { listo = true }, 1000)
+    const alMover = () => { if (listo) setAtrayendo(false) }
+    window.addEventListener('mousemove', alMover)
+    return () => {
+      clearTimeout(t)
+      window.removeEventListener('mousemove', alMover)
+    }
+  }, [atrayendo])
 
   // Al entrar: se busca (o crea una vez) el paciente demo
   const cargarPaciente = async () => {
@@ -151,6 +167,8 @@ export default function DemoAdmin() {
       </div>
     )
   }
+
+  if (atrayendo) return <Atraccion />
 
   const url =
     seccion === 'juego' ? `/webapp/juego/${juego}?pacienteId=${pacienteId}`
