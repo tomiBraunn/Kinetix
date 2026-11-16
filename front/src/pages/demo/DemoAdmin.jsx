@@ -154,8 +154,7 @@ export default function DemoAdmin() {
 
   const url =
     seccion === 'juego' ? `/webapp/juego/${juego}?pacienteId=${pacienteId}`
-    : sesionId ? `/webapp/sesiones/${sesionId}`
-    : null
+    : '/webapp/analisis' // el análisis normal de la webapp: muestra la sesión más reciente con todo el detalle y los videos
 
   const esCelu = seccion === 'juego'
   const boton = (activo) => ({
