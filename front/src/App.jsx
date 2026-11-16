@@ -60,8 +60,17 @@ function ConPaciente({ children }) {
   return <Navigate to="/juego" replace />
 }
 
+// Admins (es_admin en el usuario guardado al iniciar sesión) también pueden jugar desde la compu
+function esAdminGuardado() {
+  try {
+    return JSON.parse(localStorage.getItem('kinetix_user') || 'null')?.es_admin === true
+  } catch {
+    return false
+  }
+}
+
 function SoloApp({ children }) {
-  if (esAppMovil) return children
+  if (esAppMovil || esAdminGuardado()) return children
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center', fontFamily: 'sans-serif' }}>
       <div>

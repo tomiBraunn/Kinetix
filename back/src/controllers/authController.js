@@ -63,6 +63,12 @@ async function findAuthUserByEmail(email) {
   return (data?.users || []).find((u) => u.email === email) || null;
 }
 
+// Admins: lista de mails en ADMIN_EMAILS (separados por coma). Un admin puede jugar desde la web.
+function esAdmin(email) {
+  const lista = (process.env.ADMIN_EMAILS || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+  return lista.includes((email || '').toLowerCase());
+}
+
 function toUserPayload(k) {
   return {
     id: k.id,
@@ -71,6 +77,7 @@ function toUserPayload(k) {
     email: k.email,
     avatar_url: k.avatar_url,
     email_verificado: k.email_verificado,
+    es_admin: esAdmin(k.email),
   };
 }
 
