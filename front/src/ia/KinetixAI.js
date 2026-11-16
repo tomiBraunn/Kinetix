@@ -782,7 +782,13 @@ class KinetixAI {
         if (!this._pierna) break // sin el torso a la vista no se decide nada
         // Mal parado (se salió de cuadro, de costado...) no vale como pierna levantada: si estaba haciendo
         // la pose, se cierra la repetición en curso (cae por el mismo camino de "bajó la pierna")
-        const levantada = this._postura.ok && this._pierna.cumple
+        // Si la postura falla un instante con la pierna arriba (se movió, un frame dudoso), no se cierra la
+        // repetición: hay 1 s de gracia antes de contar que bajó la pierna.
+        const ahoraMs = performance.now()
+        if (this._postura.ok) this._posturaMalaMs = null
+        else if (this._posturaMalaMs == null) this._posturaMalaMs = ahoraMs
+        const graciaPostura = !this._postura.ok && this._piernaLevantada && ahoraMs - this._posturaMalaMs < 1000
+        const levantada = graciaPostura || (this._postura.ok && this._pierna.cumple)
 
         if (levantada === this._piernaLevantada) {
           this._piernaCnt = 0
