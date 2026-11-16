@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { MockFrame } from 'react-mockframe'
 import 'react-mockframe/styles/mockframe-iphones.css'
+import 'react-mockframe/styles/mockframe-laptops.css'
+import GradientBackground from '../../components/GradientBackground'
 import { api } from '../../lib/api'
 import { getSesiones } from '../../lib/sesiones'
+import imgPez from '../landing/assets/pez_celebra.svg'
+import imgFlamenco from '../landing/assets/fla_senala.svg'
 
-// /demoadmin: para presentar el proyecto desde la compu. Todo en una pantalla vertical (iPhone) con tres
-// secciones que se eligen abajo: Juego → Paciente → Análisis. Usa las mismas pantallas de la webapp dentro del
-// celular, así que se juega, se guarda y se ve igual que en la app. Solo para admins (ADMIN_EMAILS).
+// /demoadmin: para presentar el proyecto desde la compu. Juego en un iPhone (vertical, como /demo) y
+// Paciente / Análisis en una MacBook Pro. Abajo: el selector de juego (con las mascotas) y el de sección.
+// Usa las pantallas reales de la webapp dentro de los dispositivos. Solo para admins (ADMIN_EMAILS).
 
 // Medidas del iPhone 18 Pro de react-mockframe (igual que MarcoMovil)
 const PANTALLA_W = 402
@@ -18,6 +22,11 @@ const SECCIONES = [
   { id: 'juego', label: 'Juego' },
   { id: 'paciente', label: 'Paciente' },
   { id: 'analisis', label: 'Análisis' },
+]
+
+const JUEGOS = [
+  { id: 'surf', nombre: 'Surf', img: imgPez },
+  { id: 'flamenco', nombre: 'Flamenco', img: imgFlamenco },
 ]
 
 const esAdminGuardado = () => {
@@ -50,32 +59,14 @@ async function ultimaSesion(pacienteId) {
 
 export default function DemoAdmin() {
   const [seccion, setSeccion] = useState('juego')
+  const [juego, setJuego] = useState('surf')
   const [pacienteId, setPacienteId] = useState(null)
   const [sesionId, setSesionId] = useState(null)
   const [error, setError] = useState(null)
-  const [escala, setEscala] = useState(1)
+  const [escala, setEscala] = useState({ celu: 1, mac: 1 })
   const [version, setVersion] = useState(0) // se usa para recargar los iframes al reiniciar
   const iframeRef = useRef(null)
   const [zoom, setZoom] = useState(null) // { min, max, step, valor } si la cámara del juego tiene zoom por hardware
-
-  // La cámara la abre el juego (dentro del celular): se busca su track y se leen los límites de zoom
-  useEffect(() => {
-    const buscar = () => {
-      const track = iframeRef.current?.contentWindow?.kinetixStream?.getVideoTracks?.()[0]
-      const caps = track?.getCapabilities?.()
-      if (!track || !caps?.zoom) return setZoom(null)
-      setZoom((z) => ({ min: caps.zoom.min, max: caps.zoom.max, step: caps.zoom.step || 0.1, valor: z?.valor ?? track.getSettings().zoom ?? caps.zoom.min }))
-    }
-    buscar()
-    const t = setInterval(buscar, 1000)
-    return () => clearInterval(t)
-  }, [version, seccion])
-
-  const cambiarZoom = (valor) => {
-    const track = iframeRef.current?.contentWindow?.kinetixStream?.getVideoTracks?.()[0]
-    setZoom((z) => ({ ...z, valor }))
-    track?.applyConstraints({ advanced: [{ zoom: valor }] }).catch((e) => setError(`No se pudo cambiar el zoom: ${e.message}`))
-  }
 
   const reiniciar = async () => {
     setError(null)
@@ -91,7 +82,10 @@ export default function DemoAdmin() {
 
   useEffect(() => {
     if (!esAdminGuardado()) return
-    const ajustar = () => setEscala(Math.max(0.5, Math.min(1.5, (window.innerHeight - 150) / ALTO_CUERPO)))
+    const ajustar = () => setEscala({
+      celu: Math.max(0.5, Math.min(1.5, (window.innerHeight - 170) / ALTO_CUERPO)),
+      mac: Math.max(0.5, Math.min(1.6, (window.innerWidth - 80) / 960, (window.innerHeight - 200) / 624)),
+    })
     ajustar()
     window.addEventListener('resize', ajustar)
     reiniciar()
@@ -119,6 +113,25 @@ export default function DemoAdmin() {
     }
   }, [seccion, pacienteId])
 
+  // La cámara la abre el juego (dentro del celular): se busca su track y se leen los límites de zoom
+  useEffect(() => {
+    const buscar = () => {
+      const track = iframeRef.current?.contentWindow?.kinetixStream?.getVideoTracks?.()[0]
+      const caps = track?.getCapabilities?.()
+      if (!track || !caps?.zoom) return setZoom(null)
+      setZoom((z) => ({ min: caps.zoom.min, max: caps.zoom.max, step: caps.zoom.step || 0.1, valor: z?.valor ?? track.getSettings().zoom ?? caps.zoom.min }))
+    }
+    buscar()
+    const t = setInterval(buscar, 1000)
+    return () => clearInterval(t)
+  }, [version, seccion, juego])
+
+  const cambiarZoom = (valor) => {
+    const track = iframeRef.current?.contentWindow?.kinetixStream?.getVideoTracks?.()[0]
+    setZoom((z) => ({ ...z, valor }))
+    track?.applyConstraints({ advanced: [{ zoom: valor }] }).catch((e) => setError(`No se pudo cambiar el zoom: ${e.message}`))
+  }
+
   if (!esAdminGuardado()) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center', fontFamily: 'sans-serif' }}>
@@ -131,20 +144,34 @@ export default function DemoAdmin() {
   }
 
   const url =
-    seccion === 'juego' ? `/webapp/juego?pacienteId=${pacienteId}`
+    seccion === 'juego' ? `/webapp/juego/${juego}?pacienteId=${pacienteId}`
     : seccion === 'paciente' ? `/webapp/pacientes/${pacienteId}`
     : sesionId ? `/webapp/sesiones/${sesionId}`
     : null
 
+  const esCelu = seccion === 'juego'
+  const boton = (activo) => ({
+    padding: '10px 18px',
+    borderRadius: 999,
+    border: 0,
+    fontWeight: 700,
+    cursor: 'pointer',
+    background: activo ? '#2B319C' : 'transparent',
+    color: activo ? '#fff' : '#1a237e',
+  })
+
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '16px', background: 'linear-gradient(180deg,#2f8fe8,#7cc4f6)', fontFamily: 'sans-serif' }}>
-      <div style={{ width: ANCHO_CUERPO * escala, height: ALTO_CUERPO * escala, position: 'relative' }}>
-        <div style={{ position: 'absolute', top: 0, left: '50%', transform: `translateX(-50%) scale(${escala})`, transformOrigin: 'top center' }}>
-          <MockFrame device="iPhone 18 Pro" color="black" hideNotch>
+    <div className="relative flex min-h-screen flex-col items-center justify-center gap-5 overflow-hidden p-6">
+      {/* Mismo fondo que /demo */}
+      <GradientBackground />
+
+      <div className="relative z-10 flex flex-1 items-center justify-center">
+        {esCelu ? (
+          <MockFrame device="iPhone 18 Pro" color="black" zoom={escala.celu} hideNotch>
             {url ? (
               <iframe
                 ref={iframeRef}
-                key={`${seccion}-${version}-${url}`}
+                key={`${seccion}-${juego}-${version}`}
                 src={url}
                 title="Demo admin"
                 allow="camera"
@@ -156,52 +183,62 @@ export default function DemoAdmin() {
               </div>
             )}
           </MockFrame>
-        </div>
+        ) : (
+          <MockFrame device="MacBook Pro" color="space-black" zoom={escala.mac}>
+            {url ? (
+              <iframe
+                ref={iframeRef}
+                key={`${seccion}-${version}-${url}`}
+                src={url}
+                title="Demo admin"
+                style={{ width: '100%', height: '100%', border: 0, display: 'block', background: '#fff' }}
+              />
+            ) : (
+              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', fontFamily: 'sans-serif', background: '#fff' }}>
+                Todavía no hay una sesión. Jugá primero en la sección Juego.
+              </div>
+            )}
+          </MockFrame>
+        )}
       </div>
 
-      {error && <p style={{ color: '#fff', background: '#b91c1c', padding: '6px 12px', borderRadius: 8, margin: 0 }}>{error}</p>}
+      {error && <p className="relative z-10 rounded-lg bg-red-700 px-3 py-1.5 text-white">{error}</p>}
 
-      {/* Zoom de la cámara: fuera del celular. Aparece solo si la cámara que usa el juego tiene zoom */}
-      {zoom && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(255,255,255,.85)', padding: '8px 16px', borderRadius: 999, color: '#1a237e', fontWeight: 700 }}>
+      {/* Zoom de la cámara: fuera del dispositivo. Aparece solo si la cámara del juego tiene zoom por hardware */}
+      {zoom && esCelu && (
+        <div className="relative z-10 flex items-center gap-3 rounded-full bg-white/85 px-4 py-2 font-bold text-[#1a237e]">
           <span>Zoom cámara</span>
-          <input
-            type="range"
-            min={zoom.min}
-            max={zoom.max}
-            step={zoom.step}
-            value={zoom.valor}
-            onChange={(e) => cambiarZoom(Number(e.target.value))}
-            style={{ width: 240 }}
-          />
+          <input type="range" min={zoom.min} max={zoom.max} step={zoom.step} value={zoom.valor} onChange={(e) => cambiarZoom(Number(e.target.value))} style={{ width: 240 }} />
           <span style={{ minWidth: 40 }}>{Number(zoom.valor).toFixed(1)}×</span>
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: 'rgba(255,255,255,.85)', padding: 8, borderRadius: 999 }}>
-        {SECCIONES.map((s) => (
-          <button
-            key={s.id}
-            onClick={() => setSeccion(s.id)}
-            style={{
-              padding: '10px 18px',
-              borderRadius: 999,
-              border: 0,
-              fontWeight: 700,
-              cursor: 'pointer',
-              background: seccion === s.id ? '#2B319C' : 'transparent',
-              color: seccion === s.id ? '#fff' : '#1a237e',
-            }}
-          >
-            {s.label}
+      {/* Abajo: selector de juego (con las mascotas) y selector de sección + reiniciar */}
+      <div className="relative z-10 flex flex-col items-center gap-3">
+        {esCelu && (
+          <div className="flex gap-3">
+            {JUEGOS.map((j) => (
+              <button
+                key={j.id}
+                onClick={() => setJuego(j.id)}
+                className={`flex items-center gap-2 rounded-2xl bg-white/85 px-4 py-2 font-bold text-[#1a237e] ${juego === j.id ? 'ring-4 ring-[#B11C6C]' : ''}`}
+              >
+                <img src={j.img} alt="" style={{ height: 44, width: 'auto' }} />
+                {j.nombre}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="flex items-center gap-2 rounded-full bg-white/85 p-2">
+          {SECCIONES.map((s) => (
+            <button key={s.id} onClick={() => setSeccion(s.id)} style={boton(seccion === s.id)}>
+              {s.label}
+            </button>
+          ))}
+          <button onClick={reiniciar} style={{ padding: '10px 18px', borderRadius: 999, border: 0, fontWeight: 700, cursor: 'pointer', background: '#B11C6C', color: '#fff' }}>
+            Reiniciar
           </button>
-        ))}
-        <button
-          onClick={reiniciar}
-          style={{ padding: '10px 18px', borderRadius: 999, border: 0, fontWeight: 700, cursor: 'pointer', background: '#B11C6C', color: '#fff' }}
-        >
-          Reiniciar
-        </button>
+        </div>
       </div>
     </div>
   )
