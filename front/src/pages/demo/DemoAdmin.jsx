@@ -84,7 +84,7 @@ export default function DemoAdmin() {
     if (!esAdminGuardado()) return
     const ajustar = () => setEscala({
       celu: Math.max(0.5, Math.min(1.5, (window.innerHeight - 170) / ALTO_CUERPO)),
-      mac: Math.max(0.5, Math.min(1.6, (window.innerWidth - 80) / 960, (window.innerHeight - 200) / 624)),
+      mac: Math.max(0.45, Math.min(0.9, (window.innerWidth - 160) / 960, (window.innerHeight - 280) / 624)), // más chica: deja lugar a los selectores de abajo
     })
     ajustar()
     window.addEventListener('resize', ajustar)
