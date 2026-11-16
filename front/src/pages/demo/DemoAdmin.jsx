@@ -180,7 +180,7 @@ export default function DemoAdmin() {
             key={`${seccion}-${version}-${url}`}
             src={url}
             title="Análisis"
-            style={{ width: 'min(1400px, 96vw)', height: 'calc(100vh - 230px)', minHeight: 420, border: 0, background: '#fff', borderRadius: 16, boxShadow: '0 20px 50px -20px rgba(0,0,0,.4)' }}
+            style={{ width: 'min(960px, 92vw)', height: 'calc(100vh - 230px)', minHeight: 420, border: 0, background: '#fff', borderRadius: 16, boxShadow: '0 20px 50px -20px rgba(0,0,0,.4)' }}
           />
         ) : esCelu ? (
           <MockFrame device="iPhone 18 Pro" color="black" zoom={escala.celu} hideNotch>
