@@ -169,7 +169,7 @@ export default function DemoAdmin() {
   })
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center gap-5 overflow-hidden p-6">
+    <div className="relative flex min-h-screen flex-col items-center justify-center gap-5 overflow-y-auto p-6">
       {/* Mismo fondo que /demo */}
       <GradientBackground />
 
@@ -181,7 +181,7 @@ export default function DemoAdmin() {
             key={`${seccion}-${version}-${url}`}
             src={url}
             title="Análisis"
-            style={{ width: 'min(1400px, 96vw)', height: 'calc(100vh - 150px)', border: 0, background: '#fff', borderRadius: 16, boxShadow: '0 20px 50px -20px rgba(0,0,0,.4)' }}
+            style={{ width: 'min(1400px, 96vw)', height: 'calc(100vh - 230px)', minHeight: 420, border: 0, background: '#fff', borderRadius: 16, boxShadow: '0 20px 50px -20px rgba(0,0,0,.4)' }}
           />
         ) : esCelu ? (
           <MockFrame device="iPhone 18 Pro" color="black" zoom={escala.celu} hideNotch>
