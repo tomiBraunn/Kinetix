@@ -43,24 +43,16 @@ const esAdminGuardado = () => {
 
 const token = () => localStorage.getItem('kinetix_token') || undefined
 
-// Paciente demo fijo: siempre el mismo. Se busca por su marca en observaciones; si no existe se crea una sola vez.
-// Lo que cambia entre demos son las sesiones (cada partida se guarda) y la foto (se puede sacar en el momento).
-const MARCA_DEMO = 'Paciente de demostración (demoadmin)'
-const AVATAR_DEMO = '/demo/senora-mayor.svg'
+// Siempre trabajamos sobre Liliana: se busca entre los pacientes del kinesiólogo logueado. No se crea ni se
+// modifica nada de su ficha: las sesiones de cada demo se suman a su historial.
+const NOMBRE_DEMO = 'liliana'
 
 async function obtenerPacienteDemo() {
   const pacientes = await api.get('/pacientes', { token: token() })
-  const existente = (pacientes || []).find((p) => p.observaciones === MARCA_DEMO)
-  if (existente) {
-    if (!existente.avatar_url) await api.put(`/pacientes/${existente.id}`, { avatar_url: AVATAR_DEMO }, { token: token() })
-    return existente.id
-  }
-  const creado = await api.post(
-    '/pacientes',
-    { nombre: 'Rosa', apellido: 'Gómez', fecha_nacimiento: '1953-04-12', tipo_lesion: 'Lesión de rodilla', observaciones: MARCA_DEMO, avatar_url: AVATAR_DEMO },
-    { token: token() },
-  )
-  return creado.id
+  const lilianas = (pacientes || []).filter((p) => (p.nombre || '').trim().toLowerCase().startsWith(NOMBRE_DEMO))
+  if (lilianas.length === 0) throw new Error('No encontré a Liliana entre tus pacientes')
+  if (lilianas.length > 1) throw new Error('Hay más de una Liliana: dejá solo una o decime su apellido')
+  return lilianas[0].id
 }
 
 // La sesión más reciente del paciente (la que dejó el juego al terminar)
