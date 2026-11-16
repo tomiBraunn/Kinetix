@@ -52,7 +52,7 @@ async function obtenerPacienteDemo() {
   const pacientes = await api.get('/pacientes', { token: token() })
   const existente = (pacientes || []).find((p) => p.observaciones === MARCA_DEMO)
   if (existente) {
-    if (existente.avatar_url !== AVATAR_DEMO) await api.put(`/pacientes/${existente.id}`, { avatar_url: AVATAR_DEMO }, { token: token() })
+    if (!existente.avatar_url) await api.put(`/pacientes/${existente.id}`, { avatar_url: AVATAR_DEMO }, { token: token() })
     return existente.id
   }
   const creado = await api.post(
