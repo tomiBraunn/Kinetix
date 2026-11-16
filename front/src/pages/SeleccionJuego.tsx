@@ -37,15 +37,6 @@ const JUEGOS: Juego[] = [
     imagen: imgFlamenco,
     ruta: '/juego/flamenco',
   },
-  {
-    id: 'estrellas',
-    nombre: 'Alcanzá la Estrella',
-    categoriaLabel: 'Equilibrio y coordinación',
-    categorias: ['equilibrio', 'coordinacion'],
-    duracion: '30 s',
-    descripcion: 'Estirá los brazos y tocá las estrellas que van apareciendo, sin mover los pies. Trabaja equilibrio y precisión.',
-    ruta: '/juego/estrellas',
-  },
 ]
 
 const FILTROS: { id: 'todos' | Categoria; label: string }[] = [

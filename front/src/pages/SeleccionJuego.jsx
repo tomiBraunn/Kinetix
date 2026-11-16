@@ -24,14 +24,6 @@ const JUEGOS = [
     imagen: imgFlamenco,
     ruta: '/juego/flamenco',
   },
-  {
-    id: 'estrellas',
-    nombre: 'Alcanzá la Estrella',
-    categoriaLabel: 'Equilibrio y coordinación',
-    duracion: '30 s',
-    descripcion: 'Estirá los brazos y tocá las estrellas sin mover los pies.',
-    ruta: '/juego/estrellas',
-  },
 ]
 
 // Pantalla de "¿qué paciente sos?" — se muestra cuando el kinesiólogo toca
