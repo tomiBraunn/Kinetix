@@ -39,12 +39,17 @@ const esAdminGuardado = () => {
 
 const token = () => localStorage.getItem('kinetix_token') || undefined
 
-// Paciente de prueba: se crea al entrar y en cada "Reiniciar". Después se completan sus datos en la sección Paciente.
-async function crearPacientePrueba() {
-  const hora = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+// Paciente demo fijo: siempre el mismo. Se busca por su marca en observaciones; si no existe se crea una sola vez.
+// Lo que cambia entre demos son las sesiones (cada partida se guarda) y la foto (se puede sacar en el momento).
+const MARCA_DEMO = 'Paciente de demostración (demoadmin)'
+
+async function obtenerPacienteDemo() {
+  const pacientes = await api.get('/pacientes', { token: token() })
+  const existente = (pacientes || []).find((p) => p.observaciones === MARCA_DEMO)
+  if (existente) return existente.id
   const creado = await api.post(
     '/pacientes',
-    { nombre: 'Paciente', apellido: `de prueba ${hora}`, fecha_nacimiento: null, tipo_lesion: null, observaciones: null },
+    { nombre: 'Rosa', apellido: 'Gómez', fecha_nacimiento: '1953-04-12', tipo_lesion: 'Lesión de rodilla', observaciones: MARCA_DEMO },
     { token: token() },
   )
   return creado.id
@@ -66,17 +71,24 @@ export default function DemoAdmin() {
   const [escala, setEscala] = useState({ celu: 1, mac: 1 })
   const [version, setVersion] = useState(0) // se usa para recargar los iframes al reiniciar
   const iframeRef = useRef(null)
+  const [fotoAbierta, setFotoAbierta] = useState(false)
+  const videoFotoRef = useRef(null)
+  const streamFotoRef = useRef(null)
   const [zoom, setZoom] = useState(null) // { min, max, step, valor } si la cámara del juego tiene zoom por hardware
 
-  const reiniciar = async () => {
+  const reiniciar = () => {
     setError(null)
     setSesionId(null)
     setSeccion('juego')
+    setVersion((v) => v + 1)
+  }
+
+  // Al entrar: se busca (o crea una vez) el paciente demo
+  const cargarPaciente = async () => {
     try {
-      setPacienteId(await crearPacientePrueba())
-      setVersion((v) => v + 1)
+      setPacienteId(await obtenerPacienteDemo())
     } catch (e) {
-      setError(e.message || 'No se pudo crear el paciente de prueba')
+      setError(e.message || 'No se pudo cargar el paciente de demostración')
     }
   }
 
@@ -88,7 +100,7 @@ export default function DemoAdmin() {
     })
     ajustar()
     window.addEventListener('resize', ajustar)
-    reiniciar()
+    cargarPaciente()
     return () => window.removeEventListener('resize', ajustar)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -130,6 +142,44 @@ export default function DemoAdmin() {
     const track = iframeRef.current?.contentWindow?.kinetixStream?.getVideoTracks?.()[0]
     setZoom((z) => ({ ...z, valor }))
     track?.applyConstraints({ advanced: [{ zoom: valor }] }).catch((e) => setError(`No se pudo cambiar el zoom: ${e.message}`))
+  }
+
+  // Cambiar la foto del paciente: se saca una en el momento con la cámara de la compu
+  const abrirFoto = async () => {
+    setFotoAbierta(true)
+    try {
+      streamFotoRef.current = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+      if (videoFotoRef.current) videoFotoRef.current.srcObject = streamFotoRef.current
+    } catch (e) {
+      setError(`No se pudo abrir la cámara: ${e.message}`)
+      setFotoAbierta(false)
+    }
+  }
+
+  const cerrarFoto = () => {
+    streamFotoRef.current?.getTracks().forEach((t) => t.stop())
+    streamFotoRef.current = null
+    setFotoAbierta(false)
+  }
+
+  const sacarFoto = async () => {
+    const video = videoFotoRef.current
+    if (!video || !pacienteId) return
+    const canvas = document.createElement('canvas')
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    canvas.getContext('2d').drawImage(video, 0, 0)
+    const blob = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', 0.9))
+    cerrarFoto()
+    try {
+      const formData = new FormData()
+      formData.append('foto', new File([blob], 'foto.jpg', { type: 'image/jpeg' }))
+      const { url } = await api.post('/upload/paciente-foto', formData, { token: token() })
+      await api.put(`/pacientes/${pacienteId}`, { avatar_url: url }, { token: token() })
+      setVersion((v) => v + 1) // recarga la ficha con la foto nueva
+    } catch (e) {
+      setError(e.message || 'No se pudo subir la foto')
+    }
   }
 
   if (!esAdminGuardado()) {
@@ -210,6 +260,22 @@ export default function DemoAdmin() {
           <span>Zoom cámara</span>
           <input type="range" min={zoom.min} max={zoom.max} step={zoom.step} value={zoom.valor} onChange={(e) => cambiarZoom(Number(e.target.value))} style={{ width: 240 }} />
           <span style={{ minWidth: 40 }}>{Number(zoom.valor).toFixed(1)}×</span>
+        </div>
+      )}
+
+      {seccion === 'paciente' && pacienteId && (
+        <button onClick={abrirFoto} className="relative z-10 rounded-full bg-white/85 px-4 py-2 font-bold text-[#1a237e]">
+          Cambiar foto (sacar en el momento)
+        </button>
+      )}
+
+      {fotoAbierta && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/70 p-6">
+          <video ref={videoFotoRef} autoPlay playsInline muted style={{ width: 480, maxWidth: '90vw', borderRadius: 16, transform: 'scaleX(-1)' }} />
+          <div className="flex gap-3">
+            <button onClick={sacarFoto} className="rounded-full bg-[#B11C6C] px-6 py-2 font-bold text-white">Sacar foto</button>
+            <button onClick={cerrarFoto} className="rounded-full bg-white px-6 py-2 font-bold text-[#1a237e]">Cancelar</button>
+          </div>
         </div>
       )}
 
