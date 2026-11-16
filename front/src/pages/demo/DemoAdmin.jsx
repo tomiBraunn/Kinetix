@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { MockFrame } from 'react-mockframe'
 import 'react-mockframe/styles/mockframe-iphones.css'
 import { api } from '../../lib/api'
@@ -55,6 +55,27 @@ export default function DemoAdmin() {
   const [error, setError] = useState(null)
   const [escala, setEscala] = useState(1)
   const [version, setVersion] = useState(0) // se usa para recargar los iframes al reiniciar
+  const iframeRef = useRef(null)
+  const [zoom, setZoom] = useState(null) // { min, max, step, valor } si la cámara del juego tiene zoom por hardware
+
+  // La cámara la abre el juego (dentro del celular): se busca su track y se leen los límites de zoom
+  useEffect(() => {
+    const buscar = () => {
+      const track = iframeRef.current?.contentWindow?.kinetixStream?.getVideoTracks?.()[0]
+      const caps = track?.getCapabilities?.()
+      if (!track || !caps?.zoom) return setZoom(null)
+      setZoom((z) => ({ min: caps.zoom.min, max: caps.zoom.max, step: caps.zoom.step || 0.1, valor: z?.valor ?? track.getSettings().zoom ?? caps.zoom.min }))
+    }
+    buscar()
+    const t = setInterval(buscar, 1000)
+    return () => clearInterval(t)
+  }, [version, seccion])
+
+  const cambiarZoom = (valor) => {
+    const track = iframeRef.current?.contentWindow?.kinetixStream?.getVideoTracks?.()[0]
+    setZoom((z) => ({ ...z, valor }))
+    track?.applyConstraints({ advanced: [{ zoom: valor }] }).catch((e) => setError(`No se pudo cambiar el zoom: ${e.message}`))
+  }
 
   const reiniciar = async () => {
     setError(null)
@@ -122,6 +143,7 @@ export default function DemoAdmin() {
           <MockFrame device="iPhone 18 Pro" color="black" hideNotch>
             {url ? (
               <iframe
+                ref={iframeRef}
                 key={`${seccion}-${version}-${url}`}
                 src={url}
                 title="Demo admin"
@@ -138,6 +160,23 @@ export default function DemoAdmin() {
       </div>
 
       {error && <p style={{ color: '#fff', background: '#b91c1c', padding: '6px 12px', borderRadius: 8, margin: 0 }}>{error}</p>}
+
+      {/* Zoom de la cámara: fuera del celular. Aparece solo si la cámara que usa el juego tiene zoom */}
+      {zoom && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(255,255,255,.85)', padding: '8px 16px', borderRadius: 999, color: '#1a237e', fontWeight: 700 }}>
+          <span>Zoom cámara</span>
+          <input
+            type="range"
+            min={zoom.min}
+            max={zoom.max}
+            step={zoom.step}
+            value={zoom.valor}
+            onChange={(e) => cambiarZoom(Number(e.target.value))}
+            style={{ width: 240 }}
+          />
+          <span style={{ minWidth: 40 }}>{Number(zoom.valor).toFixed(1)}×</span>
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: 'rgba(255,255,255,.85)', padding: 8, borderRadius: 999 }}>
         {SECCIONES.map((s) => (

@@ -75,7 +75,7 @@ export async function openCamera() {
       // Si se cerró (closeCamera) mientras se esperaba el permiso, esta cámara ya nadie la va a
       // cerrar: se apaga acá, si no la luz quedaría prendida fuera del juego.
       if (_promise !== pedido) s.getTracks().forEach(t => t.stop())
-      else { _stream = s; camaraLista() }
+      else { _stream = s; window.kinetixStream = s; camaraLista() } // window.kinetixStream: la usa el control de zoom de /demoadmin
       return s
     })
     // Si falla (permiso denegado, cámara ocupada) no dejar la promesa rechazada
@@ -93,6 +93,7 @@ export function getStream() { return _stream }
 export function closeCamera() {
   _stream?.getTracks().forEach(t => t.stop())
   _stream = null
+  window.kinetixStream = null
   _promise = null
   camaraLista() // sin cámara abierta no hay nada que esperar ni que mostrar como error
 }
