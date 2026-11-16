@@ -18,6 +18,11 @@ const PANTALLA_H = 874
 const ANCHO_CUERPO = 434
 const ALTO_CUERPO = 905
 
+// La MacBook muestra la webapp a tamaño de laptop (1440 px de ancho, así la ficha usa el mismo layout que en el panel)
+const PANTALLA_MAC_W = 1440
+const PANTALLA_MAC_H = 936  // 624 / ESCALA_MAC: llena la pantalla del dispositivo (960 x 624)
+const ESCALA_MAC = 0.6667
+
 const SECCIONES = [
   { id: 'juego', label: 'Juego' },
   { id: 'paciente', label: 'Paciente' },
@@ -42,14 +47,18 @@ const token = () => localStorage.getItem('kinetix_token') || undefined
 // Paciente demo fijo: siempre el mismo. Se busca por su marca en observaciones; si no existe se crea una sola vez.
 // Lo que cambia entre demos son las sesiones (cada partida se guarda) y la foto (se puede sacar en el momento).
 const MARCA_DEMO = 'Paciente de demostración (demoadmin)'
+const AVATAR_DEMO = '/demo/senora-mayor.svg'
 
 async function obtenerPacienteDemo() {
   const pacientes = await api.get('/pacientes', { token: token() })
   const existente = (pacientes || []).find((p) => p.observaciones === MARCA_DEMO)
-  if (existente) return existente.id
+  if (existente) {
+    if (existente.avatar_url !== AVATAR_DEMO) await api.put(`/pacientes/${existente.id}`, { avatar_url: AVATAR_DEMO }, { token: token() })
+    return existente.id
+  }
   const creado = await api.post(
     '/pacientes',
-    { nombre: 'Rosa', apellido: 'Gómez', fecha_nacimiento: '1953-04-12', tipo_lesion: 'Lesión de rodilla', observaciones: MARCA_DEMO },
+    { nombre: 'Rosa', apellido: 'Gómez', fecha_nacimiento: '1953-04-12', tipo_lesion: 'Lesión de rodilla', observaciones: MARCA_DEMO, avatar_url: AVATAR_DEMO },
     { token: token() },
   )
   return creado.id
@@ -71,9 +80,6 @@ export default function DemoAdmin() {
   const [escala, setEscala] = useState({ celu: 1, mac: 1 })
   const [version, setVersion] = useState(0) // se usa para recargar los iframes al reiniciar
   const iframeRef = useRef(null)
-  const [fotoAbierta, setFotoAbierta] = useState(false)
-  const videoFotoRef = useRef(null)
-  const streamFotoRef = useRef(null)
   const [zoom, setZoom] = useState(null) // { min, max, step, valor } si la cámara del juego tiene zoom por hardware
 
   const reiniciar = () => {
@@ -144,44 +150,6 @@ export default function DemoAdmin() {
     track?.applyConstraints({ advanced: [{ zoom: valor }] }).catch((e) => setError(`No se pudo cambiar el zoom: ${e.message}`))
   }
 
-  // Cambiar la foto del paciente: se saca una en el momento con la cámara de la compu
-  const abrirFoto = async () => {
-    setFotoAbierta(true)
-    try {
-      streamFotoRef.current = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
-      if (videoFotoRef.current) videoFotoRef.current.srcObject = streamFotoRef.current
-    } catch (e) {
-      setError(`No se pudo abrir la cámara: ${e.message}`)
-      setFotoAbierta(false)
-    }
-  }
-
-  const cerrarFoto = () => {
-    streamFotoRef.current?.getTracks().forEach((t) => t.stop())
-    streamFotoRef.current = null
-    setFotoAbierta(false)
-  }
-
-  const sacarFoto = async () => {
-    const video = videoFotoRef.current
-    if (!video || !pacienteId) return
-    const canvas = document.createElement('canvas')
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-    canvas.getContext('2d').drawImage(video, 0, 0)
-    const blob = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', 0.9))
-    cerrarFoto()
-    try {
-      const formData = new FormData()
-      formData.append('foto', new File([blob], 'foto.jpg', { type: 'image/jpeg' }))
-      const { url } = await api.post('/upload/paciente-foto', formData, { token: token() })
-      await api.put(`/pacientes/${pacienteId}`, { avatar_url: url }, { token: token() })
-      setVersion((v) => v + 1) // recarga la ficha con la foto nueva
-    } catch (e) {
-      setError(e.message || 'No se pudo subir la foto')
-    }
-  }
-
   if (!esAdminGuardado()) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center', fontFamily: 'sans-serif' }}>
@@ -236,13 +204,15 @@ export default function DemoAdmin() {
         ) : (
           <MockFrame device="MacBook Pro" color="space-black" zoom={escala.mac}>
             {url ? (
-              <iframe
-                ref={iframeRef}
-                key={`${seccion}-${version}-${url}`}
-                src={url}
-                title="Demo admin"
-                style={{ width: '100%', height: '100%', border: 0, display: 'block', background: '#fff' }}
-              />
+              <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', background: '#fff' }}>
+                <iframe
+                  ref={iframeRef}
+                  key={`${seccion}-${version}-${url}`}
+                  src={url}
+                  title="Demo admin"
+                  style={{ position: 'absolute', top: 0, left: 0, width: PANTALLA_MAC_W, height: PANTALLA_MAC_H, border: 0, background: '#fff', transform: `scale(${ESCALA_MAC})`, transformOrigin: 'top left' }}
+                />
+              </div>
             ) : (
               <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', fontFamily: 'sans-serif', background: '#fff' }}>
                 Todavía no hay una sesión. Jugá primero en la sección Juego.
@@ -260,22 +230,6 @@ export default function DemoAdmin() {
           <span>Zoom cámara</span>
           <input type="range" min={zoom.min} max={zoom.max} step={zoom.step} value={zoom.valor} onChange={(e) => cambiarZoom(Number(e.target.value))} style={{ width: 240 }} />
           <span style={{ minWidth: 40 }}>{Number(zoom.valor).toFixed(1)}×</span>
-        </div>
-      )}
-
-      {seccion === 'paciente' && pacienteId && (
-        <button onClick={abrirFoto} className="relative z-10 rounded-full bg-white/85 px-4 py-2 font-bold text-[#1a237e]">
-          Cambiar foto (sacar en el momento)
-        </button>
-      )}
-
-      {fotoAbierta && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/70 p-6">
-          <video ref={videoFotoRef} autoPlay playsInline muted style={{ width: 480, maxWidth: '90vw', borderRadius: 16, transform: 'scaleX(-1)' }} />
-          <div className="flex gap-3">
-            <button onClick={sacarFoto} className="rounded-full bg-[#B11C6C] px-6 py-2 font-bold text-white">Sacar foto</button>
-            <button onClick={cerrarFoto} className="rounded-full bg-white px-6 py-2 font-bold text-[#1a237e]">Cancelar</button>
-          </div>
         </div>
       )}
 
