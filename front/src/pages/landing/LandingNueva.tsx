@@ -301,9 +301,9 @@ export default function LandingNueva() {
                   <ul className="tags"><li className="tag">Peces atrapados</li><li className="tag">Nivel alcanzado</li><li className="tag">Alertas de movimiento</li></ul>
                   <p className="g-k">Puntos que sigue la IA</p>
                   <ul className="tags">
-                    <li className="tag lm"><span className="lmk">#15 #16</span>muñecas</li>
-                    <li className="tag lm"><span className="lmk">#23 #24</span>caderas</li>
-                    <li className="tag lm"><span className="lmk">#27 #28</span>tobillos</li>
+                    <li className="tag lm">muñecas</li>
+                    <li className="tag lm">caderas</li>
+                    <li className="tag lm">tobillos</li>
                   </ul>
                 </div>
               </article>
@@ -321,8 +321,8 @@ export default function LandingNueva() {
                   <ul className="tags"><li className="tag">Mejor tiempo en equilibrio</li><li className="tag">Intentos</li><li className="tag">Repeticiones</li></ul>
                   <p className="g-k">Puntos que sigue la IA</p>
                   <ul className="tags">
-                    <li className="tag lm"><span className="lmk">#25 #26</span>rodillas</li>
-                    <li className="tag lm"><span className="lmk">#27 #28</span>tobillos</li>
+                    <li className="tag lm">rodillas</li>
+                    <li className="tag lm">tobillos</li>
                   </ul>
                 </div>
               </article>
