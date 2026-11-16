@@ -174,7 +174,16 @@ export default function DemoAdmin() {
       <GradientBackground />
 
       <div className="relative z-10 flex flex-1 items-center justify-center">
-        {esCelu ? (
+        {seccion === 'analisis' && url ? (
+          // Análisis: sin dispositivo, a pantalla completa (así se ve como en el panel)
+          <iframe
+            ref={iframeRef}
+            key={`${seccion}-${version}-${url}`}
+            src={url}
+            title="Análisis"
+            style={{ width: 'min(1400px, 96vw)', height: 'calc(100vh - 150px)', border: 0, background: '#fff', borderRadius: 16, boxShadow: '0 20px 50px -20px rgba(0,0,0,.4)' }}
+          />
+        ) : esCelu ? (
           <MockFrame device="iPhone 18 Pro" color="black" zoom={escala.celu} hideNotch>
             {url ? (
               <iframe
