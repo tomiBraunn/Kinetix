@@ -15,6 +15,8 @@ const PhaserGame = forwardRef(function PhaserGame({ headerHeight = 0 }, ref) {
     getGameCanvas: () => gameRef.current?.canvas ?? null,
     // El canvas de Phaser tiene que seguir el tamaño del área si la ventana cambia
     redimensionar: (w, h) => gameRef.current?.scale.resize(w, h),
+    // Termina la ronda ya (botón "Terminar sesión"): mismo cierre que cuando se acaba el tiempo o los peces
+    terminar: () => gameRef.current?.scene.getScene('EscenaPrincipal')?._finJuego?.(),
   }), [])
 
   useEffect(() => {

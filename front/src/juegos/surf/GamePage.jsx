@@ -323,6 +323,15 @@ export default function GamePage({ demo = false }) {
         {fase === 'jugando' && (
           <div aria-hidden="true" className="pointer-events-none absolute left-[4px] top-[152px] z-[16]">{pez('w-[100px]')}</div>
         )}
+        {fase === 'jugando' && (
+          <button
+            type="button"
+            onClick={() => phaserRef.current?.terminar()}
+            className="absolute bottom-[15px] left-[15px] z-[30] rounded-full bg-[#B11C6C] px-4 py-2 text-[13px] font-bold text-white shadow-md"
+          >
+            Terminar sesión
+          </button>
+        )}
 
         {fase === 'instrucciones' && !guiando && (
           <AntesDeEmpezar
